@@ -50,24 +50,41 @@ export function markBars(shift = 0) {
   return bars;
 }
 
-// The live marks don't jump straight to where the scroll puts them: each
-// animation frame they ease a step toward it (time constant FOLLOW_TAU), never
-// faster than FOLLOW_MAX_SPEED lines a second. Tied 1:1 to the scroll, a flick
-// spun the stack faster than a line per frame, which strobes rather than moves,
-// and uneven scroll events made it hop. Since the stack repeats every PERIOD
-// lines, only the last part of the gap is ever travelled — whole periods are
-// dropped, keeping the gap's sign so the stack never turns back mid-flick — so
-// it settles within a second and a half however far the scroll went.
-export const FOLLOW_TAU = 0.09; // s
-export const FOLLOW_MAX_SPEED = 8; // lines / s
+// The live marks move with the scroll, frame by frame: each animation frame
+// the stack moves as far as the scroll did, never faster than
+// FOLLOW_MAX_SPEED lines a second, and it stops the moment the scroll stops
+// (no easing, no catching up afterwards). Tied straight to the scroll
+// position, a flick spun the stack faster than a line per frame, which strobes
+// rather than moves.
+//
+// Capping a fast scroll leaves the stack out of step with the scroll. Since it
+// repeats every PERIOD lines, that's at most half a period, and it's worked off
+// only while you scroll: the stack moves up to FOLLOW_DRIFT_GAIN faster or
+// slower than the scroll (same direction, within the cap) until it's back in
+// step, so the top of the shelf / chapter still shows the exact logo. A jump of
+// more than FOLLOW_JUMP lines in one frame isn't a hand on the screen (a new
+// chapter, a restored position): the stack snaps along with the content.
+export const FOLLOW_MAX_SPEED = 6; // lines / s
+export const FOLLOW_DRIFT_GAIN = 0.5; // × the scroll's own motion
+export const FOLLOW_JUMP = 3 * PERIOD; // lines in one frame
 
-// One frame of that: the shift to draw `dt` seconds after drawing `shown`,
-// heading for `target`.
-export function followShift(shown, target, dt) {
-  const gap = (target - shown) % PERIOD; // % keeps the sign: the direction of travel
-  const eased = gap * (1 - Math.exp(-dt / FOLLOW_TAU));
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+// One frame of that: the shift to draw after `shown`, now that the scroll has
+// moved `moved` lines (to `target`) over `dt` seconds.
+export function followShift(shown, target, moved, dt) {
+  if (Math.abs(moved) > FOLLOW_JUMP) return target;
+  if (!moved) return shown;
   const cap = FOLLOW_MAX_SPEED * dt;
-  return target - gap + Math.max(-cap, Math.min(cap, eased));
+  let step = clamp(moved, -cap, cap);
+  // How far out of step that leaves the stack, as the nearest equivalent pose.
+  let drift = (target - shown - step) % PERIOD;
+  drift -= PERIOD * Math.round(drift / PERIOD);
+  const room = FOLLOW_DRIFT_GAIN * Math.abs(moved);
+  step += clamp(drift, -room, room);
+  // Never against the scroll, never over the cap.
+  if (Math.sign(step) === -Math.sign(moved)) step = 0;
+  return shown + clamp(step, -cap, cap);
 }
 
 // The mark at rest as SVG markup (bare <rect>s in MARK_W × MARK_H units).
