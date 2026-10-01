@@ -1,4 +1,4 @@
-# Webnovel Reader
+# Ream
 
 A minimal EPUB reader that renders like Webnovel's dark night-mode:
 Merriweather 18px / 1.8 line-height, `#1f2129` page, `#83848f` text,
@@ -28,6 +28,14 @@ Open the LAN URL (e.g. `http://192.168.1.40:5173`) on your phone while on the
 same WiFi to read on mobile. Note: the service worker / offline install only
 activates over HTTPS (or `localhost`), so LAN dev is online-only — see below
 to install it as a real offline app.
+
+## Logo & icons
+
+The mark — five stacked lines, the current one lit — is pure geometry in
+`src/lib/ream-mark.js`. The Library header draws it live (`src/brand.js`, where
+the stack scrolls with the shelf); `npm run icons` renders the same geometry
+into `public/` (`icon.svg`, the PWA PNGs, the maskable icon and
+`apple-touch-icon.png`). Re-run it after touching the mark and commit the output.
 
 ## Build
 

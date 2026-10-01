@@ -184,12 +184,19 @@ html, body {
   justify-content: space-between;
   padding: 0 20px;
 }
-.lib-header__title {
+/* Brand: the Ream mark + wordmark. The wordmark is pinned to Spectral (not
+   --font-serif, which may revert to Merriweather) — the name is set in it. */
+.lib-brand {
   margin: 0;
-  font-size: 21px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lib-brand__mark { flex: 0 0 auto; display: block; width: 26px; height: 24px; }
+.lib-brand__word {
+  font: 500 23px/1 "Spectral", Georgia, serif;
+  letter-spacing: 0.04em;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
 }
 .lib-header__actions { display: flex; align-items: center; gap: 6px; }
 .lib-round {

@@ -42,10 +42,10 @@ export default defineConfig({
       // so we suppress the plugin's own auto-injected registration script.
       registerType: "prompt",
       injectRegister: false,
-      includeAssets: ["icon.svg", "fonts/*.ttf"],
+      includeAssets: ["icon.svg", "*.png", "fonts/*.ttf"],
       workbox: {
         // Precache every built asset plus the fonts.
-        globPatterns: ["**/*.{js,css,html,svg,ttf,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ttf,woff2}"],
         // The dev-seed books (public/seed/*.epub) are a large, dev-only fixture
         // fetched on demand by a hidden long-press — never precache them.
         globIgnores: ["**/seed/**"],
@@ -55,16 +55,20 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       manifest: {
-        name: "Webnovel Reader",
-        short_name: "Reader",
-        description: "A private, offline EPUB reader in the Webnovel dark style.",
+        name: "Ream",
+        short_name: "Ream",
+        description: "A private, offline EPUB reader for long web novels.",
         start_url: "./",
         scope: "./",
         display: "standalone",
         background_color: "#1a1e27",
         theme_color: "#1a1e27",
+        // Generated from the mark by `npm run icons` (scripts/icons.mjs).
         icons: [
-          { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" },
+          { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),

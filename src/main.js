@@ -1,5 +1,5 @@
 // =========================================================================
-// Webnovel reader — a private, offline, on-device library. Entry module: it
+// Ream — a private, offline, on-device library for long web novels. Entry module: it
 // pulls the app's modules together, wires the static chrome (top bar, drawer,
 // select bar, install/update controls, file input, keyboard + drag-and-drop),
 // and boots.
@@ -19,6 +19,7 @@
 //   router       routing + the overlay/Back history stack
 //   import       .epub parsing, import/grouping, dev-seed
 //   library      home screen + multi-select
+//   brand        the Ream mark in the Library header (scroll-wired)
 //   info         info page + editors + volume sheet
 //   chapters     chapters screen + shared chapter-preview component
 //   reader       reading surface, drawer, resume, chapter-nav injection
@@ -32,6 +33,7 @@ import { go, closeOverlay, overlayOpen } from "./router.js";
 import { renderLibrary, setLibFilter, exitSelection, isSelecting, confirmGrouping, confirmDeleteSelection } from "./library.js";
 import { openDrawer, closeDrawer, goChapter, flushReadingPosition, hasRendition } from "./reader.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
+import { mountBrandMark } from "./brand.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
   applyUpdate, hideUpdateBanner,
@@ -150,6 +152,7 @@ async function migrateLegacy() {
 
 (async function start() {
   collectRefs();
+  mountBrandMark();
   wireEvents();
   try {
     await loadState();

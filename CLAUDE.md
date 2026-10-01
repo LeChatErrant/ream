@@ -1,4 +1,4 @@
-# Webnovel Reader
+# Ream (repo: webnovel-reader)
 
 A private, offline EPUB reader (PWA). Static Vite build; everything runs
 on-device (books, covers, progress live in IndexedDB). See [README.md](README.md)
@@ -45,6 +45,6 @@ Whether prompted or shipping by default, follow this exactly:
 5. **Report back as feedback**: old → new version and the run result, e.g.
    *"Deployed v0.1.1 (was 0.1.0) — GitHub Pages run succeeded."*
 
-The live footer reads `<package.json version> · <UTC build time>`, so bumping
+The live footer reads `Ream <package.json version> · <short commit SHA>`, so bumping
 `package.json` is what makes each deployed build distinguishable and traceable
 (the version in a bug report maps back to the commit that set it via `git log`).

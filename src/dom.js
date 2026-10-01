@@ -70,6 +70,7 @@ export const el = {};
 export function collectRefs() {
   const ids = {
     libBody: "lib-body",
+    libMark: "lib-mark",
     libImport: "lib-import",
     libSearch: "lib-search",
     libSearchRow: "lib-search-row",

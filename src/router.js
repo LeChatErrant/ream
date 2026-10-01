@@ -12,6 +12,8 @@ import { renderChapters, teardownChapters } from "./chapters.js";
 
 function setRouteChrome(route) {
   document.getElementById("app").dataset.route = route;
+  // The reader titles the page after the book; everywhere else is just Ream.
+  if (route !== "reader") document.title = "Ream";
   if (route !== "reader") {
     closeDrawer();
     destroyRendition();

@@ -9,9 +9,11 @@
     <meta name="theme-color" content="#1a1e27" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Reader" />
+    <meta name="apple-mobile-web-app-title" content="Ream" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- The manifest link + service worker are injected by vite-plugin-pwa. -->
-    <title>Library</title>
+    <title>Ream</title>
   </head>
   <body>
     <div id="app" data-route="library">
@@ -21,7 +23,12 @@
            ================================================================== -->
       <section id="library" class="screen library">
         <header class="lib-header">
-          <h1 class="lib-header__title">Library</h1>
+          <!-- Brand: the Ream mark (bars drawn + scroll-wired by src/brand.js)
+               and the Spectral wordmark. -->
+          <h1 class="lib-brand">
+            <svg id="lib-mark" class="lib-brand__mark" viewBox="0 0 120 110" aria-hidden="true"></svg>
+            <span class="lib-brand__word">Ream</span>
+          </h1>
           <div class="lib-header__actions">
             <button id="lib-search" class="lib-round" aria-label="Search books" title="Search">
               <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 16l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
@@ -47,7 +54,7 @@
             <span>Add to Home Screen for offline reading</span>
           </button>
           <p class="lib-footer__ver">
-            Version <span id="app-version">—</span>
+            Ream <span id="app-version">—</span>
             <button id="check-update" type="button">Check for updates</button>
             <span id="update-status" class="lib-footer__status" role="status"></span>
           </p>
@@ -202,7 +209,7 @@
       <div id="install-sheet" class="sheet" hidden>
         <div class="sheet-scrim" id="install-scrim"></div>
         <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="install-title">
-          <h2 id="install-title" class="sheet-title">Install this app</h2>
+          <h2 id="install-title" class="sheet-title">Install Ream</h2>
           <p class="sheet-lead">Add it to your Home Screen to open it like a normal app — it then works fully offline.</p>
           <ol class="sheet-steps">
             <li>Tap the <strong>Share</strong> button
