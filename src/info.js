@@ -11,7 +11,7 @@ import { dbPut } from "./db.js";
 import { stripVolume } from "./lib/text.js";
 import { chapterCount } from "./lib/chapters.js";
 import { formatBytes, formatPublished, formatAdded, formatLang, stripHtml, formatCompactNumber } from "./lib/format.js";
-import { COMPARISON_BOOKS, formatMultiplier, bestComparison, refTitle } from "./lib/comparisons.js";
+import { COMPARISON_BOOKS, formatMultiplier, bestComparison, refTitle, refShortTitle } from "./lib/comparisons.js";
 import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 import {
   overrideOf, displayTitle, bookPercent, bookIsStarted, seriesVolumes, currentVolume,
@@ -385,7 +385,7 @@ function paintRecap(targets, wordsFn, host, row) {
   host.append(row("Words read", formatCompactNumber(words)));
   const best = bestComparison(words);
   if (best) {
-    host.append(row("Like reading", `${formatMultiplier(best.ratio)} ${refTitle(best.ref)}`, () => showRecapSheet(words, best.ref)));
+    host.append(row("Like reading", `${formatMultiplier(best.ratio)} ${refShortTitle(best.ref)}`, () => showRecapSheet(words, best.ref)));
   }
 }
 

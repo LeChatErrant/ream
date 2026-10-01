@@ -529,11 +529,16 @@ html, body {
   border-bottom: 0;
   text-align: left;
   align-items: baseline;
+  gap: 12px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 .kv-link > :first-child { flex: none; white-space: nowrap; }
-.kv-link__v { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+/* One line, always: the reference names are kept short enough to fit a phone
+   (comparisons.js `short`), and anything that still overflows — a narrow
+   screen, a large system font — ends in "…" (the full list is one tap away). */
+.kv-link__v { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.kv-link__v > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kv-link__chev { flex: none; display: inline-flex; color: #5b636f; }
 .kv-link:hover .kv-link__v { color: var(--text-primary); }
 .kv-link:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
