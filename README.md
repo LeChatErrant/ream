@@ -52,8 +52,8 @@ to install it as a real offline app.
 The mark — five stacked lines, the current one lit — is pure geometry in
 `src/lib/ream-mark.js`. It is drawn live in two places (`src/brand.js`): the
 Library header, where the stack scrolls with the shelf, and the reader's menu
-button (in place of a burger), where it scrolls one line per line of text as
-you read; `npm run icons` renders the same geometry
+button (in place of a burger), where it scrolls at half the text's pace (one
+line per two lines of text) as you read; `npm run icons` renders the same geometry
 into `public/` (`icon.svg`, the PWA PNGs, the maskable icon and
 `apple-touch-icon.png`). Re-run it after touching the mark and commit the output.
 

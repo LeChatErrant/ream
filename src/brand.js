@@ -4,8 +4,8 @@
 // - Library header: wired to the shelf's scroll. As the books scroll up, lines
 //   scroll up through the mark (one line per LIB_LINE_PX).
 // - Reader menu button (in place of a burger): wired to the chapter's scroll by
-//   reader.js — one line of the mark per line of text (READER_LINE_PX), so the
-//   stack ticks along as you read.
+//   reader.js — at READER_RATIO of the text's own pace (one line of the mark
+//   per two lines of text), so the stack ticks along calmly as you read.
 //
 // The current line is always lit at the bottom, and at the top of the shelf /
 // chapter the mark rests on exactly the logo. Reduced motion keeps both still.
@@ -14,7 +14,8 @@ import { el } from "./dom.js";
 import { markBars, BAR } from "./lib/ream-mark.js";
 
 const LIB_LINE_PX = 48; // shelf scroll per line of the mark
-const READER_LINE_PX = 33; // ≈ one line of body text (18.5px × 1.78, reader-theme.css)
+const TEXT_LINE_PX = 33; // ≈ one line of body text (18.5px × 1.78, reader-theme.css)
+const READER_RATIO = 0.5; // the reader's mark moves at half the text's pace
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 // Fills an empty mark <svg> with its bars; returns paint(shift) to scroll it.
@@ -52,5 +53,5 @@ export function mountBrandMarks() {
 // The reader's chapter scroller moved (or a new chapter loaded): `px` is its
 // scrollTop. Called by reader.js alongside the chapter-progress line.
 export function scrollReaderMark(px) {
-  paintReader(px / READER_LINE_PX);
+  paintReader((px * READER_RATIO) / TEXT_LINE_PX);
 }
