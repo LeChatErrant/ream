@@ -22,7 +22,6 @@ export const COMPARISON_BOOKS = [
   { title: "Moby-Dick", author: "Herman Melville", words: 206000 },
   { title: "A Game of Thrones", author: "George R. R. Martin", words: 284000, part: "book 1" },
   { title: "The Lord of the Rings", author: "J. R. R. Tolkien", words: 470000, part: "all 3 books" },
-  { title: "War and Peace", author: "Leo Tolstoy", words: 587000 },
 ];
 
 // "The Lord of the Rings (all 3 books)" — the plain title otherwise.
