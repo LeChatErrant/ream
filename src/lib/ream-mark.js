@@ -16,6 +16,7 @@ export const MARK_H = 4 * PITCH + BAR; // 110
 // logo at rest; the last two only ever scroll into view. Scrolling cycles
 // through all seven, so the rest pose recurs every LINES.length lines.
 const LINES = [[0, 0], [8, 0], [0, 4], [12, 0], [0, 0], [4, 0], [0, 10]];
+export const PERIOD = LINES.length; // markBars(s + PERIOD) draws exactly markBars(s)
 
 // Shade by vertical position: top (oldest line, dimmest) → bottom (current).
 const SHADES = ["#343c48", "#454e5c", "#5b6472", "#8f98a6", "#eff1f5"];
@@ -47,6 +48,26 @@ export function markBars(shift = 0) {
     bars.push({ x: l, y, w: MARK_W - l - r, fill: shade(pos), opacity: Math.max(0, Math.min(1, edge)) });
   }
   return bars;
+}
+
+// The live marks don't jump straight to where the scroll puts them: each
+// animation frame they ease a step toward it (time constant FOLLOW_TAU), never
+// faster than FOLLOW_MAX_SPEED lines a second. Tied 1:1 to the scroll, a flick
+// spun the stack faster than a line per frame, which strobes rather than moves,
+// and uneven scroll events made it hop. Since the stack repeats every PERIOD
+// lines, only the last part of the gap is ever travelled — whole periods are
+// dropped, keeping the gap's sign so the stack never turns back mid-flick — so
+// it settles within a second however far the scroll went.
+export const FOLLOW_TAU = 0.09; // s
+export const FOLLOW_MAX_SPEED = 12; // lines / s
+
+// One frame of that: the shift to draw `dt` seconds after drawing `shown`,
+// heading for `target`.
+export function followShift(shown, target, dt) {
+  const gap = (target - shown) % PERIOD; // % keeps the sign: the direction of travel
+  const eased = gap * (1 - Math.exp(-dt / FOLLOW_TAU));
+  const cap = FOLLOW_MAX_SPEED * dt;
+  return target - gap + Math.max(-cap, Math.min(cap, eased));
 }
 
 // The mark at rest as SVG markup (bare <rect>s in MARK_W × MARK_H units).
