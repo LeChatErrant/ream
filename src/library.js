@@ -3,7 +3,7 @@
 // and series, and the multi-select-into-a-series mode. Tapping a book cover
 // opens its info page; tapping a series tile opens the series info page.
 // =========================================================================
-import { el, h, svg, ICON, coverNode, progressBar, attachLongPress } from "./dom.js";
+import { el, h, svg, coverNode, progressBar, attachLongPress } from "./dom.js";
 import { books, series, progressMap, ui, bookById, saveUi, deleteBook } from "./state.js";
 import { normalize, toRoman, stripVolume, longestCommonName } from "./lib/text.js";
 import { chapterCount } from "./lib/chapters.js";
@@ -102,9 +102,8 @@ export function renderLibrary() {
 }
 
 function continueSection(book) {
-  // Wide screens have room to say a little more: the author, the percentage
-  // beside the bar, and a round arrow as the explicit action (all hidden on
-  // the phone card). The arrow is decorative — the whole card is the button.
+  // Wide screens have room to say more: the author, the percentage beside the
+  // bar, and an explicit Continue button (all hidden on the phone card).
   const pct = bookPercent(book);
   const author = overrideOf(book, "author") || book.author;
   const card = h(
@@ -124,7 +123,7 @@ function continueSection(book) {
         h("span", { class: "continue-card__pct wide-only" }, `${pct} %`)
       )
     ),
-    h("span", { class: "continue-card__cta wide-only" }, svg(ICON.forward))
+    h("span", { class: "continue-card__cta wide-only" }, "Continue")
   );
   return h(
     "section",
