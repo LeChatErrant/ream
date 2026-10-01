@@ -114,6 +114,8 @@
 
 html {
   background: #1f2129 !important;
+  /* No tap highlight in the chapter either (see style.css). */
+  -webkit-tap-highlight-color: transparent !important;
 }
 body {
   background: #1f2129 !important;
@@ -247,7 +249,6 @@ html { scrollbar-width: none !important; }
   padding: 9px 13px 10px !important;
   cursor: pointer !important;
   font-family: var(--reader-ui) !important;
-  -webkit-tap-highlight-color: transparent !important;
   transition: background 0.15s, border-color 0.15s !important;
 }
 .chapter-end .cn-card:hover { background: #23262f !important; border-color: #363a46 !important; }

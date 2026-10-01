@@ -119,6 +119,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
+/* No tap highlight anywhere (inherited): Android paints a blue box over
+   whatever was tapped — the whole screen when it's a full-page target like the
+   reader's drawer scrim. Controls give their own :hover / :active feedback. */
+html { -webkit-tap-highlight-color: transparent; }
 #app { height: 100%; }
 #app.drag { outline: 2px dashed var(--dashed); outline-offset: -8px; }
 
@@ -531,7 +535,6 @@ html, body {
   align-items: baseline;
   gap: 12px;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 .kv-link > :first-child { flex: none; white-space: nowrap; }
 /* One line, always: the reference names are kept short enough to fit a phone
@@ -1631,7 +1634,6 @@ html, body {
   gap: 11px;
   padding: 11px 24px;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 .cprev__num {
   flex: 0 0 auto;
@@ -1680,7 +1682,6 @@ html, body {
   font: 500 13px var(--font-ui);
   color: #a8b0bc;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 .cprev__chev { color: #5b636f; display: inline-flex; }
 
