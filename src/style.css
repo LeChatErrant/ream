@@ -186,8 +186,9 @@ html, body {
   justify-content: space-between;
   padding: 0 20px;
 }
-/* Brand: the Ream mark + wordmark. The wordmark is pinned to Spectral (not
-   --font-serif, which may revert to Merriweather) — the name is set in it. */
+/* Brand: the Ream mark + wordmark. The wordmark is set like the rest of the
+   chrome (the UI face, as the old "Library" title was) — serif is kept for
+   book titles and text. */
 .lib-brand {
   margin: 0;
   display: flex;
@@ -196,8 +197,8 @@ html, body {
 }
 .lib-brand__mark { flex: 0 0 auto; display: block; width: 26px; height: 24px; }
 .lib-brand__word {
-  font: 500 23px/1 "Spectral", Georgia, serif;
-  letter-spacing: 0.04em;
+  font: 600 21px/1 var(--font-ui);
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 .lib-header__actions { display: flex; align-items: center; gap: 6px; }

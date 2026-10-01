@@ -65,7 +65,7 @@
   }
   .lib-header { height: 76px; gap: 20px; }
   .lib-brand__mark { width: 29px; height: 27px; }
-  .lib-brand__word { font-size: 26px; }
+  .lib-brand__word { font-size: 24px; }
 
   /* Search: an always-present field in the header (main.js moves the row in
      here); the phone's toggle button goes away. */
