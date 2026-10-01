@@ -42,8 +42,8 @@ describe("followShift", () => {
       shown = next;
     }
   });
-  it("only travels the last part of a long jump, and settles within a second", () => {
-    const drawn = follow(0, 900.4, 60);
+  it("only travels the last part of a long jump, and settles within a second and a half", () => {
+    const drawn = follow(0, 900.4, 90);
     expect(900.4 - drawn[0]).toBeLessThan(PERIOD);
     expect(drawn.at(-1)).toBeCloseTo(900.4, 2);
   });

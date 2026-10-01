@@ -57,9 +57,9 @@ export function markBars(shift = 0) {
 // and uneven scroll events made it hop. Since the stack repeats every PERIOD
 // lines, only the last part of the gap is ever travelled — whole periods are
 // dropped, keeping the gap's sign so the stack never turns back mid-flick — so
-// it settles within a second however far the scroll went.
+// it settles within a second and a half however far the scroll went.
 export const FOLLOW_TAU = 0.09; // s
-export const FOLLOW_MAX_SPEED = 12; // lines / s
+export const FOLLOW_MAX_SPEED = 8; // lines / s
 
 // One frame of that: the shift to draw `dt` seconds after drawing `shown`,
 // heading for `target`.
