@@ -4,6 +4,9 @@
    a cool near-black page with raised slate surfaces. The reading surface
    itself (inside the epub iframe) is styled separately by reader-theme.css
    and is intentionally left unchanged.
+
+   This file is the phone design — the reference. Tablet and desktop layouts
+   live in wide.css, layered on top behind min-width queries.
    ====================================================================== */
 :root {
   --page: #1a1e27;
@@ -38,7 +41,6 @@
   --danger-fill-hover: #b5443a;
 
   --bar-h: 52px;
-  --reading-col: 594px;
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Book/serif face — Spectral ships with the app (used by the reader), so the
      info page borrows it for titles and descriptions. EASY REVERT: set this
@@ -288,6 +290,8 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Bar + (wide-only) percentage; layout-neutral here, a row in wide.css. */
+.continue-card__progress { display: contents; }
 
 /* Grid of tiles */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 14px; row-gap: 16px; }
@@ -452,6 +456,9 @@ html, body {
 .sbar__icon:hover { background: var(--surface); color: var(--text-secondary); }
 
 .info-content { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+/* Layout wrappers (see renderInfo) — transparent on the phone, so the page is
+   one column in DOM order; wide.css turns them into the desktop grid. */
+.info-top, .info-cols, .info-side, .info-main { display: contents; }
 
 .info-hero { padding: 10px 24px 0; text-align: center; }
 .info-hero__cover {
@@ -658,15 +665,6 @@ html, body {
 .icon-btn:active { background: var(--row-current); }
 .icon-btn:disabled { opacity: 0.3; cursor: default; }
 .icon-btn:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
-
-/* On wider (desktop) viewports, align the title with the reading column. */
-@media (min-width: 768px) {
-  .title-block .title-block__book { font-size: 16px; }
-  .title-block {
-    padding-left: 0;
-    margin-left: max(0px, calc(50vw - var(--reading-col) / 2 - 56px));
-  }
-}
 
 /* ---- Reading surface --------------------------------------------------- */
 #viewer-wrap {
@@ -1008,6 +1006,7 @@ html, body {
   line-height: 1.5;
   color: var(--text-secondary);
 }
+.sheet-steps[hidden] { display: none; }
 .sheet-steps strong { color: var(--text-muted); font-weight: 600; }
 .sheet-steps svg { vertical-align: -3px; color: var(--text-muted); }
 .sheet-card .pill-btn { display: block; width: 100%; height: 44px; border-radius: 12px; font-size: 15px; font-weight: 600; }
@@ -1093,6 +1092,9 @@ html, body {
   padding-top: env(safe-area-inset-top);
 }
 .editor[hidden] { display: none; }
+/* Everything inside the editor lives in this panel (fills the screen here; a
+   centred dialog in wide.css). */
+.editor__panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .editor-bar {
   flex: 0 0 auto;
   display: flex;
@@ -1226,21 +1228,6 @@ html, body {
 .order-row__handle svg { pointer-events: none; }
 .order-row__title { flex: 1 1 auto; min-width: 0; font: 400 13.5px var(--font-ui); color: #a8b0bc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-row__range { flex: none; font: 400 11.5px var(--font-ui); color: #5b636f; }
-
-/* Wide screen: the volume + action sheets become centred modals. */
-@media (min-width: 1100px) {
-  .sheet-card--plain,
-  .sheet-card--actions {
-    left: 50%;
-    top: 50%;
-    bottom: auto;
-    transform: translate(-50%, -50%);
-    width: min(100%, 480px);
-    border: 1px solid var(--border-strong);
-    border-radius: 16px;
-    animation: none;
-  }
-}
 
 /* =========================================================================
    Install footnote — persistent, unobtrusive line pinned to the bottom of

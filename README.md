@@ -14,8 +14,26 @@ Everything runs locally in the browser — no book ever leaves your device.
 - One chapter per view, with an end-of-chapter Previous/Next block
 - Resumes the last book and reading position automatically (IndexedDB)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
-- Works on desktop and mobile (responsive)
-- `←` / `→` keys page through chapters
+- Designed for the phone, with a full tablet / desktop layout (see below)
+
+### On a computer
+
+The phone design is the reference; wider screens get their own arrangement of
+the same pieces (`src/wide.css`, two tiers: ≥ 640 px tablet, ≥ 1024 px desktop):
+
+- **Library** — a centred shelf with as many cover columns as fit, the search
+  field always in the header (`/` focuses it), and a drop-anywhere import target.
+  Right-click is the long-press: on a series it opens its menu, on a book it
+  starts multi-select (so does ⌘/Ctrl-click); the selection toolbar floats at
+  the bottom.
+- **Book / series page** — the cover beside the title and description, then
+  volumes + chapters on the left and details on the right.
+- **Reader** — the burger docks the chapter list beside the text (remembered);
+  a hairline under the top bar shows progress through the chapter.
+  Keys: `←` / `→` previous / next chapter · `Space` / `Shift+Space`,
+  `PageUp` / `PageDown`, `↑` / `↓`, `Home` / `End` scroll — also with focus in
+  the text.
+- Sheets become centred dialogs, the `⋯` menu a popover, editors a modal.
 
 ## Run (development)
 
@@ -94,7 +112,8 @@ one concern:
 - `src/reader.js` — reading surface, drawer, resume, chapter-nav injection
 - `src/pwa.js` — install prompt + service-worker update banner
 - `src/lib/` — pure, unit-tested helpers (`text`, `chapters`, `format` math)
-- `src/style.css` — app chrome (top bar, drawer, landing)
+- `src/style.css` — app chrome (top bar, drawer, landing) — the phone design
+- `src/wide.css` — tablet / desktop layer on top of it (min-width queries only)
 - `src/reader-theme.css` — the Webnovel-dark theme injected into each chapter
 - `public/fonts/` — Merriweather (OFL) static faces
 - `scripts/fetch-seed.mjs` — downloads the dev-seed books into `public/seed/`

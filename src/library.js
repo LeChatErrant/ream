@@ -10,7 +10,7 @@ import { chapterCount } from "./lib/chapters.js";
 import { formatAdded } from "./lib/format.js";
 import {
   displayTitle, seriesVolumes, seriesPercent, currentVolume, bookPercent,
-  continueSubtitle, continueTarget,
+  continueSubtitle, continueTarget, overrideOf,
 } from "./reading.js";
 import { openBook } from "./reader.js";
 import { openInfo } from "./router.js";
@@ -102,6 +102,10 @@ export function renderLibrary() {
 }
 
 function continueSection(book) {
+  // Wide screens have room to say more: the author, the percentage beside the
+  // bar, and an explicit Continue button (all hidden on the phone card).
+  const pct = bookPercent(book);
+  const author = overrideOf(book, "author") || book.author;
   const card = h(
     "button",
     { class: "continue-card", onclick: () => openBook(book.id) },
@@ -110,9 +114,16 @@ function continueSection(book) {
       "div",
       { class: "continue-card__text" },
       h("div", { class: "continue-card__title" }, displayTitle(book)),
+      author ? h("div", { class: "continue-card__author wide-only" }, author) : null,
       h("div", { class: "continue-card__sub" }, continueSubtitle(book)),
-      progressBar(bookPercent(book), "card")
-    )
+      h(
+        "div",
+        { class: "continue-card__progress" },
+        progressBar(pct, "card"),
+        h("span", { class: "continue-card__pct wide-only" }, `${pct} %`)
+      )
+    ),
+    h("span", { class: "continue-card__cta wide-only" }, "Continue")
   );
   return h(
     "section",
@@ -174,11 +185,12 @@ function seriesTile(s) {
     // Meta line (11c): "N volumes" — how much is in the series, never position.
     h("div", { class: "tile__meta" }, `${n} volume${n === 1 ? "" : "s"}`)
   );
-  // Tap opens the series page; long-press raises its actions (edit, series
-  // details, delete) without a detour through that page.
+  // Tap opens the series page; long-press (right-click on a computer) raises
+  // its actions (edit, series details, delete) without a detour through that
+  // page — at the pointer, on a wide screen.
   attachLongPress(tile, {
     canStart: () => !selection,
-    onLongPress: () => openInfoMenu(infoModel("series", s.id)),
+    onLongPress: (at) => openInfoMenu(infoModel("series", s.id), { at }),
     onTap: () => { if (!selection) openInfo("series", s.id); },
   });
   return tile;
@@ -194,7 +206,12 @@ function importTile() {
       h("span", { class: "import-box__plus" }, "+"),
       h("span", { class: "import-box__label" }, "Import")
     ),
-    h("div", { class: "tile__meta" }, ".epub from your files")
+    h(
+      "div",
+      { class: "tile__meta" },
+      h("span", { class: "narrow-only" }, ".epub from your files"),
+      h("span", { class: "wide-only" }, "Click, or drop .epub files")
+    )
   );
   // Tap imports; a long-press is the hidden dev-seed reset.
   attachSeedGesture(tile, pickFiles);
@@ -222,7 +239,8 @@ function emptyState() {
       { class: "empty__lead" },
       "Add an .epub from your files and it stays on this device — covers, chapters and your place in it."
     ),
-    cta
+    cta,
+    h("p", { class: "empty__hint wide-only" }, "Or drop .epub files anywhere in this window.")
   );
 }
 
@@ -242,7 +260,12 @@ function attachTileGestures(tile, book) {
   attachLongPress(tile, {
     canStart: () => !selection, // don't arm a new press while already selecting
     onLongPress: () => enterSelection(book.id),
-    onTap: () => (selection ? toggleSelect(book.id) : openInfo("book", book.id)),
+    // ⌘/Ctrl-click is the computer's way into multi-select, like a long-press.
+    onTap: (e) => {
+      if (selection) toggleSelect(book.id);
+      else if (e.metaKey || e.ctrlKey) enterSelection(book.id);
+      else openInfo("book", book.id);
+    },
   });
 }
 

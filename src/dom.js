@@ -43,6 +43,15 @@ export const ICON = {
 };
 
 // -------------------------------------------------------------------------
+// Screen-size tiers — the same breakpoints as wide.css. Below WIDE is the phone
+// layout (style.css alone); WIDE (tablet and up) gets centred dialogs and
+// anchored menus; DESK (desktop) gets the multi-column pages and the docked
+// reader sidebar.
+// -------------------------------------------------------------------------
+export const WIDE = matchMedia("(min-width: 640px)");
+export const DESK = matchMedia("(min-width: 1024px)");
+
+// -------------------------------------------------------------------------
 // Cover object URLs — created lazily from stored blobs and cached per book,
 // revoked only when a book is removed.
 // -------------------------------------------------------------------------
@@ -80,6 +89,7 @@ export function collectRefs() {
     topTitle: "book-title",
     chapterTitle: "chapter-title",
     titleBlock: "title-block",
+    topbar: "topbar",
     btnToc: "btn-toc",
     btnPrev: "btn-prev",
     btnNext: "btn-next",
@@ -123,6 +133,10 @@ export function collectRefs() {
     actionCard: "action-card",
     editor: "editor",
     installNote: "install-note",
+    installNoteText: "install-note-text",
+    installLead: "install-lead",
+    installStepsPhone: "install-steps-phone",
+    installStepsComputer: "install-steps-computer",
     installSheet: "install-sheet",
     installScrim: "install-scrim",
     installSheetClose: "install-sheet-close",
@@ -146,17 +160,37 @@ export function collectRefs() {
 // fired — on a phone it never triggered at all. Here the timer is only
 // cancelled once movement passes a small threshold (a real scroll), so a still
 // finger reliably reaches the hold.
+//
+// On a computer the same action is a right-click (or the keyboard's menu key):
+// `onLongPress` receives the viewport point it was raised at ({ x, y }), so a
+// wide screen can open its menu right there. `onTap` receives the click event
+// (for ⌘/Ctrl-click). A non-button target is made focusable and answers
+// Enter/Space, so the shelf is usable from the keyboard too.
 export function attachLongPress(node, { onLongPress, onTap, canStart = () => true, delay = 450, moveTolerance = 10 }) {
   let timer = null;
   let longPressed = false;
   let startX = 0;
   let startY = 0;
+  let lastPointerType = null;
   const clear = () => {
     if (timer) clearTimeout(timer);
     timer = null;
   };
+  if (node.tagName !== "BUTTON") {
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.addEventListener("keydown", (e) => {
+      if (e.target !== node || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      onTap(e);
+    });
+  }
   node.addEventListener("pointerdown", (e) => {
+    lastPointerType = e.pointerType;
     if (!canStart()) return;
+    // A mouse's secondary button is the desktop long-press: `contextmenu`
+    // (below) handles it, so it never arms the hold timer.
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     longPressed = false;
     startX = e.clientX;
     startY = e.clientY;
@@ -164,7 +198,7 @@ export function attachLongPress(node, { onLongPress, onTap, canStart = () => tru
     timer = setTimeout(() => {
       timer = null;
       longPressed = true;
-      onLongPress();
+      onLongPress({ x: startX, y: startY });
     }, delay);
   });
   node.addEventListener("pointermove", (e) => {
@@ -179,6 +213,17 @@ export function attachLongPress(node, { onLongPress, onTap, canStart = () => tru
   // iOS's `-webkit-touch-callout: none` handles the equivalent there; this is
   // the cross-browser counterpart. Suppress it whenever a press could start.
   node.addEventListener("contextmenu", (e) => {
+    // Not from a finger → a right-click or the menu key: run the long-press
+    // action at once, in place of the browser's own menu.
+    const type = e.pointerType || lastPointerType;
+    if (type !== "touch" && type !== "pen" && canStart()) {
+      e.preventDefault();
+      clear();
+      const r = node.getBoundingClientRect();
+      // The menu key reports no pointer position — anchor inside the target.
+      onLongPress(e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : { x: r.left + 12, y: r.top + 12 });
+      return;
+    }
     if (canStart() || longPressed) e.preventDefault();
   });
   node.addEventListener("click", (e) => {
@@ -188,7 +233,7 @@ export function attachLongPress(node, { onLongPress, onTap, canStart = () => tru
       longPressed = false;
       return;
     }
-    onTap();
+    onTap(e);
   });
 }
 

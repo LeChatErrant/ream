@@ -7,7 +7,7 @@
 // dismissing, so a plain dismiss (Back/scrim) always resolves the negative
 // default.
 // =========================================================================
-import { h } from "./dom.js";
+import { h, WIDE } from "./dom.js";
 import { el } from "./dom.js";
 import { armOverlay, closeOverlay } from "./router.js";
 
@@ -15,7 +15,11 @@ export function hideActionSheet() {
   el.actionSheet.hidden = true;
   el.actionCard.innerHTML = "";
 }
-export function showActionSheet(actions) {
+// On a phone this is a bottom sheet. On a wide screen, raised from a button
+// (`anchor`) or a right-click point (`at`: { x, y }), it is a small popover
+// menu placed right there instead — no Cancel row; a click outside or Escape
+// dismisses it. Without either it is a centred dialog.
+export function showActionSheet(actions, { anchor = null, at = null } = {}) {
   const card = el.actionCard;
   card.innerHTML = "";
   for (const a of actions) {
@@ -31,8 +35,37 @@ export function showActionSheet(actions) {
     );
   }
   card.append(h("button", { class: "action-item action-item--cancel", onclick: () => closeOverlay() }, "Cancel"));
+  const popover = WIDE.matches && !!(anchor || at);
+  el.actionSheet.classList.toggle("sheet--popover", popover);
+  card.style.left = card.style.top = "";
   el.actionSheet.hidden = false;
+  if (popover) placePopover(card, anchor, at);
   armOverlay(hideActionSheet);
+}
+
+// Position the popover card next to its anchor (below, right edges aligned) or
+// at the pointer, flipped to stay inside the viewport.
+function placePopover(card, anchor, at) {
+  const gap = 6;
+  const margin = 8;
+  const w = card.offsetWidth;
+  const ht = card.offsetHeight;
+  let x;
+  let y;
+  if (anchor) {
+    const r = anchor.getBoundingClientRect();
+    x = r.right - w;
+    y = r.bottom + gap;
+    if (y + ht > innerHeight - margin) y = r.top - gap - ht;
+  } else {
+    x = at.x;
+    y = at.y;
+    if (x + w > innerWidth - margin) x = at.x - w;
+    if (y + ht > innerHeight - margin) y = at.y - ht;
+  }
+  const clamp = (v, max) => Math.max(margin, Math.min(v, max - margin));
+  card.style.left = clamp(x, innerWidth - w) + "px";
+  card.style.top = clamp(y, innerHeight - ht) + "px";
 }
 
 export function showSuggestSheet(name, count) {

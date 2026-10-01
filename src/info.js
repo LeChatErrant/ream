@@ -126,21 +126,37 @@ export function renderInfo(kind, id) {
     );
   }
 
-  // Bar — back · ⋯ (no title; the title lives in the page).
+  // Bar — back · ⋯ (no title; the title lives in the page). Wide screens name
+  // where Back goes, and open the ⋯ menu as a popover under the button.
   root.append(
     h(
       "div",
       { class: "info-bar" },
-      h("button", { class: "sbar__icon", "aria-label": "Back", onclick: () => go({ route: "library" }) }, svg(ICON.back)),
+      h(
+        "button",
+        { class: "sbar__icon info-bar__back", "aria-label": "Back", onclick: () => go({ route: "library" }) },
+        svg(ICON.back),
+        h("span", { class: "info-bar__backlabel wide-only" }, "Library")
+      ),
       h("div", { class: "info-bar__spacer" }),
-      h("button", { class: "sbar__icon", "aria-label": "More", onclick: () => openInfoMenu(m) }, svg(ICON.more))
+      h("button", { class: "sbar__icon", "aria-label": "More", onclick: (e) => openInfoMenu(m, { anchor: e.currentTarget }) }, svg(ICON.more))
     )
   );
 
   const content = h("div", { class: "info-content" });
 
+  // Layout wrappers. On the phone they are `display: contents` — the page is a
+  // single column in exactly this DOM order. On a desktop (wide.css) `top`
+  // sets the cover beside the title, actions and description, and `cols`
+  // splits the rest: `main` (volumes + chapters) left, `side` (details +
+  // recap) right.
+  const top = h("div", { class: "info-top" });
+  const cols = h("div", { class: "info-cols" });
+  const side = h("div", { class: "info-side" });
+  const main = h("div", { class: "info-main" });
+
   // Hero.
-  content.append(
+  top.append(
     h(
       "div",
       { class: "info-hero" },
@@ -152,7 +168,7 @@ export function renderInfo(kind, id) {
 
   // Primary action.
   const ci = continueInfo(m);
-  content.append(
+  top.append(
     h(
       "div",
       { class: "info-actions" },
@@ -168,14 +184,14 @@ export function renderInfo(kind, id) {
   if (m.subjects.length) {
     const chips = h("div", { class: "info-chips" });
     for (const sub of m.subjects.slice(0, 6)) chips.append(h("span", { class: "info-chip" }, sub));
-    content.append(chips);
+    top.append(chips);
   }
 
   // Description — clamped to 4 lines with an inline "more".
   if (m.description) {
     const body = h("p", { class: "info-desc__text" }, stripHtml(m.description));
     const more = h("button", { class: "info-desc__more", onclick: () => { body.classList.add("expanded"); more.remove(); } }, "more");
-    content.append(h("div", { class: "info-desc" }, body, more));
+    top.append(h("div", { class: "info-desc" }, body, more));
     // Drop "more" if the text isn't actually clipped.
     requestAnimationFrame(() => {
       if (body.scrollHeight <= body.clientHeight + 2) more.remove();
@@ -201,7 +217,8 @@ export function renderInfo(kind, id) {
       h("div", { class: "info-trow" }, h("span", { class: "info-trow__k" }, label), h("span", { class: "info-trow__v" }, value))
     );
   }
-  content.append(table);
+  // Side-column heading on a desktop; the phone's table needs none.
+  side.append(h("div", { class: "lib-label info-sidelabel desk-only" }, "Details"), table);
 
   // Recap — "in other words" comparison against well-known books, once
   // there's something to compare. Fills in asynchronously the first time (it
@@ -213,7 +230,7 @@ export function renderInfo(kind, id) {
   const recapTargets = m.kind === "series" ? m.volumes : [m.book];
   if (recapTargets.some(bookIsStarted)) {
     const recapHost = h("div", { class: "info-recap" });
-    content.append(recapHost);
+    side.append(recapHost);
     paintRecap(recapTargets, () => (m.kind === "series" ? seriesWordsRead(m.series) : wordsRead(m.book)), recapHost);
   }
 
@@ -226,16 +243,16 @@ export function renderInfo(kind, id) {
       ? selectedVolumeId
       : (m.currentVolume?.id || (m.volumes[0] && m.volumes[0].id) || null);
     setSelectedVolumeId(selId);
-    content.append(h("div", { class: "lib-label info-vollabel" }, "Volumes"));
+    main.append(h("div", { class: "lib-label info-vollabel" }, "Volumes"));
     let offset = 0;
     for (const b of m.volumes) {
       const count = chapterCount(b);
       const start = offset + 1;
       const end = offset + count;
       offset = end;
-      content.append(volumeRow(m.series, b, start, end, selId));
+      main.append(volumeRow(m.series, b, start, end, selId));
     }
-    content.append(
+    main.append(
       h(
         "button",
         { class: "add-volume", onclick: () => addVolumeToSeries(m.series.id) },
@@ -251,7 +268,7 @@ export function renderInfo(kind, id) {
   if (m.kind === "series") {
     const host = h("div", { class: "info-vol-preview" });
     renderVolumePreview(m, selId, host);
-    content.append(host);
+    main.append(host);
   } else {
     const pv = previewItemsFor(m);
     const preview = chapterPreview(pv.items, {
@@ -259,9 +276,11 @@ export function renderInfo(kind, id) {
       anchorAbs: pv.anchorAbs,
       onSeeAll: () => openChapters(m.kind, m.id, { volId: pv.volId }),
     });
-    if (preview) content.append(preview);
+    if (preview) main.append(preview);
   }
 
+  cols.append(side, main);
+  content.append(top, cols);
   root.append(content);
   root.scrollTop = 0;
 }
@@ -288,7 +307,8 @@ function volumeRow(s, book, start, end, selId) {
     h("div", { class: "vrow__pct" }, pct >= 100 ? "100 %" : bookIsStarted(book) ? pct + " %" : "")
   );
   // Tap selects the volume — its chapters fill the list at the foot of the page.
-  // Long-press raises the single-volume view (continue, edit details, remove).
+  // Long-press (right-click on a computer) raises the single-volume view
+  // (continue, edit details, remove).
   attachLongPress(row, {
     onLongPress: () => showVolumeSheet(s, book, start, end),
     onTap: () => selectVolume(book.id),
@@ -373,8 +393,8 @@ function paintRecap(targets, wordsFn, host) {
 // "See more" — a plain full-screen list of every reference book against the
 // same word count, reusing the editor overlay shell without its Save button.
 function showRecapSheet(words) {
-  el.editor.innerHTML = "";
-  el.editor.append(
+  const panel = editorPanel();
+  panel.append(
     h(
       "div",
       { class: "editor-bar" },
@@ -397,7 +417,7 @@ function showRecapSheet(words) {
     );
   }
   body.append(table);
-  el.editor.append(body);
+  panel.append(body);
   el.editor.hidden = false;
   armOverlay(closeEditor);
 }
@@ -438,19 +458,20 @@ async function confirmDeleteVolume(book) {
   else go({ route: "library" });
 }
 
-// The ⋯ overflow menu on the info page.
-export function openInfoMenu(m) {
+// The ⋯ overflow menu on the info page (and a series tile's long-press).
+// `place` ({ anchor } or { at }) positions it as a popover on wide screens.
+export function openInfoMenu(m, place) {
   if (m.kind === "series") {
     showActionSheet([
       { label: "Edit details", onClick: () => showEditDetails(m) },
       { label: "Series details", onClick: () => showSeriesDetails(m.series) },
       { label: "Delete series", danger: true, onClick: () => confirmDeleteSeries(m.series) },
-    ]);
+    ], place);
   } else {
     showActionSheet([
       { label: "Edit details", onClick: () => showEditDetails(m) },
       { label: "Delete book", danger: true, onClick: () => confirmDeleteBook(m.book) },
-    ]);
+    ], place);
   }
 }
 
@@ -463,10 +484,18 @@ function closeEditor() {
   el.editor.hidden = true;
   el.editor.innerHTML = "";
 }
-function openEditorShell(title) {
+// The editor's contents live in one panel: full-screen on the phone, a centred
+// dialog over a dimmed page on wide screens (where #editor itself is the scrim).
+function editorPanel() {
   el.editor.innerHTML = "";
+  const panel = h("div", { class: "editor__panel", role: "dialog", "aria-modal": "true" });
+  el.editor.append(panel);
+  return panel;
+}
+function openEditorShell(title) {
+  const panel = editorPanel();
   const saveBtn = h("button", { class: "editor-save" }, "Save");
-  el.editor.append(
+  panel.append(
     h(
       "div",
       { class: "editor-bar" },
@@ -476,7 +505,7 @@ function openEditorShell(title) {
     )
   );
   const body = h("div", { class: "editor-body" });
-  el.editor.append(body);
+  panel.append(body);
   el.editor.hidden = false;
   armOverlay(closeEditor);
   return { body, saveBtn };

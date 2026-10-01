@@ -13,7 +13,7 @@ import ePub from "epubjs";
 // unstyled (dark-on-dark) text online, and permanently dark text offline
 // (that in-iframe request never hit the service-worker precache).
 import readerThemeCss from "./reader-theme.css?raw";
-import { el, h, svg, ICON, coverUrlFor } from "./dom.js";
+import { el, h, svg, ICON, coverUrlFor, DESK } from "./dom.js";
 import {
   progressMap, ui, bookById, seriesById, saveUi, putProgress, stashPendingProgress,
 } from "./state.js";
@@ -36,6 +36,8 @@ let flatToc = [];
 let tocExtras = []; // the book's hidden pages (cover, contents, notes…), shown in a drawer group
 let tocExtrasOpen = false; // is that drawer group expanded?
 let currentHref = null;
+let tocAnchoredHref = null; // chapter the drawer list was last scrolled to
+let progressContainer = null; // the epub.js scroller the chapter-progress line listens to
 // Per-chapter resume chip: the chapters the reader has dismissed it for this
 // session, plus the live chip element and the chapter it belongs to.
 let resumeDismissed = new Set();
@@ -271,6 +273,7 @@ export async function renderReader(lib, startHref = null) {
   }
   el.viewer.innerHTML = "";
   currentHref = null;
+  tocAnchoredHref = null;
   // Fresh book: forget any resume-chip dismissals and clear a stale chip.
   resumeDismissed = new Set();
   hideResumeChip();
@@ -279,6 +282,8 @@ export async function renderReader(lib, startHref = null) {
   updateChapterTitle(null);
   el.topTitle.textContent = displayTitle(lib);
   document.title = displayTitle(lib);
+  applyDock();
+  el.topbar.style.setProperty("--chapter-pct", "0%");
 
   // Populate the drawer (current book + chapters) immediately from stored
   // metadata, so the menu is usable the moment it opens — independent of how
@@ -306,6 +311,7 @@ export async function renderReader(lib, startHref = null) {
   rendition.themes.default({ "html, body": { background: "#1f2129 !important" } });
   rendition.hooks.content.register(injectReaderTheme);
   rendition.hooks.content.register(injectChapterNav);
+  rendition.hooks.content.register(forwardChapterKeys);
 
   el.btnPrev.disabled = false;
   el.btnNext.disabled = false;
@@ -365,6 +371,7 @@ export async function renderReader(lib, startHref = null) {
     // Re-render the drawer list so read-state and the highlight track the move.
     renderToc();
     updateChapterTitle(currentHref);
+    trackChapterProgress();
     // While a resume is still settling, don't persist the transient positions
     // epub.js reports on the way to the saved spot — they would overwrite the
     // good position with a half-restored one. restoreScrollAfter persists the
@@ -444,6 +451,10 @@ function updateDrawerBook() {
 // it. For a book inside a series the rows carry absolute numbers, so "Ch. 351"
 // in vol. 2 stays "Ch. 351".
 function renderToc() {
+  // Docked (desktop) the list stays on screen while you read, so a rebuild must
+  // not yank it back from wherever you scrolled it — it re-anchors only when
+  // the chapter changes. (Hidden in the phone drawer, it always re-anchors.)
+  const keepScroll = isDocked() && baseHref(currentHref) === tocAnchoredHref ? el.tocList.scrollTop : null;
   el.tocList.innerHTML = "";
   const total = flatToc.length;
   if (!total) return;
@@ -481,7 +492,7 @@ function renderToc() {
     el.tocList.append(h("li", null, btn));
   }
   renderTocExtras();
-  highlightToc(currentHref);
+  highlightToc(currentHref, keepScroll);
 }
 
 // The drawer's "Notes & extras" group — the epub's hidden pages (cover,
@@ -525,7 +536,7 @@ function renderTocExtras() {
 // short lead-in — the same framing whether you resumed at your furthest point
 // or jumped back into an earlier chapter.
 const TOC_LEAD = 2;
-function highlightToc(href) {
+function highlightToc(href, keepScroll = null) {
   const current = baseHref(href);
   let match = null;
   el.tocList.querySelectorAll("button").forEach((btn) => {
@@ -533,7 +544,12 @@ function highlightToc(href) {
     btn.classList.toggle("current", is);
     if (is) match = btn;
   });
+  if (keepScroll != null) {
+    el.tocList.scrollTop = keepScroll;
+    return;
+  }
   if (!match) return;
+  tocAnchoredHref = current;
   // Top-align the row TOC_LEAD chapters before the current one. Using the
   // rect delta (rather than offsetTop) keeps this correct even while the drawer
   // is still translated off-screen, and regardless of the offset parent.
@@ -837,9 +853,116 @@ export function refreshChapterNav() {
 }
 
 // -------------------------------------------------------------------------
-// Drawer
+// Chapter progress — how far through the current chapter you are, as a CSS
+// variable on the top bar (wide screens draw it as a thin line under the bar;
+// the phone shows nothing). In scrolled-doc flow the epub.js container holds
+// just the current chapter, so its scroll fraction is exactly that.
 // -------------------------------------------------------------------------
+function trackChapterProgress() {
+  const c = rendition?.manager?.container;
+  if (!c) return;
+  if (c !== progressContainer) {
+    progressContainer = c;
+    c.addEventListener("scroll", paintChapterProgress, { passive: true });
+  }
+  paintChapterProgress();
+}
+function paintChapterProgress() {
+  const c = progressContainer;
+  if (!c) return;
+  const max = c.scrollHeight - c.clientHeight;
+  const pct = max > 0 ? Math.min(100, Math.max(0, (c.scrollTop / max) * 100)) : 100;
+  el.topbar.style.setProperty("--chapter-pct", pct.toFixed(2) + "%");
+}
+
+// -------------------------------------------------------------------------
+// Keyboard reading (computers). ← / → step chapters; Space / Shift+Space,
+// PageUp / PageDown, ↑ / ↓ and Home / End scroll the chapter. Bound on the app
+// document by main.js; once you click into the text, focus sits inside the
+// chapter iframe, so each chapter document forwards its keys here too.
+// -------------------------------------------------------------------------
+const LINE_STEP = 72;
+export function handleReaderKey(e) {
+  if (!rendition || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+  const t = e.target;
+  const tag = t?.tagName || "";
+  if (t?.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if (e.key === "ArrowRight") return goChapter(1);
+  if (e.key === "ArrowLeft") return goChapter(-1);
+  // Space/Enter on a focused button presses it — leave those alone.
+  if (e.key === " " && (tag === "BUTTON" || tag === "A")) return;
+  const c = rendition.manager?.container;
+  if (!c) return;
+  const pageStep = Math.max(LINE_STEP, c.clientHeight - 80);
+  let top = null;
+  if (e.key === " ") top = c.scrollTop + (e.shiftKey ? -pageStep : pageStep);
+  else if (e.key === "PageDown") top = c.scrollTop + pageStep;
+  else if (e.key === "PageUp") top = c.scrollTop - pageStep;
+  else if (e.key === "ArrowDown") top = c.scrollTop + LINE_STEP;
+  else if (e.key === "ArrowUp") top = c.scrollTop - LINE_STEP;
+  else if (e.key === "Home") top = 0;
+  else if (e.key === "End") top = c.scrollHeight;
+  if (top == null) return;
+  e.preventDefault();
+  // Held keys repeat fast — jump, so repeated smooth scrolls don't pile up.
+  c.scrollTo({ top, behavior: e.repeat ? "auto" : "smooth" });
+}
+// Content hook: re-dispatch a chapter document's key presses on the app
+// document, so the same handlers (reading keys, Escape) apply with focus inside
+// the text.
+function forwardChapterKeys(contents) {
+  const doc = contents?.document;
+  if (!doc) return;
+  doc.addEventListener("keydown", (e) => {
+    const fwd = new KeyboardEvent("keydown", {
+      key: e.key,
+      code: e.code,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      repeat: e.repeat,
+      cancelable: true,
+    });
+    document.dispatchEvent(fwd);
+    if (fwd.defaultPrevented) e.preventDefault();
+  });
+}
+
+// -------------------------------------------------------------------------
+// Drawer. On a phone (and tablet) it slides over the text with a scrim. On a
+// desktop (DESK) it docks instead: the burger toggles it in and out beside the
+// text, it stays open while you pick chapters, and the choice is remembered.
+// Docking never resizes the epub.js view — wide.css slides the text column
+// over by half the sidebar width, so the layout (and your scroll position) is
+// untouched.
+// -------------------------------------------------------------------------
+const isDocked = () => DESK.matches && !!ui.readerSidebar;
+function applyDock() {
+  document.getElementById("app").classList.toggle("sidebar-docked", !!ui.readerSidebar);
+  // The burger is a toggle only where it docks; elsewhere it just opens.
+  if (DESK.matches) el.btnToc.setAttribute("aria-expanded", String(isDocked()));
+  else el.btnToc.removeAttribute("aria-expanded");
+}
+function setDocked(on) {
+  ui.readerSidebar = on;
+  saveUi();
+  applyDock();
+  // Opening re-anchors the list on the chapter you're reading.
+  if (on) highlightToc(currentHref);
+}
+// Crossing into the desktop layout with the overlay drawer open hands over to
+// the docked sidebar's own state.
+DESK.addEventListener("change", () => {
+  closeDrawer();
+  applyDock();
+});
+export function toggleDrawer() {
+  if (DESK.matches) setDocked(!ui.readerSidebar);
+  else openDrawer();
+}
 export function openDrawer() {
+  if (DESK.matches) return setDocked(true);
   el.drawer.classList.add("open");
   el.scrim.hidden = false;
   requestAnimationFrame(() => el.scrim.classList.add("show"));

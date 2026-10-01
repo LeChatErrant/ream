@@ -4,6 +4,10 @@
 // select bar, install/update controls, file input, keyboard + drag-and-drop),
 // and boots.
 //
+// The phone layout is the reference design (style.css). Wider screens layer
+// wide.css on top — tablet (≥ 640 px) and desktop (≥ 1024 px) tiers, mirrored
+// in JS by dom.js's WIDE / DESK media queries.
+//
 // The library (home) is the app's root: a cover shelf of books and series,
 // with `.epub` import. Tapping a cover pushes the info page; tapping a series
 // tile pushes the series screen. Nothing ever leaves the device — books,
@@ -26,12 +30,15 @@
 //   pwa          install prompt + service-worker update banner
 // =========================================================================
 import "./style.css";
-import { el, collectRefs } from "./dom.js";
+// Tablet / desktop layer — every rule in it sits behind a min-width query, so
+// the phone layout above is untouched.
+import "./wide.css";
+import { el, collectRefs, WIDE } from "./dom.js";
 import { books, loadState, putProgress } from "./state.js";
 import { kvGet, kvDelete } from "./db.js";
 import { go, closeOverlay, overlayOpen } from "./router.js";
 import { renderLibrary, setLibFilter, exitSelection, isSelecting, confirmGrouping, confirmDeleteSelection } from "./library.js";
-import { openDrawer, closeDrawer, goChapter, flushReadingPosition, hasRendition } from "./reader.js";
+import { toggleDrawer, closeDrawer, goChapter, flushReadingPosition, handleReaderKey } from "./reader.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMark } from "./brand.js";
 import {
@@ -55,8 +62,10 @@ function wireEvents() {
     setLibFilter(el.libSearchInput.value.trim());
     renderLibrary();
   });
+  WIDE.addEventListener("change", placeLibSearch);
+  placeLibSearch();
 
-  el.btnToc.addEventListener("click", openDrawer);
+  el.btnToc.addEventListener("click", toggleDrawer);
   // Close on a tap outside the drawer. A synthetic `click` on the scrim is
   // unreliable on Android when it overlays the epub iframe (the tap can be
   // swallowed), so dismiss on `pointerdown`, with `click` kept for mouse.
@@ -78,6 +87,11 @@ function wireEvents() {
 
   el.volumeScrim.addEventListener("click", () => closeOverlay());
   el.actionScrim.addEventListener("click", () => closeOverlay());
+  // Wide screens show the editor as a dialog over a dimmed page (#editor is
+  // the dim); a click on the dim, outside the panel, dismisses it.
+  el.editor.addEventListener("click", (e) => {
+    if (e.target === el.editor && WIDE.matches) closeOverlay();
+  });
 
   el.installNote.addEventListener("click", handleInstallClick);
   el.installScrim.addEventListener("click", () => closeOverlay());
@@ -100,9 +114,17 @@ function wireEvents() {
       if (isSelecting()) return exitSelection();
       if (el.drawer.classList.contains("open")) return closeDrawer();
     }
-    if (!hasRendition()) return;
-    if (e.key === "ArrowRight") goChapter(1);
-    else if (e.key === "ArrowLeft") goChapter(-1);
+    // "/" jumps to the library search (always on screen on wide layouts).
+    if (e.key === "/" && WIDE.matches && !overlayOpen() && document.getElementById("app").dataset.route === "library") {
+      const tag = e.target?.tagName || "";
+      if (tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+        el.libSearchInput.focus();
+        el.libSearchInput.select();
+      }
+      return;
+    }
+    handleReaderKey(e);
   });
 
   // Drag & drop an .epub anywhere (desktop convenience).
@@ -130,6 +152,21 @@ function wireEvents() {
     if (document.hidden) flushReadingPosition();
   });
   window.addEventListener("pagehide", flushReadingPosition);
+}
+
+// The library search: on a phone, a row under the header that the search button
+// toggles; on wide screens, a field that always sits in the header. It is the
+// same input moving between the two spots, so its text and filter carry over —
+// coming back down to the phone layout with a query typed keeps the row open.
+function placeLibSearch() {
+  const row = el.libSearchRow;
+  const actions = el.libSearch.parentElement;
+  if (WIDE.matches) {
+    actions.before(row);
+  } else {
+    actions.parentElement.after(row);
+    row.hidden = !el.libSearchInput.value;
+  }
 }
 
 // One-time migration from the single-book app: fold the previously-open book

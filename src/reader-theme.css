@@ -182,15 +182,22 @@ hr {
 html { scrollbar-width: none !important; }
 ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
 
-/* Wide screen: a touch larger, with the reading column capped at 640px. */
+/* Tablet / desktop. A screen read from arm's length gets a step up in size and
+   a slightly longer measure (34em ≈ 68 characters a line), with more air above
+   the chapter title and below the last paragraph. The phone rules above are
+   the reference; this only scales them. (The iframe is always as wide as the
+   window — a docked sidebar slides the column over rather than narrowing it —
+   so this query tracks the window width.) */
 @media (min-width: 768px) {
   body {
-    font-size: 19px !important;
-    line-height: 1.8 !important;
-    padding: 12px max(24px, calc((100% - 640px) / 2)) 72px !important;
+    font-size: 20px !important;
+    padding: 36px max(40px, calc((100% - 34em) / 2)) 96px !important;
   }
-  p { margin: 0 0 22px !important; line-height: 1.8 !important; }
-  h1, h2 { font-size: 27px !important; color: #e5e9ef !important; }
+  p { margin: 0 0 1.1em !important; }
+  h1, h2 { font-size: 30px !important; }
+  h3 { font-size: 23px !important; }
+  h4, h5, h6 { font-size: 19px !important; }
+  .chapter-end { margin-top: 4em !important; }
 }
 
 /* End-of-chapter block (injected by the app into each chapter). A centred

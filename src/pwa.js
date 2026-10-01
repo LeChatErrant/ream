@@ -14,10 +14,17 @@ import { armOverlay } from "./router.js";
 let deferredInstallPrompt = null;
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+// iPhone / iPad (iPadOS Safari reports itself as a Mac, but with touch points).
+const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+// A computer with a mouse/trackpad installs from the browser's address bar or
+// menu, not a Home Screen — so it gets its own wording and help steps.
+const isComputer = () => !isIOS() && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 // Show the footnote whenever the app isn't already installed.
 export function refreshInstallNote() {
   el.installNote.hidden = isStandalone();
+  if (isComputer()) el.installNoteText.textContent = "Install Ream for offline reading";
 }
 export async function handleInstallClick() {
   if (deferredInstallPrompt) {
@@ -27,6 +34,12 @@ export async function handleInstallClick() {
     if (outcome === "accepted") el.installNote.hidden = true;
     return;
   }
+  const computer = isComputer();
+  el.installStepsPhone.hidden = computer;
+  el.installStepsComputer.hidden = !computer;
+  el.installLead.textContent = computer
+    ? "Install it as an app to open it from your dock or start menu — it then works fully offline."
+    : "Add it to your Home Screen to open it like a normal app — it then works fully offline.";
   el.installSheet.hidden = false;
   armOverlay(() => { el.installSheet.hidden = true; });
 }

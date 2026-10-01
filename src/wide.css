@@ -1,0 +1,508 @@
+/* =========================================================================
+   Ream on larger screens — tablet and desktop.
+
+   style.css is the phone design and the reference: everything here is layered
+   on top of it behind a min-width query, so nothing below 640px changes. Two
+   tiers, mirrored in JS by dom.js's WIDE / DESK:
+
+     ≥ 640px  "wide"  centred, width-capped layouts; a cover grid that fills
+                      the row; dialogs instead of bottom sheets; popover menus;
+                      the library search lives in the header.
+     ≥ 1024px "desk"  multi-column info page; the reader's chapter list docks
+                      beside the text; roomier grid.
+
+   Same palette, type and components as the phone — only the arrangement and
+   a few desktop affordances (hover, focus rings, right-click menus, keyboard,
+   drag-and-drop) are added.
+   ====================================================================== */
+
+/* ---- Visibility helpers (elements that only exist for one layout) ------- */
+@media (max-width: 639.98px) {
+  .wide-only { display: none !important; }
+}
+@media (max-width: 1023.98px) {
+  .desk-only { display: none !important; }
+}
+@media (min-width: 640px) {
+  .narrow-only { display: none !important; }
+}
+
+@media (min-width: 640px) {
+  :root {
+    /* Native controls and scrollbars follow the dark theme (a phone's overlay
+       scrollbars never needed it). */
+    color-scheme: dark;
+    --shelf-max: 1180px;
+    --shelf-pad: 32px;
+  }
+
+  .lib-body, .info-screen, .ch-list, .editor-body, .sheet-card {
+    scrollbar-width: thin;
+    scrollbar-color: #343b49 transparent;
+  }
+
+  /* Keyboard focus — the phone never shows these (no keyboard focus there). */
+  .tile:focus-visible { outline: none; }
+  .tile:focus-visible .tile__cover,
+  .tile:focus-visible .import-box { outline: 2px solid var(--text-muted); outline-offset: 3px; }
+  .vrow:focus-visible, .cprev__row:focus-visible, .cprev__seeall:focus-visible,
+  .ch-row:focus-visible, .toc-list button:focus-visible, .action-item:focus-visible,
+  .continue-card:focus-visible, .radio-row:focus-visible {
+    outline: 2px solid var(--text-muted);
+    outline-offset: -2px;
+  }
+
+  /* =======================================================================
+     LIBRARY
+     ==================================================================== */
+  .lib-header,
+  .lib-section--continue,
+  .lib-section--grid {
+    width: 100%;
+    max-width: calc(var(--shelf-max) + 2 * var(--shelf-pad));
+    margin-inline: auto;
+    padding-inline: var(--shelf-pad);
+  }
+  .lib-header { height: 76px; gap: 20px; }
+  .lib-brand__mark { width: 29px; height: 27px; }
+  .lib-brand__word { font-size: 26px; }
+
+  /* Search: an always-present field in the header (main.js moves the row in
+     here); the phone's toggle button goes away. */
+  #lib-search { display: none; }
+  .lib-header .lib-search-row,
+  .lib-header .lib-search-row[hidden] {
+    display: block;
+    flex: 0 1 320px;
+    margin-left: auto;
+    padding: 0;
+  }
+  .lib-header .lib-search-input {
+    height: 38px;
+    border-radius: 19px;
+    border-color: var(--border);
+    padding: 0 14px 0 38px;
+    font-size: 13.5px;
+    background: var(--surface) no-repeat 13px center / 16px
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2379818e' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4 4'/%3E%3C/svg%3E");
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .lib-header .lib-search-input:hover { border-color: var(--border-2f); }
+  .lib-header .lib-search-input:focus-visible { outline: none; border-color: #4a5262; background-color: var(--row-current); }
+
+  /* Import: a labelled pill instead of the bare + circle. */
+  .lib-round--import {
+    width: auto;
+    gap: 6px;
+    padding: 0 17px 0 11px;
+    font: 500 13.5px var(--font-ui);
+  }
+
+  .lib-body {
+    /* Gutters on both edges keep the shelf centred under the header even when
+       a classic (space-taking) scrollbar is showing. */
+    scrollbar-gutter: stable both-edges;
+    padding-bottom: 56px;
+  }
+
+  /* Continue — a fuller card: serif title, author, % beside the bar, and an
+     explicit Continue button. */
+  .lib-section--continue { padding-top: 6px; }
+  .lib-section--continue .lib-label { margin-bottom: 12px; }
+  .continue-card {
+    align-items: center;
+    gap: 22px;
+    padding: 16px 22px 16px 16px;
+    border-radius: 14px;
+  }
+  .continue-card__cover { width: 72px; height: 106px; border-radius: 5px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+  .continue-card__title { font: 500 21px/1.3 var(--font-serif); color: #eef1f5; }
+  .continue-card__author {
+    margin-top: 2px;
+    font: 400 13px var(--font-ui);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .continue-card__sub { margin-top: 12px; font-size: 13px; }
+  .continue-card__progress { display: flex; align-items: center; gap: 12px; max-width: 440px; margin-top: 8px; }
+  .continue-card__progress .pbar--card { flex: 1 1 auto; margin-top: 0; }
+  .continue-card__pct { flex: none; font: 500 11.5px var(--font-ui); color: var(--text-dim); }
+  .continue-card__cta {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 22px;
+    border-radius: 20px;
+    background: var(--pill);
+    color: var(--text-primary);
+    font: 500 13.5px var(--font-ui);
+    transition: background 0.15s;
+  }
+  .continue-card:hover .continue-card__cta { background: #333b4a; }
+
+  /* Shelf — as many columns as fit, instead of three stretched ones. */
+  .lib-section--grid { padding-top: 36px; }
+  .lib-section__head { margin-bottom: 18px; }
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    column-gap: 24px;
+    row-gap: 30px;
+  }
+  .tile__title { margin-top: 11px; font-size: 13.5px; }
+  .tile__meta { margin-top: 3px; font-size: 12px; }
+  .import-box__label { font-size: 11.5px; }
+
+  .empty { margin-top: 18vh; max-width: 360px; }
+  .empty__hint { margin: 16px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dimmest); }
+
+  /* Footer — one quiet line: install · version · check for updates. */
+  .lib-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 22px;
+    row-gap: 4px;
+    padding: 11px 24px calc(11px + env(safe-area-inset-bottom));
+  }
+  .install-note { width: auto; padding: 0; font-size: 12px; }
+  .lib-footer__ver { padding: 0; }
+  .lib-footer__status { display: inline; margin-left: 10px; }
+  .lib-footer__status:not(:empty) { margin-top: 0; }
+
+  /* Multi-select — a floating toolbar at the bottom instead of a bar over the
+     header (so the shelf's header and search stay in view). */
+  .select-bar {
+    inset: auto auto calc(28px + env(safe-area-inset-bottom)) 50%;
+    transform: translateX(-50%);
+    height: 54px;
+    padding: 0 8px 0 6px;
+    gap: 2px;
+    background: var(--row-current);
+    border: 1px solid var(--border-2f);
+    border-radius: 14px;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+    animation: toolbar-in 0.18s ease-out;
+  }
+  .select-bar__cancel:hover { background: var(--pill); }
+  .select-bar__count { flex: none; margin: 0 16px 0 4px; font-size: 13.5px; }
+  .select-bar__group,
+  .select-bar__delete { padding: 9px 14px; border-radius: 9px; }
+  .select-bar__group:hover:not(:disabled),
+  .select-bar__delete:hover { background: var(--pill); }
+
+  /* Drag-and-drop import: a clear drop target over the whole window. */
+  #app.drag { outline: none; }
+  #app.drag::after {
+    content: "Drop .epub files to add them to your library";
+    position: fixed;
+    inset: 16px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #4a5262;
+    border-radius: 20px;
+    background: rgba(18, 21, 27, 0.86);
+    color: var(--text-secondary);
+    font: 500 16px var(--font-ui);
+    pointer-events: none;
+  }
+
+  /* =======================================================================
+     INFO page — tablet keeps the phone's single column (capped at 640px in
+     style.css); the desktop grid is in the DESK block below.
+     ==================================================================== */
+  .info-bar { height: 60px; padding: 0 18px; }
+  .info-bar__back { width: auto; gap: 3px; padding: 0 12px 0 4px; font: 500 13.5px var(--font-ui); }
+
+  /* =======================================================================
+     Rows — hover feedback for a pointer.
+     ==================================================================== */
+  .cprev__row:hover, .cprev__seeall:hover { background: #1d222b; }
+  .cprev__row--current:hover { background: #242a35; }
+  .ch-row:hover { background: #1d222b; }
+  .ch-row--current:hover { background: #242a35; }
+  .ch-extras__head:hover { background: #1b1f28; }
+  .radio-row:hover { border-color: #3a4350; }
+
+  /* =======================================================================
+     CHAPTERS screen — one centred column; the list still scrolls edge to edge
+     so the wheel works anywhere on the page.
+     ==================================================================== */
+  .chapters-screen { --ch-pad: max(28px, calc((100% - 820px) / 2)); }
+  .ch-bar { height: 64px; padding: env(safe-area-inset-top) calc(var(--ch-pad) - 8px) 0; }
+  .ch-bar__title { font-size: 15.5px; }
+  .ch-search { padding: 2px var(--ch-pad) 14px; }
+  .ch-chips { padding: 0 var(--ch-pad) 16px; flex-wrap: wrap; overflow: visible; }
+  .ch-chip:hover:not(.ch-chip--on) { background: var(--row-current); color: var(--text-secondary); }
+  .ch-list { padding: 0 var(--ch-pad); }
+  .ch-range { padding-inline: 16px; }
+  .ch-row { padding-inline: 16px; }
+  .ch-empty, .ch-extras__head { padding-inline: 16px; }
+
+  /* =======================================================================
+     READER — the title centres over the text; a hairline under the bar shows
+     how far through the chapter you are (reader.js sets --chapter-pct).
+     ==================================================================== */
+  #topbar { padding-inline: 10px; }
+  .title-block {
+    position: absolute;
+    top: env(safe-area-inset-top);
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(680px, calc(100% - 220px));
+    padding: 0;
+    align-items: center;
+    text-align: center;
+  }
+  .title-block__book { font-size: 14.5px; }
+  .topbar-right { margin-left: auto; }
+  #topbar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: var(--chapter-pct, 0%);
+    height: 2px;
+    background: var(--fill-card);
+    opacity: 0.45;
+    pointer-events: none;
+    transition: width 0.12s linear;
+  }
+
+  /* =======================================================================
+     SHEETS → centred dialogs. The bottom sheet is a phone gesture; on a big
+     screen the same cards float in the middle over the dimmed page.
+     ==================================================================== */
+  .sheet-scrim { animation: fade-in 0.18s ease-out; }
+  .sheet-card {
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(calc(100% - 48px), 420px);
+    max-height: min(86vh, 780px);
+    padding: 24px 24px 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+    animation: dialog-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sheet-card--plain { width: min(calc(100% - 48px), 540px); padding: 24px 0 22px; }
+  .sheet-card--actions { width: min(calc(100% - 48px), 340px); padding: 8px 0; }
+  .vsheet__handle { display: none; }
+  .sheet-title { font-size: 17px; }
+  .suggest-title { font-size: 14px; }
+
+  /* Buttons right-aligned, primary last — the desktop dialog convention. */
+  .suggest-actions { flex-direction: row-reverse; justify-content: flex-start; gap: 8px; }
+  .sheet-card .suggest-actions .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    height: 38px;
+    padding: 0 20px;
+    border-radius: 19px;
+    font-size: 13.5px;
+  }
+  .suggest-actions .text-btn { padding: 9px 14px; border-radius: 19px; }
+  .suggest-actions .text-btn:hover { background: var(--row-current); }
+  #install-sheet-close { width: auto; margin-left: auto; height: 38px; padding: 0 22px; border-radius: 19px; font-size: 13.5px; }
+
+  .action-item { padding: 13px 22px; font-size: 14px; }
+
+  /* Popover menu — the action sheet opened from a button or a right-click
+     (sheets.js sets left/top). No scrim tint, no Cancel row. */
+  .sheet--popover .sheet-scrim { background: transparent; animation: none; }
+  .sheet--popover .sheet-card {
+    bottom: auto;
+    transform: none;
+    width: 232px;
+    max-height: none;
+    padding: 6px;
+    border-radius: 12px;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+    animation: popover-in 0.12s ease-out;
+  }
+  .sheet--popover .action-item { padding: 9px 12px; border-radius: 7px; font-size: 13.5px; }
+  .sheet--popover .action-item--cancel { display: none; }
+
+  /* =======================================================================
+     EDITOR → a dialog. #editor becomes the dim; the panel floats centred.
+     ==================================================================== */
+  .editor {
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: rgba(10, 12, 16, 0.62);
+    animation: fade-in 0.18s ease-out;
+  }
+  .editor__panel {
+    flex: 0 1 auto;
+    width: min(100%, 620px);
+    max-height: min(100%, 880px);
+    background: var(--page);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    animation: panel-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .editor-bar { height: 58px; padding: 0 12px 0 14px; }
+  .editor-body { min-height: 0; max-width: none; padding: 22px 28px 28px; }
+}
+
+/* ---- Pointer hover: covers lift a little --------------------------------- */
+@media (min-width: 640px) and (hover: hover) {
+  .tile__cover, .series-stack { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .tile:not(.tile--series):hover .tile__cover,
+  .tile--series:hover .series-stack .tile__cover { box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45); }
+  .tile:not(.tile--series):hover .tile__cover,
+  .tile--series:hover .series-stack { transform: translateY(-3px); }
+  .tile:hover .tile__title { color: var(--text-primary); }
+}
+
+/* =========================================================================
+   DESK — 1024px and up.
+   ====================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --shelf-pad: 48px;
+    --info-max: 1080px;
+    --info-pad: 56px;
+    /* Docked reader sidebar — slimmer on a small laptop so the text column
+       keeps real margins beside it. */
+    --dock-w: 272px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    column-gap: 32px;
+    row-gap: 38px;
+  }
+
+  /* ---- Info page: cover beside the title, then two columns -------------- */
+  .info-backdrop { height: 500px; }
+  .info-backdrop__img { inset: -90px; filter: blur(50px); opacity: 0.42; }
+  .info-backdrop__veil { background: linear-gradient(rgba(26, 30, 39, 0.2), var(--page) 88%); }
+
+  .info-bar,
+  .info-content {
+    max-width: calc(var(--info-max) + 2 * var(--info-pad));
+    margin-inline: auto;
+  }
+  .info-bar { height: 68px; padding: 0 calc(var(--info-pad) - 12px); }
+  .info-content { padding: 0 var(--info-pad) 32px; }
+
+  /* Hero: the cover spans every row. Title, author, actions, chips and
+     description each get an auto row (an absent one collapses to nothing),
+     between two 1fr rows that share out whatever height the cover adds — so
+     the text block sits vertically centred beside the cover, and simply
+     starts at the top once it is the taller of the two. */
+  .info-top {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: 1fr repeat(5, auto) 1fr;
+    column-gap: 52px;
+    padding-top: 12px;
+  }
+  .info-hero__title { grid-row: 2; }
+  .info-hero__author { grid-row: 3; }
+  .info-actions { grid-row: 4; }
+  .info-chips { grid-row: 5; }
+  .info-desc { grid-row: 6; }
+  .info-hero { display: contents; }
+  .info-hero__cover {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    width: 240px;
+    height: 360px;
+    margin: 0;
+    border-radius: 8px;
+    box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+  }
+  .info-hero__title,
+  .info-hero__author,
+  .info-actions,
+  .info-chips,
+  .info-desc { grid-column: 2; text-align: left; }
+  .info-hero__title { font-size: 44px; line-height: 1.12; }
+  .info-hero__author { margin-top: 12px; font-size: 15px; }
+  .info-actions { justify-content: flex-start; padding: 28px 0 0; }
+  .info-actions__continue { flex: 0 0 auto; max-width: none; height: 46px; padding: 0 28px; font-size: 14.5px; }
+  .info-chips { padding: 24px 0 0; }
+  .info-desc { max-width: 700px; padding: 22px 0 0; }
+  .info-desc__text { font-size: 16px; line-height: 1.65; -webkit-line-clamp: 5; }
+
+  /* Body: volumes + chapters (main) on the left, details + recap (side) on the
+     right. The side column is first in the DOM (that's the phone's reading
+     order), so it is placed explicitly. */
+  .info-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    column-gap: 64px;
+    align-items: start;
+    margin-top: 60px;
+  }
+  .info-main { display: block; grid-column: 1; grid-row: 1; margin-left: -24px; }
+  .info-side { display: block; grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
+  .info-sidelabel { padding-bottom: 10px; }
+  .info-side .info-table { padding: 0; }
+  .info-side .info-recap { padding: 30px 0 0; }
+  .info-vollabel { padding: 0 24px 10px; }
+  .info-main > .cprev:first-child { margin-top: 0; }
+  .info-vol-preview .cprev { margin-top: 40px; }
+
+  /* ---- Reader: the chapter list docks beside the text ------------------- */
+  .drawer { width: var(--dock-w); padding-top: 9px; }
+  /* The "My library" row lines up with the top bar's bottom edge. */
+  .drawer-home { padding-bottom: 8px; }
+  /* Only the reader shows it — and leaving the reader shouldn't slide it out
+     over the next screen. */
+  #app:not([data-route="reader"]) .drawer { visibility: hidden; }
+  #app.sidebar-docked[data-route="reader"] .drawer { transform: none; }
+
+  #topbar { transition: left 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+  #app.sidebar-docked #topbar { left: var(--dock-w); }
+  /* The epub view keeps its full width (no re-layout, no lost scroll position):
+     it slides right by half the sidebar, which centres the text column in the
+     space left beside it. #viewer-wrap clips the overhang. */
+  #viewer { transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+  #app.sidebar-docked #viewer { transform: translateX(calc(var(--dock-w) / 2)); }
+  #app.sidebar-docked .resume-chip { left: calc(50% + var(--dock-w) / 2); }
+}
+
+@media (min-width: 1200px) {
+  :root { --dock-w: 300px; }
+}
+
+/* ---- Motion ------------------------------------------------------------- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toolbar-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (min-width: 640px) and (prefers-reduced-motion: reduce) {
+  .sheet-scrim, .sheet-card, .editor, .editor__panel, .select-bar { animation: none; }
+  .tile__cover, .series-stack, #topbar, #viewer, #topbar::after { transition: none; }
+}
