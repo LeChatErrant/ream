@@ -91,6 +91,7 @@ export function collectRefs() {
     titleBlock: "title-block",
     topbar: "topbar",
     btnToc: "btn-toc",
+    readerMark: "reader-mark",
     btnPrev: "btn-prev",
     btnNext: "btn-next",
     drawer: "drawer",

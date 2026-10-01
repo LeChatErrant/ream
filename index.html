@@ -75,14 +75,14 @@
       <section id="chapters-screen" class="screen chapters-screen" hidden></section>
 
       <!-- =====================================================================
-           READER — chrome variant 1c. Top bar: burger · title · ‹ · ›.
-           No home button here; "My library" lives in the drawer.
+           READER — chrome variant 1c. Top bar: menu · title · ‹ · ›.
+           No home button here; "My library" lives in the drawer. The menu
+           button is the Ream mark (in place of a burger), its lines scrolling
+           with the chapter — bars drawn + scroll-wired by src/brand.js.
            ================================================================== -->
       <header id="topbar" class="screen">
         <button id="btn-toc" class="icon-btn" aria-label="Menu" title="Menu">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+          <svg id="reader-mark" class="reader-mark" viewBox="0 0 120 110" aria-hidden="true"></svg>
         </button>
         <div id="title-block" class="title-block">
           <div class="title-block__text">

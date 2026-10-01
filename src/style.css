@@ -615,7 +615,7 @@ html, body {
 .add-volume__plus { font-size: 17px; font-weight: 300; line-height: 1; }
 
 /* =========================================================================
-   READER — top bar (1c: burger · title · ‹ · ›)
+   READER — top bar (1c: menu · title · ‹ · ›)
    ====================================================================== */
 #topbar {
   position: fixed;
@@ -665,6 +665,9 @@ html, body {
 .icon-btn:active { background: var(--row-current); }
 .icon-btn:disabled { opacity: 0.3; cursor: default; }
 .icon-btn:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
+/* The menu button's Ream mark (scrolls with the chapter, src/brand.js) — about
+   the burger's footprint, its bars near the burger's 2px stroke. */
+.reader-mark { display: block; width: 22px; height: 20px; }
 
 /* ---- Reading surface --------------------------------------------------- */
 #viewer-wrap {

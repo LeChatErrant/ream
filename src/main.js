@@ -23,7 +23,7 @@
 //   router       routing + the overlay/Back history stack
 //   import       .epub parsing, import/grouping, dev-seed
 //   library      home screen + multi-select
-//   brand        the Ream mark in the Library header (scroll-wired)
+//   brand        the live Ream mark: Library header + reader menu button
 //   info         info page + editors + volume sheet
 //   chapters     chapters screen + shared chapter-preview component
 //   reader       reading surface, drawer, resume, chapter-nav injection
@@ -40,7 +40,7 @@ import { go, closeOverlay, overlayOpen } from "./router.js";
 import { renderLibrary, setLibFilter, exitSelection, isSelecting, confirmGrouping, confirmDeleteSelection } from "./library.js";
 import { toggleDrawer, closeDrawer, goChapter, flushReadingPosition, handleReaderKey } from "./reader.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
-import { mountBrandMark } from "./brand.js";
+import { mountBrandMarks } from "./brand.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
   applyUpdate, hideUpdateBanner,
@@ -189,7 +189,7 @@ async function migrateLegacy() {
 
 (async function start() {
   collectRefs();
-  mountBrandMark();
+  mountBrandMarks();
   wireEvents();
   try {
     await loadState();

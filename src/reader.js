@@ -28,6 +28,7 @@ import {
 } from "./reading.js";
 import { go, openInfo, openSeries } from "./router.js";
 import { addVolumeToSeries } from "./import.js";
+import { scrollReaderMark } from "./brand.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -856,7 +857,8 @@ export function refreshChapterNav() {
 // Chapter progress — how far through the current chapter you are, as a CSS
 // variable on the top bar (wide screens draw it as a thin line under the bar;
 // the phone shows nothing). In scrolled-doc flow the epub.js container holds
-// just the current chapter, so its scroll fraction is exactly that.
+// just the current chapter, so its scroll fraction is exactly that. The same
+// scroll drives the Ream mark on the menu button (brand.js).
 // -------------------------------------------------------------------------
 function trackChapterProgress() {
   const c = rendition?.manager?.container;
@@ -873,6 +875,7 @@ function paintChapterProgress() {
   const max = c.scrollHeight - c.clientHeight;
   const pct = max > 0 ? Math.min(100, Math.max(0, (c.scrollTop / max) * 100)) : 100;
   el.topbar.style.setProperty("--chapter-pct", pct.toFixed(2) + "%");
+  scrollReaderMark(c.scrollTop);
 }
 
 // -------------------------------------------------------------------------
@@ -931,7 +934,7 @@ function forwardChapterKeys(contents) {
 
 // -------------------------------------------------------------------------
 // Drawer. On a phone (and tablet) it slides over the text with a scrim. On a
-// desktop (DESK) it docks instead: the burger toggles it in and out beside the
+// desktop (DESK) it docks instead: the menu button toggles it in and out beside the
 // text, it stays open while you pick chapters, and the choice is remembered.
 // Docking never resizes the epub.js view — wide.css slides the text column
 // over by half the sidebar width, so the layout (and your scroll position) is
@@ -940,7 +943,7 @@ function forwardChapterKeys(contents) {
 const isDocked = () => DESK.matches && !!ui.readerSidebar;
 function applyDock() {
   document.getElementById("app").classList.toggle("sidebar-docked", !!ui.readerSidebar);
-  // The burger is a toggle only where it docks; elsewhere it just opens.
+  // The menu button is a toggle only where it docks; elsewhere it just opens.
   if (DESK.matches) el.btnToc.setAttribute("aria-expanded", String(isDocked()));
   else el.btnToc.removeAttribute("aria-expanded");
 }

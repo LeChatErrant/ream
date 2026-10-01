@@ -28,7 +28,7 @@ the same pieces (`src/wide.css`, two tiers: ≥ 640 px tablet, ≥ 1024 px deskt
   the bottom.
 - **Book / series page** — the cover beside the title and description, then
   volumes + chapters on the left and details on the right.
-- **Reader** — the burger docks the chapter list beside the text (remembered);
+- **Reader** — the menu button docks the chapter list beside the text (remembered);
   a hairline under the top bar shows progress through the chapter.
   Keys: `←` / `→` previous / next chapter · `Space` / `Shift+Space`,
   `PageUp` / `PageDown`, `↑` / `↓`, `Home` / `End` scroll — also with focus in
@@ -50,8 +50,10 @@ to install it as a real offline app.
 ## Logo & icons
 
 The mark — five stacked lines, the current one lit — is pure geometry in
-`src/lib/ream-mark.js`. The Library header draws it live (`src/brand.js`, where
-the stack scrolls with the shelf); `npm run icons` renders the same geometry
+`src/lib/ream-mark.js`. It is drawn live in two places (`src/brand.js`): the
+Library header, where the stack scrolls with the shelf, and the reader's menu
+button (in place of a burger), where it scrolls one line per line of text as
+you read; `npm run icons` renders the same geometry
 into `public/` (`icon.svg`, the PWA PNGs, the maskable icon and
 `apple-touch-icon.png`). Re-run it after touching the mark and commit the output.
 

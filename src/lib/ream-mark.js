@@ -1,8 +1,9 @@
 // =========================================================================
 // Ream's mark — five lines of text stacked like a ream of paper, ragged like
 // the reading column, the current (bottom) line lit. Pure geometry, shared by
-// the Library header (src/brand.js, where the stack scrolls with the shelf)
-// and the generated home-screen icons (scripts/icons.mjs).
+// the live marks (src/brand.js: the Library header, where the stack scrolls
+// with the shelf, and the reader's menu button, where it scrolls with the
+// chapter) and the generated home-screen icons (scripts/icons.mjs).
 // =========================================================================
 
 // Mark box in viewBox units: five bars of BAR height on a PITCH rhythm.
