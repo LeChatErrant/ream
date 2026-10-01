@@ -212,26 +212,19 @@ export function renderInfo(kind, id) {
   // Plain display rows; the route into the Chapters screen is the five-chapter
   // preview at the foot of the page (11b), not this table row.
   const table = h("div", { class: "info-table" });
-  for (const [label, value] of rows) {
-    table.append(
-      h("div", { class: "info-trow" }, h("span", { class: "info-trow__k" }, label), h("span", { class: "info-trow__v" }, value))
-    );
-  }
+  for (const [label, value] of rows) table.append(infoRow(label, value));
   // Side-column heading on a desktop; the phone's table needs none.
   side.append(h("div", { class: "lib-label info-sidelabel desk-only" }, "Details"), table);
 
-  // Recap — "in other words" comparison against well-known books, once
-  // there's something to compare. Fills in asynchronously the first time (it
-  // has to walk the epub for a word count), so it's appended as its own host
-  // that repaints itself in place rather than a full renderInfo() re-run.
-  // For a series this is the total across every volume, not just the current
-  // one (seriesWordsRead sums them) — the volume sheet below covers the
-  // single-volume figure.
+  // Reading rows — words read and the closest well-known book, as the last
+  // rows of the same table, once there's something to count. For a series
+  // this is the total across every volume (seriesWordsRead sums them) — the
+  // volume sheet below covers the single-volume figure.
   const recapTargets = m.kind === "series" ? m.volumes : [m.book];
   if (recapTargets.some(bookIsStarted)) {
-    const recapHost = h("div", { class: "info-recap" });
-    side.append(recapHost);
-    paintRecap(recapTargets, () => (m.kind === "series" ? seriesWordsRead(m.series) : wordsRead(m.book)), recapHost);
+    const recapHost = h("div", { class: "recap-rows" });
+    table.append(recapHost);
+    paintRecap(recapTargets, () => (m.kind === "series" ? seriesWordsRead(m.series) : wordsRead(m.book)), recapHost, infoRow);
   }
 
   // Volumes block (series only). Tapping a row selects that volume; the chapter
@@ -347,71 +340,78 @@ function renderVolumePreview(m, volId, host) {
   if (preview) host.append(preview);
 }
 
-// Fills `host` with one subtle comparison line, or a "Counting words…"
-// placeholder while any target book's word count is still being extracted.
-// Repaints itself in place once that resolves — safe even if the caller has
-// moved on by then, since it just checks the host is still attached.
+// One key/value row of a details table — the info page's (infoRow) or the
+// volume sheet's (factRow). With `onTap` it's a button with a chevron, for a
+// row that opens something.
+function kvRow(cls, k, v, onTap) {
+  const key = h("span", { class: cls.k }, k);
+  if (!onTap) return h("div", { class: cls.row }, key, h("span", { class: cls.v }, v));
+  return h(
+    "button",
+    { class: `${cls.row} kv-link`, onclick: onTap },
+    key,
+    h("span", { class: `${cls.v} kv-link__v` }, h("span", null, v), h("span", { class: "kv-link__chev" }, svg(ICON.chevron)))
+  );
+}
+const INFO_ROW = { row: "info-trow", k: "info-trow__k", v: "info-trow__v" };
+const FACT_ROW = { row: "vsheet__fact", k: "vsheet__fact-k", v: "vsheet__fact-v" };
+const infoRow = (k, v, onTap) => kvRow(INFO_ROW, k, v, onTap);
+const factRow = (k, v, onTap) => kvRow(FACT_ROW, k, v, onTap);
+
+// Fills `host` with the reading rows — "Words read" and, once there's enough
+// to compare, "Like reading" (the closest well-known book; tapping it opens
+// the full list) — built with the host table's own `row` style. While any
+// target book's word count is still being extracted (it walks the epub) it
+// shows "Counting…", then repaints itself in place — safe even if the caller
+// has moved on by then, since it just checks the host is still attached.
 // `wordsFn` is read fresh on every repaint rather than passed as a value, so
 // it can depend on word counts that are still being filled in.
-function paintRecap(targets, wordsFn, host) {
+function paintRecap(targets, wordsFn, host, row) {
   host.innerHTML = "";
   const missing = targets.filter((b) => !hasCurrentWordCount(b));
   if (missing.length) {
-    host.append(h("div", { class: "lib-label info-recap__label" }, "In other words"));
-    host.append(h("div", { class: "info-recap__loading" }, "Counting words…"));
+    host.append(row("Words read", "Counting…"));
     Promise.all(missing.map(ensureWordCount)).then(() => {
-      if (host.isConnected) paintRecap(targets, wordsFn, host);
+      if (host.isConnected) paintRecap(targets, wordsFn, host, row);
     });
     return;
   }
 
   const words = wordsFn();
-  const best = bestComparison(words);
-  if (!best) {
-    host.remove(); // nothing relevant to compare yet — no empty gap left behind
+  if (!words) {
+    host.remove(); // no chapter finished yet — nothing to count
     return;
   }
-
-  host.append(
-    h(
-      "div",
-      { class: "lib-label info-recap__label" },
-      "In other words",
-      h("span", { class: "info-recap__labeltotal" }, formatCompactNumber(words) + " words read")
-    )
-  );
-  host.append(
-    h(
-      "div",
-      { class: "info-recap__row" },
-      h("span", { class: "info-recap__line" }, `You've read ${formatMultiplier(best.ratio)} ${refTitle(best.ref)}`),
-      h("button", { class: "info-recap__more", onclick: () => showRecapSheet(words) }, "See more")
-    )
-  );
+  host.append(row("Words read", formatCompactNumber(words)));
+  const best = bestComparison(words);
+  if (best) {
+    host.append(row("Like reading", `${formatMultiplier(best.ratio)} ${refTitle(best.ref)}`, () => showRecapSheet(words, best.ref)));
+  }
 }
 
-// "See more" — a plain full-screen list of every reference book against the
-// same word count, reusing the editor overlay shell without its Save button.
-function showRecapSheet(words) {
+// The full comparison list — every reference book against the same word
+// count, the closest one lit — reusing the editor overlay shell without its
+// Save button.
+function showRecapSheet(words, closest) {
   const panel = editorPanel();
   panel.append(
     h(
       "div",
       { class: "editor-bar" },
       h("button", { class: "sbar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(ICON.close)),
-      h("div", { class: "editor-bar__title" }, "In other words"),
+      h("div", { class: "editor-bar__title" }, "Words read"),
       h("div", { style: "width:34px" })
     )
   );
   const body = h("div", { class: "editor-body" });
-  body.append(h("p", { class: "editor-lead" }, `You've read ${words.toLocaleString()} words — here's how that stacks up against some well-known books.`));
-  const table = h("div", { class: "info-table info-table--flush" });
+  body.append(h("p", { class: "editor-lead" }, `${words.toLocaleString()} words so far — here's that next to some well-known books.`));
+  const table = h("div", { class: "info-table info-table--flush recap-list" });
   for (const ref of COMPARISON_BOOKS) {
     table.append(
       h(
         "div",
-        { class: "info-trow" },
-        h("span", { class: "info-trow__k" }, refTitle(ref) + " — " + ref.author),
+        { class: "info-trow" + (ref === closest ? " recap-list__on" : "") },
+        h("span", { class: "info-trow__k" }, refTitle(ref), h("span", { class: "recap-list__author" }, ref.author)),
         h("span", { class: "info-trow__v" }, formatMultiplier(words / ref.words))
       )
     );
@@ -731,11 +731,7 @@ function showVolumeSheet(s, book, start, end) {
       { class: "vsheet__actions" },
       h("button", { class: "pill-btn vsheet__continue", onclick: () => closeOverlay(() => openBook(book.id)) }, continueLabel)
     ),
-    h(
-      "div",
-      { class: "vsheet__facts" },
-      ...facts.map(([k, v]) => h("div", { class: "vsheet__fact" }, h("span", { class: "vsheet__fact-k" }, k), h("span", { class: "vsheet__fact-v" }, v)))
-    ),
+    h("div", { class: "vsheet__facts" }, ...facts.map(([k, v]) => factRow(k, v))),
     h(
       "div",
       { class: "vsheet__textactions" },
@@ -744,12 +740,12 @@ function showVolumeSheet(s, book, start, end) {
     )
   );
 
-  // Recap — this volume alone, not the series total (that's on the series
-  // info page above). Inserted before the chapters preview, after the facts.
+  // Reading rows — this volume alone, not the series total (that's on the
+  // series info page above) — as the last rows of the facts.
   if (bookIsStarted(book)) {
-    const recapHost = h("div", { class: "info-recap" });
-    card.querySelector(".vsheet__textactions").before(recapHost);
-    paintRecap([book], () => wordsRead(book), recapHost);
+    const recapHost = h("div", { class: "recap-rows" });
+    card.querySelector(".vsheet__facts").append(recapHost);
+    paintRecap([book], () => wordsRead(book), recapHost, factRow);
   }
 
   // Chapters preview last (11a) — facts and destructive actions must not sit

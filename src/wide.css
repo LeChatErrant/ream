@@ -452,7 +452,6 @@
   .info-side { display: block; grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
   .info-sidelabel { padding-bottom: 10px; }
   .info-side .info-table { padding: 0; }
-  .info-side .info-recap { padding: 30px 0 0; }
   .info-vollabel { padding: 0 24px 10px; }
   .info-main > .cprev:first-child { margin-top: 0; }
   .info-vol-preview .cprev { margin-top: 40px; }

@@ -515,38 +515,34 @@ html, body {
 .info-trow__k { color: var(--text-dimmest); }
 .info-trow__v { color: var(--text-body); text-align: right; }
 
-/* Recap — "in other words" comparison. A single subtle line in the same key/
-   value rhythm as the metadata table above it, not a callout; "See more"
-   opens the full list (editor overlay, reused below). */
-.info-recap { padding: 22px 24px 0; }
-.info-recap__label {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-}
-.info-recap__labeltotal { text-transform: none; font-size: 11px; font-weight: 400; color: var(--text-dimmest); letter-spacing: 0; }
-.info-recap__loading { font: 400 12.5px var(--font-ui); color: var(--text-dim); }
-.info-recap__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 11px;
-  border-top: 1px solid var(--border-hair);
-}
-.info-recap__line { font: 400 12.5px var(--font-ui); color: var(--text-dim); }
-.info-recap__more {
+/* Reading rows ("Words read", "Like reading") — the last rows of the details
+   table on the info page and of the facts in the volume sheet, built in each
+   table's own row style (info.js kvRow). A row that opens something is a
+   button with a chevron. */
+.kv-link {
   appearance: none;
-  border: 0;
+  width: 100%;
+  margin: 0;
   background: transparent;
-  flex: none;
-  padding: 2px 0;
-  font: 500 12px var(--font-ui);
-  color: var(--fill-card);
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  text-align: left;
+  align-items: baseline;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+.kv-link > :first-child { flex: none; white-space: nowrap; }
+.kv-link__v { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.kv-link__chev { flex: none; display: inline-flex; color: #5b636f; }
+.kv-link:hover .kv-link__v { color: var(--text-primary); }
+.kv-link:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
+/* The full comparison list: author under each title, the multiplier never
+   wrapping, the closest book (the one named on the page) lit. */
+.recap-list__author { display: block; margin-top: 2px; font-size: 11.5px; color: #5b636f; }
+.recap-list .info-trow__v { white-space: nowrap; }
+.recap-list__on .info-trow__k { color: var(--text-secondary); }
+.recap-list__on .info-trow__v { color: var(--text-primary); font-weight: 600; }
 /* The same table styling, reused inside the "See more" editor overlay, which
    already supplies its own side padding. */
 .info-table--flush { padding: 0; }
@@ -1061,7 +1057,7 @@ html, body {
 
 .vsheet__facts { padding: 0 24px; }
 .vsheet__fact { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); font: 400 12.5px var(--font-ui); }
-.vsheet__fact:first-child { border-top: 0; }
+.vsheet__facts > .vsheet__fact:first-child { border-top: 0; }
 .vsheet__fact-k { color: var(--text-dimmest); flex: 0 0 auto; }
 .vsheet__fact-v { color: var(--text-body); text-align: right; min-width: 0; word-break: break-word; }
 .vsheet__textactions { display: flex; gap: 18px; padding: 16px 24px 0; }
