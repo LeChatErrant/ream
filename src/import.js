@@ -218,6 +218,18 @@ export function pickFiles() {
 // -------------------------------------------------------------------------
 let seeding = false;
 
+// The bottom progress toast shown while seeding/clearing runs — fetching and
+// parsing a dozen epubs takes a while, and without it the library just sat
+// unchanged until everything landed at once.
+function showBusy(text) {
+  if (!el.busyToast) return;
+  el.busyToastText.textContent = text;
+  el.busyToast.hidden = false;
+}
+function hideBusy() {
+  if (el.busyToast) el.busyToast.hidden = true;
+}
+
 // Raise the seed/clear chooser. "Clear" only appears when there is seeded
 // content to remove, so the menu reads as empty-library "seed" vs seeded-library
 // "seed or clear".
@@ -244,6 +256,7 @@ async function confirmAndSeed() {
   );
   if (!ok) return;
   seeding = true;
+  showBusy("Preparing demo library…");
   try {
     await seedDemoLibrary();
   } catch (err) {
@@ -251,6 +264,7 @@ async function confirmAndSeed() {
     alert("Seeding failed: " + (err?.message || err));
   } finally {
     seeding = false;
+    hideBusy();
   }
 }
 
@@ -266,6 +280,7 @@ async function confirmAndClearSeeded() {
   );
   if (!ok) return;
   seeding = true;
+  showBusy("Clearing demo books…");
   try {
     await clearSeededContent();
     renderCurrentRoute();
@@ -274,6 +289,7 @@ async function confirmAndClearSeeded() {
     alert("Clearing failed: " + (err?.message || err));
   } finally {
     seeding = false;
+    hideBusy();
   }
 }
 
@@ -314,7 +330,8 @@ async function seedDemoLibrary() {
 
   // 1. Import every epub (order preserved so the shelf reads intentionally).
   const rows = []; // { entry, book }
-  for (const entry of entries) {
+  for (const [i, entry] of entries.entries()) {
+    showBusy(`Seeding demo library… ${i + 1} / ${entries.length}`);
     const buffer = await (await fetch("./seed/" + entry.file)).arrayBuffer();
     const book = await createBook(buffer, entry.file);
     book.seeded = true;
@@ -374,6 +391,7 @@ async function seedDemoLibrary() {
     });
   }
 
+  showBusy("Finishing up…");
   // Seeded records are written in the legacy shape; upgrade them to the
   // per-chapter map now so progress shows without waiting for a reload.
   await migrateProgressRecords();

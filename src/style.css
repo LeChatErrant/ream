@@ -1360,6 +1360,9 @@ html { -webkit-tap-highlight-color: transparent; }
   cursor: pointer;
 }
 .update-banner__close:hover { color: var(--text-secondary); background: var(--pill); }
+/* Busy toast — the same bottom toast, text only (no buttons), so it needs the
+   right padding the close button would otherwise supply. */
+.busy-toast { padding: 11px 16px 11px 14px; font-variant-numeric: tabular-nums; }
 
 /* =========================================================================
    CHAPTERS screen (8a) — a pushed, searchable, virtualised chapter list.

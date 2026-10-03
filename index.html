@@ -243,6 +243,13 @@
         </button>
       </div>
 
+      <!-- Busy toast — a non-interactive progress note for long background work
+           (e.g. seeding the demo library), so a slow job doesn't look frozen. -->
+      <div id="busy-toast" class="update-banner is-installing busy-toast" role="status" aria-live="polite" hidden>
+        <span class="update-banner__dot" aria-hidden="true"></span>
+        <span id="busy-toast-text" class="update-banner__text"></span>
+      </div>
+
       <input id="file-input" type="file" accept=".epub,application/epub+zip" multiple hidden />
     </div>
 

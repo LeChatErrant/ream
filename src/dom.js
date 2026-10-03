@@ -148,6 +148,8 @@ export function collectRefs() {
     updateText: "update-banner-text",
     updateReload: "update-reload",
     updateDismiss: "update-dismiss",
+    busyToast: "busy-toast",
+    busyToastText: "busy-toast-text",
     fileInput: "file-input",
   };
   for (const [k, id] of Object.entries(ids)) el[k] = document.getElementById(id);
