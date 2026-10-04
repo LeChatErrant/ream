@@ -105,8 +105,6 @@ function card(x, gone) {
     '<span class="since">' + (gone ? (esc(x.how || 'lost') + ' · ' + link(x.lost)) : 'since ' + link(x.since)) + '</span></div>';
   if (x.runes[0]) h += sheet(x.runes[0]);
   else if (!gone) h += '<div class="runes empty">No rune sheet yet</div>';
-  if (x.runes.length > 1) h += '<details><summary>Earlier rune sheets (' + (x.runes.length - 1) + ')</summary>' +
-    x.runes.slice(1).map((ps) => '<div class="ref">' + link(ps[0]) + '</div>' + sheet(ps)).join('') + '</details>';
   if (x.history.length) h += '<details><summary>From the book (' + x.history.length + ')</summary>' +
     x.history.map((e) => '<div class="ref">' + link(e.ref) + (e.flashback ? ' · flashback' : '') + '</div>' + passage(e.paras)).join('') + '</details>';
   return h + '</div>';
@@ -137,7 +135,7 @@ function render(c) {
       if (held.length) h += '<h2>' + label + '</h2><div class="card">' + held.map((x) => '<div class="stat"><span>' + esc(D.entries[x.id].label) + '</span><span><b>' + esc(x.value) + '</b> <span class="since">as of ' + link(x.since) + '</span></span></div>').join('') + '</div>';
       continue;
     }
-    h += '<h2>' + label + ' (' + held.length + ')</h2>' + (held.length ? held.map((x) => card(x)).join('') : '<div class="empty">None</div>');
+    if (held.length) h += '<h2>' + label + ' (' + held.length + ')</h2>' + held.map((x) => card(x)).join('');
   }
   const gone = items.filter((x) => x.held === false && x.kind !== 'stat');
   if (gone.length) h += '<details style="margin-top:26px"><summary>No longer held (' + gone.length + ')</summary>' + gone.map((x) => card(x, true)).join('') + '</details>';

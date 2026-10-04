@@ -52,22 +52,42 @@ for (const e of tl.events) {
   events.push(out)
 }
 
-// ---- a line the book cuts short ("Memory Description: [A worm of doubt…]") is
-// shown from the earlier sheet that printed it in full -------------------------------
+// ---- full rune sheets ------------------------------------------------------------
+// Each sheet builds on the earlier ones: a line the book repeats is replaced by
+// its newest version, a line it leaves out this time is kept, and a line it cuts
+// short ("Memory Description: [A worm of doubt…]") keeps the earlier full one. So
+// the latest sheet is always the fullest the book has shown — still only whole
+// paragraphs of the book.
 {
-  const label = (t) => t.match(/^\s*([^:]{1,60}):/)?.[1]
+  const label = (t) => t.match(/^\s*([^:]{1,60}):/)?.[1]?.trim()
   const value = (t) => norm(t.slice(t.indexOf(':') + 1)).replace(/^[\s[]+|[\s.\]]+$/g, '')
-  const earlier = {}
+  const cutShort = (t) => /(…|\.\.\.)\]?\.?\s*$/.test(t)
+  const sheets = {}
   for (const e of events.filter((e) => e.runes).sort((a, b) => cmp(a.at, b.at))) {
-    const prev = (earlier[e.runes] ??= [])
-    e.paras = e.paras.map((r) => {
+    const cur = [...(sheets[e.runes] ?? [])]
+    const seen = {}
+    let enchantment = ''
+    let last = -1
+    for (const r of e.paras) {
       const t = text[r.ch][r.p]
-      if (!/(…|\.\.\.)\]?\.?\s*$/.test(t)) return r
+      let key = (label(t) ?? t).toLowerCase()
+      if (key === 'enchantment') enchantment = value(t)
+      if (key === 'enchantment description') key += '|' + enchantment
+      seen[key] = (seen[key] ?? 0) + 1
+      if (seen[key] > 1) key += '#' + seen[key]
+      const i = cur.findIndex((x) => x.key === key)
+      if (i < 0) {
+        cur.splice(++last, 0, { key, r })
+        continue
+      }
+      const old = text[cur[i].r.ch][cur[i].r.p]
       const cut = value(t).replace(/(…|\.\.\.)$/, '').trim()
-      const full = prev.find((q) => label(text[q.ch][q.p]) === label(t) && value(text[q.ch][q.p]).startsWith(cut) && value(text[q.ch][q.p]).length > cut.length + 3)
-      return full ?? r
-    })
-    prev.unshift(...e.paras)
+      const keepOld = cutShort(t) && value(old).startsWith(cut) && value(old).length > cut.length + 3
+      cur[i] = { key, r: keepOld ? cur[i].r : r }
+      last = i
+    }
+    sheets[e.runes] = cur
+    e.paras = cur.map((x) => x.r)
   }
 }
 

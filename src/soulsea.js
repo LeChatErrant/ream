@@ -110,7 +110,7 @@ function reached(e, point) {
 
 function stateAt(point) {
   const s = {};
-  const get = (id) => (s[id] ??= { id, kind: data.entries[id]?.kind, runes: [], history: [] });
+  const get = (id) => (s[id] ??= { id, kind: data.entries[id]?.kind, sheet: null, history: [] });
   for (const e of data.events) {
     if (!reached(e, point)) continue;
     const x = get(e.id);
@@ -121,7 +121,7 @@ function stateAt(point) {
       Object.assign(get(e.to), { held: true, name: e.name, since: e.at[0], from: e.id });
     } else if (e.type === "name") x.name = e.value;
     else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0] });
-    else if (e.type === "runes") x.runes.unshift(e);
+    else if (e.type === "runes") x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
     else if (e.type === "history") x.history.push(e);
   }
   return s;
@@ -258,7 +258,7 @@ function render() {
 
   for (const [kind, label] of SECTIONS) {
     const held = items.filter((x) => x.kind === kind && x.held);
-    if (!held.length && kind !== "memory") continue;
+    if (!held.length) continue; // an empty section would hint at what's to come
     body.append(h("h3", { class: "soulsea__h" }, label, h("span", { class: "soulsea__count" }, String(held.length))));
     body.append(h("div", { class: "soulsea__list" }, held.map((x) => row(x, false, prevSt))));
   }
@@ -310,10 +310,8 @@ function row(x, gone, prevSt) {
   if (!open) return out;
 
   const detail = h("div", { class: "soulsea__detail" });
-  if (x.runes[0]) detail.append(sheet(x.runes[0]));
+  if (x.sheet) detail.append(sheet(x.sheet));
   else detail.append(h("p", { class: "soulsea__empty" }, "No runes shown in the book yet."));
-  if (x.runes.length > 1)
-    detail.append(fold(`${x.id}#runes`, `Earlier runes (${x.runes.length - 1})`, () => x.runes.slice(1).map(sheet)));
   if (x.history.length)
     detail.append(fold(`${x.id}#history`, `From the book (${x.history.length})`, () => x.history.map((e) => passage(e))));
   out.append(detail);
@@ -356,7 +354,7 @@ function fill(box, e, cls) {
 }
 
 const sheet = (e) =>
-  fill(h("div", { class: "soulsea__runes" }, h("div", { class: "soulsea__src" }, `Chapter ${e.at[0]}`)), e, "soulsea__rune");
+  fill(h("div", { class: "soulsea__runes" }, h("div", { class: "soulsea__src" }, `As of chapter ${e.at[0]}`)), e, "soulsea__rune");
 const passage = (e) =>
   fill(
     h("div", { class: "soulsea__passage" }, h("div", { class: "soulsea__src" }, `Chapter ${e.at[0]}` + (e.flashback ? " · flashback" : ""))),
