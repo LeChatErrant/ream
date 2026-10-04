@@ -164,7 +164,8 @@ export function collectRefs() {
 // cancelled once movement passes a small threshold (a real scroll), so a still
 // finger reliably reaches the hold.
 //
-// On a computer the same action is a right-click (or the keyboard's menu key):
+// On a computer the same action is a right-click (or the keyboard's menu key),
+// never a held mouse button:
 // `onLongPress` receives the viewport point it was raised at ({ x, y }), so a
 // wide screen can open its menu right there. `onTap` receives the click event
 // (for ⌘/Ctrl-click). A non-button target is made focusable and answers
@@ -191,9 +192,10 @@ export function attachLongPress(node, { onLongPress, onTap, canStart = () => tru
   node.addEventListener("pointerdown", (e) => {
     lastPointerType = e.pointerType;
     if (!canStart()) return;
-    // A mouse's secondary button is the desktop long-press: `contextmenu`
-    // (below) handles it, so it never arms the hold timer.
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // A mouse never arms the hold timer: holding a click down isn't a gesture
+    // on a computer. Its long-press is the right-click (`contextmenu` below)
+    // or the hover controls the shelf and volume rows show for a pointer.
+    if (e.pointerType === "mouse") return;
     longPressed = false;
     startX = e.clientX;
     startY = e.clientY;

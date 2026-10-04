@@ -297,7 +297,17 @@ function volumeRow(s, book, start, end, selId) {
       h("div", { class: "vrow__title" }, title),
       h("div", { class: "vrow__sub" }, `Ch. ${start}–${end} · ${statusText}`)
     ),
-    h("div", { class: "vrow__pct" }, pct >= 100 ? "100 %" : bookIsStarted(book) ? pct + " %" : "")
+    h("div", { class: "vrow__pct" }, pct >= 100 ? "100 %" : bookIsStarted(book) ? pct + " %" : ""),
+    // Pointer-only ⋯ (hidden on touch, see .hover-ctl): the long-press's view.
+    h("button", {
+      class: "hover-ctl vrow__more",
+      "aria-label": "Volume actions",
+      title: "Volume actions",
+      onclick: (e) => {
+        e.stopPropagation();
+        showVolumeSheet(s, book, start, end);
+      },
+    }, svg(ICON.more))
   );
   // Tap selects the volume — its chapters fill the list at the foot of the page.
   // Long-press (right-click on a computer) raises the single-volume view

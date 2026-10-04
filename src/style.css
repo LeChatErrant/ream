@@ -350,6 +350,72 @@ html { -webkit-tap-highlight-color: transparent; }
 .tile--selectable:not(.tile--selected) { opacity: 0.55; }
 .tile--selected .tile__cover { outline: 2px solid var(--fill-card); outline-offset: 2px; }
 
+/* Hover controls — what a computer gets in place of a long-press: a select ring
+   on book covers, a ⋯ on series covers and volume rows. They exist only for a
+   hovering, precise pointer (mouse / trackpad); a touchscreen never shows them
+   and keeps its long-press. Faded in on hover or keyboard focus. */
+.hover-ctl { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .hover-ctl {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s, background-color 0.12s;
+  }
+  .hover-ctl:focus-visible { opacity: 1; outline: 2px solid var(--text-muted); outline-offset: 1px; }
+
+  /* Book cover: an empty ring where the ✓ lands once selected. */
+  .tile__pick {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 1.5px solid rgba(236, 239, 243, 0.9);
+    background: rgba(10, 12, 16, 0.5);
+    box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.35), 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+  .tile:hover .tile__pick,
+  #app.selecting .tile__pick { opacity: 1; }
+  .tile__pick:hover { background: rgba(198, 203, 211, 0.45); }
+
+  /* Series cover: ⋯ opposite the volume-count badge. */
+  .tile__more {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 3;
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    background: rgba(10, 12, 16, 0.72);
+    color: #dfe3e9;
+  }
+  .tile__more svg { width: 16px; height: 16px; }
+  .tile--series:hover .tile__more { opacity: 1; }
+  .tile__more:hover { background: rgba(10, 12, 16, 0.92); }
+
+  /* Volume row: ⋯ at the end of the row. */
+  .vrow__more {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    margin: 0 -8px 0 -6px;
+    border-radius: 15px;
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .vrow:hover .vrow__more { opacity: 1; }
+  .vrow__more:hover { background: var(--row-current); color: var(--text-primary); }
+}
+
 /* Series tile — a pile of stacked rectangles behind the cover */
 .tile--series .series-stack { position: relative; margin-right: 4px; }
 .series-stack .tile__cover { position: relative; z-index: 2; }

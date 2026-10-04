@@ -3,7 +3,7 @@
 // and series, and the multi-select-into-a-series mode. Tapping a book cover
 // opens its info page; tapping a series tile opens the series info page.
 // =========================================================================
-import { el, h, svg, coverNode, progressBar, attachLongPress } from "./dom.js";
+import { el, h, svg, ICON, coverNode, progressBar, attachLongPress } from "./dom.js";
 import { books, series, progressMap, ui, bookById, saveUi, deleteBook } from "./state.js";
 import { normalize, toRoman, stripVolume, longestCommonName } from "./lib/text.js";
 import { chapterCount } from "./lib/chapters.js";
@@ -143,6 +143,12 @@ function bookTile(book, collides = false) {
   const numeral = collides && book.volumeIndex ? toRoman(book.volumeIndex) : null;
   if (numeral) cover.append(h("span", { class: "vol-pill" }, numeral));
   if (selected) cover.append(h("span", { class: "tile__check" }, "✓"));
+  // Pointer-only (hidden on touch, see .hover-ctl): a select ring on hover —
+  // the computer's way into the long-press's multi-select.
+  else cover.append(hoverCtl("tile__pick", selecting ? "Select" : "Select to group or delete", () => {
+    if (selection) toggleSelect(book.id);
+    else enterSelection(book.id);
+  }));
   // Meta line (11c): how much is in the thing, never where you are. A colliding
   // look-alike also gets a disambiguating prefix — its volume number, or the
   // added date when the number can't be resolved.
@@ -175,6 +181,8 @@ function seriesTile(s) {
   const cover = coverNode(cur, "tile__cover");
   cover.append(h("span", { class: "vol-badge" }, String(s.bookIds.length)));
   cover.append(progressBar(seriesPercent(s), "cover"));
+  // Pointer-only ⋯: the same menu a long-press or right-click raises.
+  cover.append(hoverCtl("tile__more", "More actions", (btn) => openInfoMenu(infoModel("series", s.id), { anchor: btn }), ICON.more));
   const stack = h("div", { class: "series-stack" }, h("i", { class: "series-stack__l3" }), h("i", { class: "series-stack__l2" }), cover);
   const n = s.bookIds.length;
   const tile = h(
@@ -194,6 +202,17 @@ function seriesTile(s) {
     onTap: () => { if (!selection) openInfo("series", s.id); },
   });
   return tile;
+}
+
+// A small control laid over a cover that only a hovering pointer sees (CSS
+// .hover-ctl) — touch keeps its long-press. Its click never reaches the tile.
+function hoverCtl(cls, label, onClick, icon = null) {
+  const btn = h("button", { class: "hover-ctl " + cls, "aria-label": label, title: label }, icon ? svg(icon) : null);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick(btn);
+  });
+  return btn;
 }
 
 function importTile() {
