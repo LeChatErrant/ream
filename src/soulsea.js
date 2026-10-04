@@ -231,8 +231,8 @@ function render() {
         { class: "soulsea__changes" },
         changes.map((x) =>
           h(
-            "span",
-            { class: "soulsea__change soulsea__change--" + (x.held ? "gain" : "lose") },
+            "button",
+            { class: "soulsea__change soulsea__change--" + (x.held ? "gain" : "lose"), onclick: () => focusItem(x) },
             (x.held ? "+ " : "− ") + nameOf(x)
           )
         )
@@ -290,10 +290,25 @@ function render() {
   body.scrollTop = keepScroll;
 }
 
+// "In this chapter" → open that item (inside "No longer held" if it's gone) and bring it into view.
+let focused = null; // the item "In this chapter" asked for, until its sheet has loaded
+function focusItem(x) {
+  if (!x.held) expanded.add("#gone");
+  expanded.add(x.id);
+  focused = x.id;
+  render();
+  scrollToFocused();
+}
+function scrollToFocused() {
+  const body = root?.querySelector(".soulsea__body");
+  const row = focused && root.querySelector(`.soulsea__row[data-id="${focused}"]`);
+  if (row && body) body.scrollTo({ top: row.offsetTop - 12, behavior: "smooth" });
+}
+
 const nameOf = (x) => x.name || `“${x.label}”`;
 let current = {}; // id → item, in the state being drawn
 const stateOf = (id) => current[id];
-const toggle = (key) => (expanded.has(key) ? expanded.delete(key) : expanded.add(key), render());
+const toggle = (key) => ((focused = null), expanded.has(key) ? expanded.delete(key) : expanded.add(key), render());
 
 function row(x, gone, prevSt) {
   const open = expanded.has(x.id);
@@ -306,7 +321,7 @@ function row(x, gone, prevSt) {
     gone ? h("span", { class: "soulsea__meta" }, HOW[x.how] || "Lost") : null,
     h("span", { class: "soulsea__chev" }, svg(ICON.chevron))
   );
-  const out = h("div", { class: "soulsea__row" + (gone ? " soulsea__row--gone" : "") + (open ? " soulsea__row--open" : "") }, head);
+  const out = h("div", { class: "soulsea__row" + (gone ? " soulsea__row--gone" : "") + (open ? " soulsea__row--open" : ""), dataset: { id: x.id } }, head);
   if (!open) return out;
 
   const detail = h("div", { class: "soulsea__detail" });
@@ -439,7 +454,10 @@ function load(e) {
 // this copy is left out rather than approximated.
 function whenLoaded(e, draw) {
   const box = h("div", { class: "soulsea__loadbox" });
-  const done = (ts) => box.replaceChildren(ts.length ? draw(ts) : h("p", { class: "soulsea__empty" }, "This chapter isn’t in your library, or differs from the mapped copy."));
+  const done = (ts) => {
+    box.replaceChildren(ts.length ? draw(ts) : h("p", { class: "soulsea__empty" }, "This chapter isn’t in your library, or differs from the mapped copy."));
+    if (focused && box.closest(`.soulsea__row[data-id="${focused}"]`)) scrollToFocused();
+  };
   const got = load(e);
   if (Array.isArray(got)) done(got);
   else {

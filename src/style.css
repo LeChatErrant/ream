@@ -1928,11 +1928,13 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .soulsea__now--on { background: transparent; color: var(--text-dim); cursor: default; }
 .soulsea__body {
+  position: relative; /* rows measure their offset from here (focusItem) */
   flex: 1 1 auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 4px 16px calc(32px + env(safe-area-inset-bottom));
 }
+.soulsea__body::after { content: ""; display: block; height: 40vh; }
 .soulsea__h {
   display: flex;
   align-items: center;
@@ -1948,7 +1950,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__h--toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
 .soulsea__count { font-weight: 500; color: var(--text-dimmest); letter-spacing: 0; }
 .soulsea__changes { display: flex; flex-wrap: wrap; gap: 6px; }
-.soulsea__change { font: 500 12.5px var(--font-ui); padding: 4px 10px; border-radius: 999px; background: var(--pill); }
+.soulsea__change { appearance: none; border: 0; cursor: pointer; text-align: left; font: 500 12.5px var(--font-ui); padding: 4px 10px; border-radius: 999px; background: var(--pill); }
 .soulsea__change--gain { color: #9fe0b8; background: rgba(111, 207, 151, 0.12); }
 .soulsea__change--lose { color: var(--danger-hover); background: rgba(217, 112, 102, 0.12); }
 .soulsea__stats {
