@@ -30,7 +30,7 @@ import { go, openInfo, openSeries } from "./router.js";
 import { addVolumeToSeries } from "./import.js";
 import { scrollReaderMark } from "./brand.js";
 import {
-  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, nextSuggestion,
+  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
   importPackage, exportDecisions, removePackage,
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
@@ -966,8 +966,8 @@ function mountProofControls() {
   proofPill = h("button", {
     class: "proof-pill",
     type: "button",
-    title: "Next suggested correction",
-    onclick: () => nextSuggestion(rendition?.manager?.container),
+    title: "Corrections in this chapter",
+    onclick: () => openCorrections(rendition?.manager?.container),
   });
   el.btnPrev.parentElement.prepend(proofPill);
   onProofChange(renderProofControls);
@@ -1072,11 +1072,17 @@ function renderProofControls() {
   );
   proofRow.setAttribute("aria-haspopup", "menu");
   proofRow.classList.toggle("proof-row--offline", s.enabled && s.source === "server" && s.connection === "offline");
+  // ✎ n while some are left to review; ✎ ✓ once the chapter is done (the list
+  // still shows what was accepted / discarded); a plain ✎ when there are none.
   const n = s.chapterPending;
   proofPill.hidden = !(s.enabled && (s.source === "package" || s.connection === "connected"));
-  proofPill.textContent = n ? `✎ ${n}` : "✓";
+  proofPill.textContent = n ? `✎ ${n}` : s.chapterTotal ? "✎ ✓" : "✎";
   proofPill.classList.toggle("proof-pill--clear", !n);
-  proofPill.title = n ? `${n} suggested correction${n > 1 ? "s" : ""} in this chapter — next` : "No open suggestions in this chapter";
+  proofPill.title = n
+    ? `${n} correction${n > 1 ? "s" : ""} to review in this chapter`
+    : s.chapterTotal
+      ? "Chapter reviewed — see its corrections"
+      : "No corrections in this chapter";
 }
 
 function applyDock() {

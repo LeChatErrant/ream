@@ -80,6 +80,7 @@ export const proofState = () => ({
   connection,
   bookPending,
   chapterPending: pendingMarks().length,
+  chapterTotal: [...chapters.values()].reduce((n, c) => n + c.findings.length, 0),
   packageDate: pkg?.createdAt || null,
   decided: Object.keys(local.decisions).length,
   toExport: unexported(),
@@ -242,7 +243,7 @@ export async function proofChapter(contents, lib, href) {
     bookPending = key ? pendingInBook(key) : null;
   }
 
-  const c = { doc, paras, heading, findings: [], base };
+  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base };
   chapters.set(doc, c);
   doc.defaultView.addEventListener("unload", () => {
     chapters.delete(doc);
@@ -254,6 +255,7 @@ export async function proofChapter(contents, lib, href) {
     c.findings.push(v);
     if (v.status === "accepted") applyFix(c, v);
     else if (v.status === "pending") mark(c, v);
+    else anchorOriginal(c, v);
   }
   doc.addEventListener(
     "click",
@@ -296,6 +298,8 @@ function injectStyle(doc) {
     .proof-para:hover, .proof-para.is-active { background: rgba(143, 179, 255, 0.16); }
     .proof-para--del { text-decoration: line-through rgba(217, 112, 102, 0.55); }
     .proof-split { display: block; margin-bottom: 1em; }
+    .proof-flash { animation: proof-flash 1.8s ease-out; border-radius: 3px; }
+    @keyframes proof-flash { 0%, 35% { background: rgba(143, 179, 255, 0.34); } 100% { background: transparent; } }
   `;
   (doc.head || doc.documentElement).append(s);
 }
@@ -382,24 +386,72 @@ function unmarkChapter(c) {
 // Hidden, not removed: CFIs count element positions, so reading spots stay put.
 const hide = (p) => p.style.setProperty("display", "none", "important");
 
+// Decided findings leave no visible trace, only an invisible anchor
+// (data-proof-ref) so the corrections list can jump back to them.
+const anchor = (node, f) => node && (node.dataset.proofRef = f.id);
+
 /** Show the corrected text in the rendered chapter. */
 function applyFix(c, f) {
   if (f.op === "title") {
     if (c.heading) c.heading.textContent = f.replacement;
+    return anchor(c.heading, f);
+  }
+  if (f.op === "delete-paras") {
+    for (const p of parasOf(c, f)) {
+      hide(p);
+      anchor(p, f);
+    }
     return;
   }
-  if (f.op === "delete-paras") return parasOf(c, f).forEach(hide);
   const p = c.paras[f.para];
   if (f.op === "split-para") {
     p.replaceChildren(...f.replacement.split("\n\n").map((t) => h("span", { class: "proof-split" }, t)));
-    return;
+    return anchor(p, f);
   }
-  if (f.alsoDelete != null && c.paras[f.alsoDelete]) hide(c.paras[f.alsoDelete]);
+  if (f.alsoDelete != null && c.paras[f.alsoDelete]) {
+    hide(c.paras[f.alsoDelete]);
+    anchor(c.paras[f.alsoDelete], f);
+  }
   const r = findRange(p, f.original);
-  if (!r) return;
+  if (!r) return anchor(p, f);
   r.deleteContents();
-  r.insertNode(c.doc.createTextNode(f.replacement));
-  p.normalize();
+  const span = c.doc.createElement("span");
+  span.className = "proof-done";
+  span.dataset.proofRef = f.id;
+  span.textContent = f.replacement;
+  r.insertNode(span);
+}
+
+/** A discarded finding: the text stays as it was, with an anchor around it. */
+function anchorOriginal(c, f) {
+  if (f.op === "title") return anchor(c.heading, f);
+  if (f.op !== "replace") return parasOf(c, f).forEach((p) => anchor(p, f));
+  const p = c.paras[f.para];
+  const r = findRange(p, f.original);
+  if (!r) return anchor(p, f);
+  const span = c.doc.createElement("span");
+  span.className = "proof-done";
+  span.dataset.proofRef = f.id;
+  span.append(r.extractContents());
+  r.insertNode(span);
+}
+
+/** Undo how a decided finding is shown (before showing another decision). */
+function revert(c, f) {
+  const applied = f.status === "accepted";
+  for (const n of [...c.doc.querySelectorAll(`[data-proof-ref="${CSS.escape(f.id)}"]`)]) {
+    delete n.dataset.proofRef;
+    if (n.classList.contains("proof-done")) {
+      if (applied) n.replaceWith(c.doc.createTextNode(f.original));
+      else n.replaceWith(...n.childNodes);
+    } else if (n === c.heading) {
+      if (applied) n.textContent = c.headingText;
+    } else {
+      n.style.removeProperty("display");
+      if (applied && f.op === "split-para") n.textContent = f.original;
+    }
+  }
+  c.doc.body.normalize();
 }
 
 const pendingMarks = () => {
@@ -411,23 +463,84 @@ const pendingMarks = () => {
 
 // ---- jump to the next suggestion -------------------------------------------
 
+/** Where a finding sits in the chapter: its mark, or the anchor of a decided one (a hidden paragraph → the one before it). */
+function nodeOf(c, f) {
+  let n = c.doc.querySelector(`[data-proof="${CSS.escape(f.id)}"]`) || c.doc.querySelector(`[data-proof-ref="${CSS.escape(f.id)}"]`);
+  while (n && n.style?.display === "none") n = n.previousElementSibling;
+  return n || c.heading;
+}
+const topOf = (c, f) => {
+  const n = nodeOf(c, f);
+  const frame = c.doc.defaultView?.frameElement;
+  return n && frame ? frame.offsetTop + n.getBoundingClientRect().top : null;
+};
+
+/** Scroll to a finding, flash it, and open its sheet. */
+function focusFinding(container, c, f) {
+  const top = topOf(c, f);
+  if (top != null) container?.scrollTo({ top: Math.max(0, top - container.clientHeight / 3), behavior: "smooth" });
+  const n = nodeOf(c, f);
+  if (n) {
+    n.classList.remove("proof-flash");
+    void n.offsetWidth; // restart the animation
+    n.classList.add("proof-flash");
+  }
+  openSheet(c, f);
+}
+
 /** Scroll the reader to the next pending suggestion below the current view and open it. */
 export function nextSuggestion(container) {
-  const list = pendingMarks();
-  if (!list.length) return false;
-  const topOf = ({ c, f }) => {
-    const n = c.doc.querySelector(`[data-proof="${CSS.escape(f.id)}"]`);
-    const frame = c.doc.defaultView?.frameElement;
-    if (!n || !frame) return null;
-    return frame.offsetTop + n.getBoundingClientRect().top;
-  };
   const view = (container?.scrollTop ?? 0) + 140;
-  const placed = list.map((x) => ({ ...x, top: topOf(x) })).filter((x) => x.top != null).sort((a, b) => a.top - b.top);
+  const placed = pendingMarks()
+    .map((x) => ({ ...x, top: topOf(x.c, x.f) }))
+    .filter((x) => x.top != null)
+    .sort((a, b) => a.top - b.top);
   const next = placed.find((x) => x.top > view) || placed[0];
   if (!next) return false;
-  container?.scrollTo({ top: Math.max(0, next.top - container.clientHeight / 3), behavior: "smooth" });
-  openSheet(next.c, next.f);
+  focusFinding(container, next.c, next.f);
   return true;
+}
+
+/** The chapter's corrections — to review, accepted and discarded — as a list sheet. */
+export function openCorrections(container) {
+  const rows = [];
+  for (const c of chapters.values())
+    for (const f of c.findings) rows.push({ c, f, order: f.op === "title" ? -1 : (f.para ?? 0) });
+  rows.sort((a, b) => a.order - b.order);
+  const n = (st) => rows.filter((r) => r.f.status === st).length;
+  const root = sheetEl();
+  const card = root.querySelector(".proof-card");
+  const summary = [n("pending") && `${n("pending")} to review`, n("accepted") && `${n("accepted")} accepted`, n("discarded") && `${n("discarded")} discarded`]
+    .filter(Boolean)
+    .join(" · ");
+  card.replaceChildren(
+    h("h2", { class: "sheet-title" }, "Corrections in this chapter"),
+    h("p", { class: "proof-list__summary" }, rows.length ? summary : "No corrections in this chapter."),
+    n("pending") ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
+    h(
+      "div",
+      { class: "proof-list" },
+      ...rows.map(({ c, f }) =>
+        h(
+          "button",
+          { class: "proof-item", type: "button", onclick: () => closeOverlay(() => focusFinding(container, c, f)) },
+          h("span", { class: `proof-status proof-status--${f.status}` }, STATUS_LABEL[f.status]),
+          h("span", { class: "proof-item__body" }, h("span", { class: "proof-item__kind" }, KIND_LABEL[f.kind] || f.kind), h("span", { class: "proof-item__text" }, summaryOf(f)))
+        )
+      )
+    )
+  );
+  root.hidden = false;
+  armOverlay(() => (root.hidden = true));
+}
+
+/** One line describing a finding's change. */
+function summaryOf(f) {
+  const short = (t, n = 70) => (t.length > n ? t.slice(0, n) + "…" : t);
+  if (f.op === "delete-paras") return `Remove: ${short(f.original.replace(/\s+/g, " "))}`;
+  if (f.op === "split-para") return "Split into separate paragraphs";
+  if (f.op === "title") return short(f.replacement);
+  return `${short(f.original.trim(), 40) || "∅"} → ${short(f.replacement.trim(), 40) || "∅"}`;
 }
 
 // ---- the decision sheet -----------------------------------------------------
@@ -444,6 +557,8 @@ function sheetEl() {
   document.body.append(sheet);
   return sheet;
 }
+
+const STATUS_LABEL = { pending: "To review", accepted: "Accepted", discarded: "Discarded" };
 
 const KIND_LABEL = {
   typo: "Typo",
@@ -510,11 +625,14 @@ function openSheet(c, f) {
       error.hidden = false;
       return;
     }
-    unmark(c, f);
+    const was = f.status;
+    if (was === "pending") unmark(c, f);
+    else revert(c, f);
     if (extra.replacement !== undefined) f.replacement = extra.replacement;
-    if (status === "accepted") applyFix(c, f);
     f.status = status;
-    if (bookPending != null) bookPending = Math.max(0, bookPending - 1);
+    if (status === "accepted") applyFix(c, f);
+    else anchorOriginal(c, f);
+    if (was === "pending" && bookPending != null) bookPending = Math.max(0, bookPending - 1);
     closeOverlay();
     notify();
   };
@@ -525,7 +643,8 @@ function openSheet(c, f) {
       { class: "proof-head" },
       h("span", { class: "proof-kind" }, KIND_LABEL[f.kind] || f.kind),
       f.confidence ? h("span", { class: "proof-conf" }, `${f.confidence} confidence`) : null,
-      h("span", { class: "proof-src" }, f.source === "auto" ? "automatic" : "claude")
+      h("span", { class: "proof-src" }, f.source === "auto" ? "automatic" : "claude"),
+      h("span", { class: `proof-status proof-status--${f.status}` }, STATUS_LABEL[f.status])
     ),
     h("p", { class: "proof-note" }, f.note),
     body,
@@ -534,7 +653,11 @@ function openSheet(c, f) {
     h(
       "div",
       { class: "proof-actions" },
-      h("button", { class: "pill-btn proof-accept", onclick: () => (editBox.hidden ? decide("accepted") : decide("accepted", { replacement: editBox.value })) }, "Accept"),
+      h(
+        "button",
+        { class: "pill-btn proof-accept", onclick: () => (editBox.hidden ? (f.status === "accepted" ? closeOverlay() : decide("accepted")) : decide("accepted", { replacement: editBox.value })) },
+        f.status === "accepted" ? "Accepted ✓" : "Accept"
+      ),
       canEdit
         ? h("button", {
             class: "text-btn",
@@ -546,7 +669,7 @@ function openSheet(c, f) {
             },
           }, "Edit")
         : null,
-      h("button", { class: "text-btn text-btn--danger", onclick: () => decide("discarded") }, "Discard"),
+      h("button", { class: "text-btn text-btn--danger", onclick: () => (f.status === "discarded" ? closeOverlay() : decide("discarded")) }, f.status === "discarded" ? "Discarded ✓" : "Discard"),
       h("button", { class: "text-btn proof-later", onclick: () => closeOverlay() }, "Later")
     )
   );
