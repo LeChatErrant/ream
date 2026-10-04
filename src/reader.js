@@ -961,7 +961,8 @@ let proofRow = null;
 let proofPill = null;
 function mountProofControls() {
   if (proofRow) return renderProofControls();
-  proofRow = h("button", { class: "proof-row", type: "button", onclick: () => openProofMenu() });
+  // The label opens the Import / Export menu; the switch alone turns it on/off.
+  proofRow = h("div", { class: "proof-row" });
   el.drawer.insertBefore(proofRow, el.drawer.querySelector(".drawer-label"));
   proofPill = h("button", {
     class: "proof-pill",
@@ -1014,13 +1015,6 @@ function pickPackageFile() {
 function openProofMenu() {
   const s = proofState();
   const actions = [
-    {
-      label: s.enabled ? "Turn proofreading off" : "Turn proofreading on",
-      onClick: () => {
-        setProofEnabled(!s.enabled);
-        if (proofEnabled()) remarkChapters();
-      },
-    },
     { label: "Import proofreading…", now: true, onClick: pickPackageFile },
     {
       label: s.source === "package" && s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
@@ -1067,10 +1061,28 @@ function renderProofControls() {
   else if (s.connection === "connected") status = s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Connected";
   else status = "Connecting…";
   proofRow.replaceChildren(
-    h("span", { class: "proof-row__text" }, h("span", { class: "proof-row__label" }, "Proofreading"), h("span", { class: "proof-row__status" }, status)),
-    h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
+    h(
+      "button",
+      { class: "proof-row__text", type: "button", "aria-haspopup": "menu", onclick: () => openProofMenu() },
+      h("span", { class: "proof-row__label" }, "Proofreading"),
+      h("span", { class: "proof-row__status" }, status)
+    ),
+    h(
+      "button",
+      {
+        class: "proof-switch-btn",
+        type: "button",
+        role: "switch",
+        "aria-checked": String(s.enabled),
+        "aria-label": "Proofreading",
+        onclick: () => {
+          setProofEnabled(!s.enabled);
+          if (proofEnabled()) remarkChapters();
+        },
+      },
+      h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
+    )
   );
-  proofRow.setAttribute("aria-haspopup", "menu");
   proofRow.classList.toggle("proof-row--offline", s.enabled && s.source === "server" && s.connection === "offline");
   // ✎ n while some are left to review; ✎ ✓ once the chapter is done (the list
   // still shows what was accepted / discarded); a plain ✎ when there are none.

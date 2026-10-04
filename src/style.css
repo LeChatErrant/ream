@@ -1698,20 +1698,23 @@ html { -webkit-tap-highlight-color: transparent; }
    An opt-in maintainer tool: a switch at the top of the reader drawer, a
    top-bar pill counting the chapter's open suggestions, and a decision sheet. */
 .proof-row {
-  appearance: none;
-  border: 0;
-  background: transparent;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
   padding: 0 18px 14px;
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
 }
-.proof-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.proof-row button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.proof-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; text-align: left; }
+.proof-row__text:hover .proof-row__label { color: var(--text-primary); }
+.proof-switch-btn { display: flex; align-items: center; padding: 8px 0 8px 8px !important; }
 .proof-row__label { font: 600 13px var(--font-ui); color: var(--text-secondary); }
 .proof-row__status { font: 400 12px var(--font-ui); color: var(--text-dim); }
 .proof-row--offline .proof-row__status { color: var(--danger); }
