@@ -3,3 +3,6 @@ dist/
 dev-dist/
 *.log
 .DS_Store
+
+# proofreading work dir (book text, findings, corrected epubs)
+/proofread/
