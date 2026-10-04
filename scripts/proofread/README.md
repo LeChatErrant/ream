@@ -11,6 +11,7 @@ node scripts/proofread/detect.mjs    # 2. automatic detectors → proofread/find
 node scripts/proofread/chunk.mjs     # 3a. ~28k-word chunks for the Claude pass → proofread/chunks/
 #   3b. Claude agents proofread each chunk with prompt.md → proofread/findings/claude/<chunk>.json
 node scripts/proofread/ingest.mjs    # 3c. normalise + validate Claude findings (idempotent)
+node scripts/proofread/quotes.mjs    # 3d. «French quotes» → "straight quotes" → proofread/findings/quotes/
 node scripts/proofread/review.mjs    # 4. review UI at http://localhost:5180 → proofread/decisions.json
 node scripts/proofread/apply.mjs     # 5. accepted fixes → proofread/out/<same name>.epub
 node scripts/proofread/apply.mjs --check   # verify every finding still locates its text
@@ -42,6 +43,14 @@ suggestion with filters and bulk actions, and *Write corrected epubs*. Its
 `npm run proofread:package`); **Import proofreading** merges a file exported from
 Ream into `decisions.json` (also `npm run proofread:merge -- <file>`) before
 writing the epubs.
+
+**French quotes** (`quotes.mjs`, after ingest): part of Shadow Slave
+(≈ ch 1533–1966, vol 7–9) uses `«…»` for dialogue where the rest of the book
+uses `"…"`. One *Quotes* suggestion per paragraph turns them into straight
+quotes and fixes the spacing (`needs!»Sunny` → `needs!" Sunny`). It leaves any
+quote that another suggestion already rewrites to that suggestion, and gives
+undecided suggestions the same straight quotes. Bulk-accept them in the review
+UI with the *quotes* kind filter.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.

@@ -632,6 +632,7 @@ const KIND_LABEL = {
   "wrong-word": "Wrong word",
   "missing-word": "Missing word",
   punctuation: "Punctuation",
+  quotes: "Quotes",
   duplicate: "Doubled text",
   misplaced: "Misplaced text",
   junk: "Website junk",
