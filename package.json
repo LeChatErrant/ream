@@ -12,6 +12,7 @@
     "proofread": "node scripts/proofread/review.mjs",
     "proofread:package": "node scripts/proofread/sync.mjs package",
     "proofread:merge": "node scripts/proofread/sync.mjs merge",
+    "soul-sea": "node scripts/soul-sea/extract.mjs && node scripts/soul-sea/build.mjs && node scripts/soul-sea/review.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

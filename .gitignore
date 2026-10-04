@@ -6,3 +6,6 @@ dev-dist/
 
 # proofreading work dir (book text, findings, corrected epubs)
 /proofread/
+
+# soul sea work dir (book text: rune blocks, chapter text, review page)
+/soul-sea/
