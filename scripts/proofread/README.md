@@ -23,27 +23,21 @@ exact doubled blocks, the chapter title repeated as a paragraph, paragraphs
 fused with line breaks, sentences split across two paragraphs, `‘` used as an
 apostrophe, doubled words, chapter-title clean-up (missing colon, `lnferno` → `Inferno`).
 
-**While reading in Ream**: run `npm run proofread` (the review server) on this
-computer, then open the reader drawer and switch **Proofreading** on. Each chapter's
-open suggestions are marked in the text (paragraph-level ones get a side bar);
-tap one — or the `✎ n` pill in the top bar to jump to the next — and Accept (`A`),
-Edit, Discard (`D`) or Later. Decisions go into the same `decisions.json`, and
-accepted fixes show applied as you read. The deployed app reaches the local server
-over `http://localhost:5180`; Chrome asks once to allow local-network access.
+**Ream works from a proofreading file alone** — every suggestion plus every
+decision — with no server. In the reader drawer → **Proofreading** → *Import
+proofreading…* on any device (computer or phone), review while reading, then
+*Export proofreading* to save the file with the latest decisions (share sheet →
+AirDrop on the phone). Importing always merges: per suggestion the most recent
+decision wins, so importing twice or from several devices is safe. Suggestions are
+matched by paragraph fingerprints (`src/lib/proof-key.js`), so separate volumes,
+a grouped series or renamed files all work.
 
-**Between devices (offline on the phone)**: one proofreading file — every finding
-plus every decision known on that device — goes back and forth, and importing it
-always merges (per finding, the most recent decision wins, so importing twice or
-from several devices is safe).
-- *From the computer*: in Ream's reader drawer → **Proofreading** → *Export
-  proofreading* (reading against the local server), or **Export proofreading** on
-  the review page, or `npm run proofread:package`.
-- *On the phone*: drawer → Proofreading → *Import proofreading…*; everything then
-  works offline. After reading, *Export proofreading* (share sheet → AirDrop).
-- *Back on the computer*: drawer → Proofreading → *Import proofreading…* in Ream,
-  or **Import proofreading** on the review page, or `npm run proofread:merge -- <file>`.
-Findings are matched by paragraph fingerprints (`src/lib/proof-key.js`), so
-separate volumes, a grouped series or renamed files all work.
+**The review server is a dev tool** (`npm run proofread`): a page listing every
+suggestion with filters and bulk actions, and *Write corrected epubs*. Its
+**Export proofreading** produces the file to import in Ream (also
+`npm run proofread:package`); **Import proofreading** merges a file exported from
+Ream into `decisions.json` (also `npm run proofread:merge -- <file>`) before
+writing the epubs.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.

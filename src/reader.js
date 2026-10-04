@@ -1009,15 +1009,15 @@ function pickPackageFile() {
   input.click();
 }
 
-// The Proofreading row's menu. Import / Export are always offered and work the
-// same on every device: one file (every finding + every decision known here)
-// goes back and forth, and importing merges — per finding, the newest wins.
+// The Proofreading row's menu: Import / Export the proofreading file (every
+// suggestion + every decision known here), the same on every device; importing
+// merges — per suggestion, the newest decision wins.
 function openProofMenu() {
   const s = proofState();
   const actions = [
     { label: "Import proofreading…", now: true, onClick: pickPackageFile },
     {
-      label: s.source === "package" && s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
+      label: s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
       now: true,
       onClick: async () => {
         try {
@@ -1028,7 +1028,7 @@ function openProofMenu() {
       },
     },
   ];
-  if (s.source === "package")
+  if (s.hasFile)
     actions.push({
       label: "Remove proofreading file",
       danger: true,
@@ -1053,13 +1053,11 @@ function renderProofControls() {
   const s = proofState();
   let status;
   if (!s.enabled) status = "Off";
-  else if (s.source === "package")
-    status = [s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Offline package", s.toExport ? `${s.toExport} to export` : null]
+  else if (!s.hasFile) status = "No proofreading file — tap to import";
+  else
+    status = [s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Ready", s.toExport ? `${s.toExport} to export` : null]
       .filter(Boolean)
       .join(" · ");
-  else if (s.connection === "offline") status = "No package — import one, or run npm run proofread";
-  else if (s.connection === "connected") status = s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Connected";
-  else status = "Connecting…";
   proofRow.replaceChildren(
     h(
       "button",
@@ -1083,11 +1081,11 @@ function renderProofControls() {
       h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
     )
   );
-  proofRow.classList.toggle("proof-row--offline", s.enabled && s.source === "server" && s.connection === "offline");
+  proofRow.classList.toggle("proof-row--offline", s.enabled && !s.hasFile);
   // ✎ n while some are left to review; ✎ ✓ once the chapter is done (the list
   // still shows what was accepted / discarded); a plain ✎ when there are none.
   const n = s.chapterPending;
-  proofPill.hidden = !(s.enabled && (s.source === "package" || s.connection === "connected"));
+  proofPill.hidden = !(s.enabled && s.hasFile);
   proofPill.textContent = n ? `✎ ${n}` : s.chapterTotal ? "✎ ✓" : "✎";
   proofPill.classList.toggle("proof-pill--clear", !n);
   proofPill.title = n

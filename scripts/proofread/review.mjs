@@ -1,15 +1,15 @@
 // Step 4 — local review UI: node scripts/proofread/review.mjs → http://localhost:5180
 // Shows every finding in context; Accept / Discard / Edit are saved to
 // proofread/decisions.json as you go, and "Write corrected epubs" runs apply.mjs.
-// It also serves the Ream reader's proofreading mode (/api/proof/*): the app asks
-// for the current chapter's findings and posts decisions back into the same file.
+// A dev tool only — Ream itself works from the proofreading file alone. The
+// page's Export / Import buttons produce / merge that same file.
 import { execFile } from 'node:child_process'
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import path from 'node:path'
 import { ROOT, WORK } from './lib.mjs'
 import { loadDecisions, loadFindings } from './apply.mjs'
-import { buildPackage, mergeDecisions, readerFinding } from './sync.mjs'
+import { buildPackage, mergeDecisions } from './sync.mjs'
 
 const PORT = +(process.env.PORT ?? 5180)
 const DECISIONS = path.join(WORK, 'decisions.json')
@@ -52,33 +52,6 @@ async function data() {
   return { findings: out, decisions: await loadDecisions() }
 }
 
-/** One chapter's findings for the reader (same shape as the phone package), plus the decisions so far. */
-async function chapterFindings(slug, href) {
-  const b = await book(slug).catch(() => null)
-  // The reader's spine href is relative to the OPF; ours is zip-relative.
-  const c = b?.chapters.find((c) => c.href === href || c.href.endsWith('/' + href))
-  if (!c) return { findings: [], decisions: {} }
-  const decisions = await loadDecisions()
-  const all = (await loadFindings()).filter((f) => f.book === slug)
-  const findings = []
-  for (const f of all.filter((f) => f.href === c.href)) findings.push(await readerFinding(f))
-  const mine = Object.fromEntries(findings.filter((f) => decisions[f.id]).map((f) => [f.id, decisions[f.id]]))
-  return { bookPending: all.filter((f) => !decisions[f.id]).length, findings, decisions: mine }
-}
-
-// The deployed reader (https) talks to this local server: allow its origin, and
-// answer Chrome's Private Network Access preflight.
-const ALLOWED = /^(https:\/\/lechaterrant\.github\.io|http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?)$/
-function cors(req, res) {
-  const origin = req.headers.origin
-  if (!origin || !ALLOWED.test(origin)) return
-  res.setHeader('access-control-allow-origin', origin)
-  res.setHeader('vary', 'origin')
-  res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS')
-  res.setHeader('access-control-allow-headers', 'content-type')
-  res.setHeader('access-control-allow-private-network', 'true')
-}
-
 let saving = Promise.resolve()
 async function saveDecisions(updates) {
   // Serialise writes; write-then-rename so a crash never leaves half a file.
@@ -109,17 +82,12 @@ const send = (res, code, type, payload) => {
 }
 
 createServer(async (req, res) => {
-  cors(req, res)
-  if (req.method === 'OPTIONS') return send(res, 204, 'text/plain', '')
   const url = new URL(req.url, 'http://localhost')
   try {
-    if (req.method === 'GET' && url.pathname === '/api/proof/ping') return send(res, 200, 'application/json', '{"ok":true}')
-    if (req.method === 'GET' && url.pathname === '/api/proof/chapter')
-      return send(res, 200, 'application/json', JSON.stringify(await chapterFindings(url.searchParams.get('book'), url.searchParams.get('href'))))
     if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html'))
       return send(res, 200, 'text/html; charset=utf-8', await readFile(path.join(import.meta.dirname, 'review.html')))
     if (req.method === 'GET' && req.url === '/api/data') return send(res, 200, 'application/json', JSON.stringify(await data()))
-    // Offline package for the phone, and merging the phone's decisions back.
+    // The proofreading file: export it with the decisions so far, or merge one in.
     if (req.method === 'GET' && url.pathname === '/api/proof/package') {
       const pkg = await buildPackage()
       res.setHeader('content-disposition', `attachment; filename="ream-proofreading-${pkg.createdAt.slice(0, 10)}.json"`)

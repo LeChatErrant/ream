@@ -1,20 +1,18 @@
 // =========================================================================
-// PROOFREADING MODE — an opt-in maintainer tool for working through the
-// corrections found by scripts/proofread while reading. Switched on from the
-// reader drawer, it marks each chapter's open suggestions in the text, shows
-// already-accepted ones applied, and leaves discarded ones alone. Tapping a mark
-// opens a sheet to accept / edit / discard.
+// PROOFREADING MODE — an opt-in tool for working through suggested corrections
+// while reading. Everything revolves around one *proofreading file*: every
+// suggested correction plus the decisions taken on it. It's made by the dev
+// tooling (scripts/proofread), imported here, and exported again with the
+// latest decisions — the same file goes back and forth between devices, and
+// importing always merges (per correction, the newest decision wins). It all
+// works offline; no server is involved.
 //
-// Findings come from one of two sources:
-//   • an imported package (the review page's "Export for phone") — works fully
-//     offline on any device; decisions are kept on the device (IndexedDB) and
-//     exported as a file to merge back on the computer;
-//   • otherwise the local proofreading server (`npm run proofread`), when
-//     reading on the computer that runs it — decisions go straight into its
-//     decisions.json.
+// Switched on from the reader drawer, each chapter's open suggestions are
+// marked in the text, accepted ones are shown applied and discarded ones are
+// left alone; tapping a mark opens a sheet to accept / edit / discard.
 //
-// Findings are matched by the fingerprint of the paragraph text they were made
-// for (lib/proof-key.js), never by file name or library id — so separate
+// Suggestions are matched by the fingerprint of the paragraph text they were
+// made for (lib/proof-key.js), never by file name or library id — so separate
 // volumes, a grouped series or a renamed file all work, and a fix never lands
 // on a different or already-corrected paragraph.
 //
@@ -27,12 +25,11 @@ import { armOverlay, closeOverlay } from "./router.js";
 import { kvGet, kvSet, kvDelete } from "./db.js";
 import { textKey } from "./lib/proof-key.js";
 
-const SERVER = "http://localhost:5180";
 const KEY = "ream-proofread"; // localStorage: the on/off switch
-const PKG_KEY = "proof-package"; // kv: the imported package
-const LOCAL_KEY = "proof-decisions"; // kv: { decisions: { id: { status, replacement?, at } }, exportedAt }
+const PKG_KEY = "proof-package"; // kv: the imported proofreading file
+const LOCAL_KEY = "proof-decisions"; // kv: decisions taken on this device { decisions: { id: { status, replacement?, at } }, exportedAt }
 const PACKAGE_FORMAT = "ream-proofreading";
-const DECISIONS_FORMAT = "ream-proofreading-decisions";
+const DECISIONS_FORMAT = "ream-proofreading-decisions"; // older decisions-only exports
 
 let enabled = false;
 try {
@@ -40,16 +37,15 @@ try {
 } catch (_) {
   /* storage blocked: stays off */
 }
-let connection = "off"; // server source: off | connecting | connected | offline
-let pkg = null; // the imported package, if any
-let byFile = new Map(); // "page-12.html" → that file's findings (across every book)
+let pkg = null; // the imported proofreading file, if any
+let byFile = new Map(); // "page-12.html" → that file's suggestions (across every book)
 let local = { decisions: {}, exportedAt: null };
-const bookOfLib = new Map(); // library book id → package book key, learned from matches
-let bookPending = null; // open findings left in the current book
+const bookOfLib = new Map(); // library book id → book key in the file, learned from matches
+let bookPending = null; // open suggestions left in the current book
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn());
 
-// Load the package + this device's decisions once, at startup.
+// Load the file + this device's decisions once, at startup.
 export const proofReady = (async () => {
   try {
     // kvGet hands back the raw request for a missing key, so check the shape.
@@ -58,9 +54,10 @@ export const proofReady = (async () => {
     const l = await kvGet(LOCAL_KEY);
     if (l?.decisions && typeof l.decisions === "object") local = l;
   } catch (_) {
-    /* no IndexedDB: package mode unavailable */
+    /* no IndexedDB: proofreading unavailable */
   }
   indexPackage();
+  notify();
 })();
 
 function indexPackage() {
@@ -76,13 +73,11 @@ const unexported = () => Object.values(local.decisions).filter((d) => !local.exp
 export const proofEnabled = () => enabled;
 export const proofState = () => ({
   enabled,
-  source: pkg ? "package" : "server",
-  connection,
+  hasFile: !!pkg,
   bookPending,
   chapterPending: pendingMarks().length,
   chapterTotal: [...chapters.values()].reduce((n, c) => n + c.findings.length, 0),
-  packageDate: pkg?.createdAt || null,
-  decided: Object.keys(local.decisions).length,
+  fileDate: pkg?.createdAt || null,
   toExport: unexported(),
 });
 export const onProofChange = (fn) => listeners.add(fn);
@@ -94,12 +89,11 @@ export function setProofEnabled(on) {
   } catch (_) {
     /* best effort */
   }
-  connection = on && !pkg ? "connecting" : "off";
   if (!on) for (const c of chapters.values()) unmarkChapter(c);
   notify();
 }
 
-// ---- package import / export -------------------------------------------------
+// ---- import / export ----------------------------------------------------------
 
 /** Newest of two decisions (by their `at` timestamps). */
 const newer = (a, b) => (!a ? b : !b ? a : (a.at || "") >= (b.at || "") ? a : b);
@@ -112,40 +106,19 @@ async function readProofFile(file) {
     throw new Error("That file isn't a proofreading file.", { cause: err });
   }
   if (data?.format === PACKAGE_FORMAT && Array.isArray(data.findings)) return data;
-  if (data?.format === DECISIONS_FORMAT && data.decisions && typeof data.decisions === "object") return data; // older exports
+  if (data?.format === DECISIONS_FORMAT && data.decisions && typeof data.decisions === "object") return data;
   throw new Error("That file isn't a proofreading file.");
 }
 
-async function serverReachable() {
-  if (connection === "connected") return true;
-  try {
-    await api("/api/proof/ping");
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
 /**
- * Import a proofreading file (from the computer or another device).
- * - Reading against the local server (no package here): its decisions are merged
- *   into the server's decisions.json.
- * - Otherwise: the file's findings become this device's package, and its
- *   decisions merge with the ones made here — per finding, the newest wins.
- * Returns a short description of what happened.
+ * Import a proofreading file (from the dev tooling or another device). Its
+ * suggestions become this device's, and its decisions merge with the ones
+ * already here — per suggestion, the newest wins. Returns a short summary.
  */
 export async function importProofreading(file) {
   const data = await readProofFile(file);
-  if (!pkg && (await serverReachable())) {
-    const r = await api("/api/proof/merge", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-    if (!r.ok) throw new Error(r.error || "The server refused the file.");
-    connection = "connected";
-    notify();
-    return `Merged into the computer's file — ${r.added + r.updated} decision${r.added + r.updated === 1 ? "" : "s"} taken`;
-  }
   const incoming = data.decisions || {};
   if (data.format === PACKAGE_FORMAT) {
-    // Keep this device's decisions; carry over any of the old package's that the new one lacks.
     const merged = { ...(pkg?.decisions || {}) };
     for (const [id, d] of Object.entries(incoming)) merged[id] = newer(merged[id], d);
     pkg = { ...data, decisions: merged };
@@ -157,12 +130,13 @@ export async function importProofreading(file) {
     const pending = pkg.findings.filter((f) => !decisionOf(f.id, pkg.decisions)).length;
     return `Proofreading imported — ${pending.toLocaleString()} of ${pkg.findings.length.toLocaleString()} to review`;
   }
-  // An older decisions-only export: fold it into this device's package.
+  // An older decisions-only export: fold it into the file already here.
   if (!pkg) throw new Error("Import a full proofreading file first.");
   let taken = 0;
   for (const [id, d] of Object.entries(incoming)) {
     if (!d || !["accepted", "discarded"].includes(d.status)) continue;
-    if (newer(decisionOf(id, pkg.decisions), d) === d && decisionOf(id, pkg.decisions) !== d) {
+    const mine = decisionOf(id, pkg.decisions);
+    if (mine !== d && newer(mine, d) === d) {
       pkg.decisions[id] = d;
       taken++;
     }
@@ -172,28 +146,15 @@ export async function importProofreading(file) {
   return `Merged — ${taken} decision${taken === 1 ? "" : "s"} taken`;
 }
 
-/**
- * Export the full proofreading file: every finding + every decision known here.
- * From the computer's server when reading against it, else from this device's
- * package (with the decisions made here folded in). Same format either way, so
- * any side can import what the other exports.
- */
+/** Export the proofreading file with every decision known here (share sheet on a phone, download elsewhere). */
 export async function exportProofreading() {
-  let data;
-  if (pkg) {
-    const decisions = { ...(pkg.decisions || {}) };
-    for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
-    data = { ...pkg, createdAt: new Date().toISOString(), decisions };
-  } else if (await serverReachable()) {
-    data = await api("/api/proof/package");
-  } else {
-    throw new Error("Nothing to export yet — import a proofreading file, or run the proofreading server on the computer.");
-  }
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+  if (!pkg) throw new Error("Nothing to export yet — import a proofreading file first.");
+  const decisions = { ...(pkg.decisions || {}) };
+  for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
+  const data = { ...pkg, createdAt: new Date().toISOString(), decisions };
+  const stamp = data.createdAt.slice(0, 16).replace(/[T:]/g, "-");
   const name = `ream-proofreading-${stamp}.json`;
   const file = new File([JSON.stringify(data)], name, { type: "application/json" });
-  // On a phone the share sheet (AirDrop, Files, Mail…) is the natural way out;
-  // elsewhere a plain download.
   if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: "Ream proofreading" });
@@ -208,15 +169,13 @@ export async function exportProofreading() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   }
-  if (pkg) {
-    local.exportedAt = new Date().toISOString();
-    await kvSet(LOCAL_KEY, local);
-  }
+  local.exportedAt = new Date().toISOString();
+  await kvSet(LOCAL_KEY, local);
   notify();
   return true;
 }
 
-/** Forget the package and this device's decisions. */
+/** Forget the proofreading file and this device's decisions. */
 export async function removePackage() {
   pkg = null;
   indexPackage();
@@ -225,7 +184,7 @@ export async function removePackage() {
   bookPending = null;
   await kvDelete(PKG_KEY);
   await kvDelete(LOCAL_KEY);
-  connection = enabled ? "connecting" : "off";
+  for (const c of chapters.values()) unmarkChapter(c);
   notify();
 }
 
@@ -240,19 +199,13 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-async function api(path, init) {
-  const res = await fetch(SERVER + path, { ...init, signal: AbortSignal.timeout(4000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-/** Does this finding belong to the text on screen? (fingerprints of every paragraph it touches) */
+/** Does this suggestion belong to the text on screen? (fingerprints of every paragraph it touches) */
 function fits(f, paras, heading) {
   if (f.op === "title") return !!heading && textKey(heading.textContent) === f.titleKey;
   return Object.entries(f.check || {}).every(([i, k]) => paras[i] && textKey(paras[i].textContent) === k);
 }
 
-/** The finding as it should show, with its decision (and any edit / "other copy" choice) folded in. */
+/** The suggestion as it should show, with its decision (and any edit / "other copy" choice) folded in. */
 function withDecision(f, d) {
   const v = { ...f, status: d?.status || "pending" };
   if (d?.replacement !== undefined && f.op !== "delete-paras") v.replacement = d.replacement;
@@ -265,7 +218,7 @@ const pendingInBook = (key) => (pkg?.findings || []).filter((f) => f.book === ke
 
 /**
  * Content hook (registered before the chapter-end card is injected): find this
- * chapter's findings and mark them. `lib` is the library book, `href` this
+ * chapter's suggestions and mark them. `lib` is the library book, `href` this
  * document's spine href.
  */
 export async function proofChapter(contents, lib, href) {
@@ -275,35 +228,17 @@ export async function proofChapter(contents, lib, href) {
   const paras = [...doc.body.querySelectorAll("p")];
   const heading = doc.body.querySelector("h1, h2, h3");
   await proofReady;
-  if (!enabled || chapters.has(doc)) return;
+  if (!enabled || !pkg || chapters.has(doc) || !doc.defaultView) return;
 
-  let candidates;
-  let base;
-  if (pkg) {
-    // Same file name in every volume ("page-12.html"): the fingerprints decide.
-    candidates = (byFile.get(href.split("/").pop()) || []).filter(
-      (f) => f.href === href || f.href.endsWith("/" + href) || href.endsWith("/" + f.href)
-    );
-    base = pkg.decisions || {};
-  } else {
-    if (!lib?.fileName) return;
-    try {
-      const data = await api(`/api/proof/chapter?book=${encodeURIComponent(slugify(lib.fileName))}&href=${encodeURIComponent(href)}`);
-      connection = "connected";
-      candidates = data.findings;
-      base = data.decisions || {};
-      bookPending = data.bookPending ?? bookPending;
-    } catch (_) {
-      connection = "offline";
-      notify();
-      return;
-    }
-  }
-  if (!doc.defaultView) return; // chapter already gone
+  // Same file name in every volume ("page-12.html"): the fingerprints decide.
+  const candidates = (byFile.get(href.split("/").pop()) || []).filter(
+    (f) => f.href === href || f.href.endsWith("/" + href) || href.endsWith("/" + f.href)
+  );
+  const base = pkg.decisions || {};
 
   // Match first, change after: applying a fix alters the paragraph's fingerprint.
   const matched = candidates.filter((f) => fits(f, paras, heading));
-  if (pkg && lib) {
+  if (lib) {
     if (matched[0]) bookOfLib.set(lib.id, matched[0].book);
     const key = bookOfLib.get(lib.id) || (pkg.books && slugify(lib.fileName) in pkg.books ? slugify(lib.fileName) : null);
     bookPending = key ? pendingInBook(key) : null;
@@ -317,7 +252,7 @@ export async function proofChapter(contents, lib, href) {
   });
   injectStyle(doc);
   for (const f of matched) {
-    const v = withDecision(f, pkg ? decisionOf(f.id, base) : base[f.id]);
+    const v = withDecision(f, decisionOf(f.id, base));
     c.findings.push(v);
     if (v.status === "accepted") applyFix(c, v);
     else if (v.status === "pending") mark(c, v);
@@ -338,18 +273,10 @@ export async function proofChapter(contents, lib, href) {
   notify();
 }
 
-/** Record a decision in the active source. Throws if the server can't be reached. */
+/** Record a decision on this device. */
 async function saveDecision(f, status, extra) {
-  if (pkg) {
-    local.decisions[f.id] = { status, ...extra, at: new Date().toISOString(), from: "reader" };
-    await kvSet(LOCAL_KEY, local);
-    return;
-  }
-  await api("/api/decisions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ [f.id]: { status, ...extra, from: "reader" } }),
-  });
+  local.decisions[f.id] = { status, ...extra, at: new Date().toISOString(), from: "reader" };
+  await kvSet(LOCAL_KEY, local);
 }
 
 function injectStyle(doc) {
@@ -682,7 +609,7 @@ function openSheet(c, f) {
     body = diffView(f.original, f.replacement);
   }
   const editBox = h("textarea", { class: "name-input proof-edit", rows: 3, hidden: true });
-  const error = h("p", { class: "proof-error", hidden: true }, pkg ? "Couldn't save the decision on this device." : "Couldn't reach the proofreading server — is it still running?");
+  const error = h("p", { class: "proof-error", hidden: true }, "Couldn't save the decision on this device.");
   const canEdit = f.op === "replace" || f.op === "title";
 
   const decide = async (status, extra = {}) => {
