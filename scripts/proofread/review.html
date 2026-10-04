@@ -292,6 +292,7 @@
       let list = []
       let pos = 0
       const history = []
+      const trail = [] // ids in the order they were shown, for Previous
       const status = (f) => decisions[f.id]?.status ?? 'pending'
 
       async function load() {
@@ -356,6 +357,7 @@
       function render() {
         stats()
         const f = list[pos]
+        if (f && trail.at(-1) !== f.id) trail.push(f.id)
         $('#other').style.display = f?.dupOf ? '' : 'none'
         if (!f) {
           $('#main').innerHTML = `<div class="empty">Nothing ${$('#f-status').value === 'pending' ? 'left to review' : 'here'} with these filters.</div>`
@@ -446,8 +448,21 @@
         if (pos < list.length - 1) pos++
         render()
       }
+      // Previous walks back through what was actually viewed — including items just
+      // decided, which have already left the "Pending" list — so they can be revisited.
       $('#prev').onclick = () => {
-        if (pos > 0) pos--
+        if (trail.at(-1) === list[pos]?.id) trail.pop()
+        const id = trail.at(-1)
+        if (!id) {
+          if (pos > 0) pos--
+          return render()
+        }
+        let j = list.findIndex((f) => f.id === id)
+        if (j < 0) {
+          list.splice(pos, 0, all.find((f) => f.id === id))
+          j = pos
+        }
+        pos = j
         render()
       }
       $('#undo').onclick = async () => {
