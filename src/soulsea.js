@@ -14,7 +14,7 @@
 // =========================================================================
 import ePub from "epubjs";
 import data from "./soul-sea/shadow-slave.json";
-import { h, svg, ICON } from "./dom.js";
+import { h, svg, ICON, WIDE } from "./dom.js";
 import { books, seriesById } from "./state.js";
 import { displayTitle } from "./reading.js";
 import { parseChapterLabel } from "./lib/text.js";
@@ -120,7 +120,7 @@ function stateAt(point) {
       Object.assign(x, { held: false, lost: e.at[0], how: "became", into: e.to });
       Object.assign(get(e.to), { held: true, name: e.name, since: e.at[0], from: e.id });
     } else if (e.type === "name") x.name = e.value;
-    else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0] });
+    else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0], values: [...(x.values || []), e.value] });
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
       x.facts = {}; // a newer sheet supersedes facts told in prose
@@ -144,8 +144,7 @@ const SECTIONS = [
 const HOW = { destroyed: "Destroyed", given: "Given away", consumed: "Consumed", lost: "Lost", sold: "Sold", stolen: "Stolen", became: "Evolved" };
 
 let root = null;
-let live = null; // { point, max } — where the reader is
-let shown = null; // chapter being looked at (≤ live)
+let live = null; // where the reader is: { num, seen?, seenCount?, all? }
 const expanded = new Set();
 
 export const soulSeaOpen = () => !!root && !root.hidden;
@@ -154,7 +153,6 @@ export const soulSeaOpen = () => !!root && !root.hidden;
 export function openSoulSea(point) {
   chapterMap = null; // the library may have changed since last time
   live = point;
-  shown = null;
   if (!root) {
     root = h("div", { class: "soulsea", role: "dialog", "aria-label": "Soul Sea" });
     document.body.append(root);
@@ -167,64 +165,44 @@ export function openSoulSea(point) {
   });
 }
 
+// On a phone the panel is a pushed screen (Back); on a wide screen a side panel (Close).
+function header(context) {
+  const close = h("button", { class: "ch-bar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(WIDE.matches ? ICON.close : ICON.back));
+  const titles = h("div", { class: "ch-bar__titles" }, h("div", { class: "ch-bar__title" }, "Soul Sea"), context ? h("div", { class: "ch-bar__context" }, context) : null);
+  return h("div", { class: "ch-bar soulsea__bar" }, ...(WIDE.matches ? [titles, close] : [close, titles]));
+}
+
+// "Shadow Cores: [5/7]" → Shadow Cores · 5 / 7. The book also says it in words once
+// ("His soul possessed six cores now"): the count is that number, out of the last
+// maximum the runes showed.
+const NUMBER = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7 };
+function coreStat(x) {
+  const runes = [...x.values].reverse().find((v) => /\[\d+\/\d+\]/.test(v));
+  const label = (x.value.match(/^\s*([A-Z][\w ]*?):/) || runes?.match(/^\s*([A-Z][\w ]*?):/))?.[1] ?? "Core";
+  const n = x.value.match(/\[(\d+)\/(\d+)\]/);
+  if (n) return [label, `${n[1]} / ${n[2]}`];
+  const w = x.value.match(/\b(one|two|three|four|five|six|seven)\s+cores?\b/i);
+  const max = runes?.match(/\/(\d+)\]/)?.[1];
+  if (w) return [label, `${NUMBER[w[1].toLowerCase()]}${max ? " / " + max : ""}`];
+  return [label, x.value.replace(/^\s*[A-Z][\w ]*?:\s*/, "").replace(/\.$/, "")];
+}
+
 function render() {
   if (!live.num) {
-    root.replaceChildren(
-      h("div", { class: "ch-bar soulsea__bar" }, h("button", { class: "ch-bar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(ICON.back)), h("div", { class: "ch-bar__titles" }, h("div", { class: "ch-bar__title" }, "Soul Sea"))),
-      h("p", { class: "soulsea__note" }, "Open a chapter first.")
-    );
+    root.replaceChildren(header(null), h("p", { class: "soulsea__note" }, "Open a chapter first."));
     return;
   }
-  const max = Math.min(live.num, data.reviewedThrough);
-  const atLive = shown == null || shown >= live.num;
-  const point = atLive ? (live.num > data.reviewedThrough ? { num: data.reviewedThrough } : live) : { num: shown };
-  const viewNum = atLive ? Math.min(live.num, data.reviewedThrough) : shown;
-  const st = stateAt(point);
+  const viewNum = Math.min(live.num, data.reviewedThrough);
+  const st = stateAt(live.num > data.reviewedThrough ? { num: data.reviewedThrough } : live);
   current = st;
   const items = Object.values(st);
   const prevSt = stateAt({ num: viewNum - 1 });
 
   const scroller = root.querySelector(".soulsea__body");
   const keepScroll = scroller?.scrollTop || 0;
-
-  const slider = h("input", {
-    class: "soulsea__range",
-    type: "range",
-    min: 1,
-    max,
-    value: viewNum,
-    "aria-label": "Chapter",
-    oninput: (e) => {
-      shown = +e.target.value >= max ? null : +e.target.value;
-      render();
-    },
-  });
-
   const body = h("div", { class: "soulsea__body" });
-  const bar = h(
-    "div",
-    { class: "ch-bar soulsea__bar" },
-    h("button", { class: "ch-bar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(ICON.back)),
-    h(
-      "div",
-      { class: "ch-bar__titles" },
-      h("div", { class: "ch-bar__title" }, "Soul Sea"),
-      h("div", { class: "ch-bar__context" }, `${data.character} · Chapter ${viewNum}${atLive ? "" : " · looking back"}`)
-    )
-  );
-  const when = h(
-    "div",
-    { class: "soulsea__when" },
-    h("span", { class: "soulsea__ch" }, "Ch. 1"),
-    slider,
-    h(
-      "button",
-      { class: "soulsea__now" + (atLive ? " soulsea__now--on" : ""), onclick: () => ((shown = null), render()) },
-      atLive ? "Now" : "Back to now"
-    )
-  );
 
-  // What changed in the chapter being looked at.
+  // What changed in this chapter.
   const changes = items.filter((x) => x.kind !== "stat" && (x.since === viewNum || x.lost === viewNum));
   if (changes.length) {
     body.append(
@@ -250,23 +228,23 @@ function render() {
       h(
         "div",
         { class: "soulsea__stats" },
-        stats.map((x) =>
-          h(
-            "div",
-            { class: "soulsea__stat" },
-            h("span", { class: "soulsea__stat-k" }, data.entries[x.id].label),
-            h("span", { class: "soulsea__stat-v" }, x.value)
-          )
-        )
+        stats.map((x) => {
+          const [k, v] =
+            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? x.value.replace(/^(\d+)\/(\d+)$/, "$1 / $2") : x.value];
+          return h("div", { class: "soulsea__stat" }, h("span", { class: "soulsea__stat-k" }, k), h("span", { class: "soulsea__stat-v" }, v));
+        })
       )
     );
 
+  let shown = 0;
   for (const [kind, label] of SECTIONS) {
     const held = items.filter((x) => x.kind === kind && x.held);
     if (!held.length) continue; // an empty section would hint at what's to come
+    shown += held.length;
     body.append(h("h3", { class: "soulsea__h" }, label, h("span", { class: "soulsea__count" }, String(held.length))));
     body.append(h("div", { class: "soulsea__list" }, held.map((x) => row(x, false, prevSt))));
   }
+  if (!shown && !stats.length) body.append(h("p", { class: "soulsea__empty-state" }, "Nothing in Sunny’s Soul Sea yet."));
 
   const gone = items.filter((x) => x.held === false && x.kind !== "stat");
   if (gone.length) {
@@ -274,11 +252,7 @@ function render() {
     body.append(
       h(
         "button",
-        {
-          class: "soulsea__h soulsea__h--toggle",
-          "aria-expanded": String(open),
-          onclick: () => toggle("#gone"),
-        },
+        { class: "soulsea__h soulsea__h--toggle", "aria-expanded": String(open), onclick: () => toggle("#gone") },
         svg(ICON.chevron),
         "No longer held",
         h("span", { class: "soulsea__count" }, String(gone.length))
@@ -290,7 +264,7 @@ function render() {
   if (live.num > data.reviewedThrough)
     body.append(h("p", { class: "soulsea__note" }, `The Soul Sea is mapped up to chapter ${data.reviewedThrough} so far.`));
 
-  root.replaceChildren(bar, when, body);
+  root.replaceChildren(header(`${data.character} · Chapter ${viewNum}`), body);
   body.scrollTop = keepScroll;
 }
 
@@ -396,7 +370,7 @@ function splitFields(t) {
   let depth = 0;
   let start = 0;
   for (let i = 0; i < t.length; i++) {
-    if (depth === 0 && i > start && /[.\]\-—]/.test(t[i - 1]) && LABEL_AT.test(t.slice(i, i + 80))) {
+    if (depth === 0 && i > start && /[.\]\-—?]/.test(t[i - 1]) && LABEL_AT.test(t.slice(i, i + 80))) {
       out.push(t.slice(start, i).trim());
       start = i;
     }
@@ -439,6 +413,8 @@ function buildSheet(paras, x) {
     arr.push(item);
   };
   for (const t of lines) {
+    // A garbled name line the Spell couldn't finish ("[Fragment of the Shadow Realm].??: ????: ??").
+    if (t.startsWith(`[${x.name}]`) && /\?\?/.test(t)) continue;
     const r = parseRune(t);
     const label = r.label.replace(KIND_WORD, "").replace(/^(…|\.\.\.)\s*/, "");
     const value = clean(unwrap(r.value));

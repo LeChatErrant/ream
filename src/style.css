@@ -1904,29 +1904,6 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .soulsea[hidden] { display: none; }
 @keyframes soulsea-in { from { transform: translateY(12px); opacity: 0; } }
-.soulsea__when {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 16px 12px;
-  border-bottom: 1px solid var(--border-hair);
-}
-.soulsea__ch { font: 500 11.5px var(--font-ui); color: var(--text-dim); flex: none; }
-.soulsea__range { flex: 1 1 auto; min-width: 0; accent-color: var(--fill-card); }
-.soulsea__now {
-  appearance: none;
-  border: 0;
-  flex: none;
-  height: 28px;
-  padding: 0 11px;
-  border-radius: 999px;
-  background: var(--pill);
-  color: var(--text-secondary);
-  font: 600 12px var(--font-ui);
-  cursor: pointer;
-}
-.soulsea__now--on { background: transparent; color: var(--text-dim); cursor: default; }
 .soulsea__body {
   position: relative; /* rows measure their offset from here (focusItem) */
   flex: 1 1 auto;
@@ -2029,6 +2006,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__origin-v { font: 500 13.5px var(--font-ui); color: var(--text-secondary); }
 .soulsea__origin + .soulsea__when-note { margin-top: 4px; }
 .soulsea__when-note { margin: 14px 0 0; font: 400 11.5px var(--font-ui); color: var(--text-dimmest); }
+.soulsea__empty-state { margin: 40px 0 0; font: 300 14.5px/1.6 var(--font-serif); color: var(--text-dim); text-align: center; }
 .soulsea__note { margin: 24px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); text-align: center; }
 @media (prefers-reduced-motion: reduce) { .soulsea { animation: none; } }
 .soulsea__note-text + .soulsea__note-text { margin-top: 6px; }

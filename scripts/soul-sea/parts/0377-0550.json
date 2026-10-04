@@ -184,7 +184,7 @@
     "morgans-warbow": {
       "kind": "memory"
     },
-    "drop-of-ichor": {
+    "drop-of-ichor-2": {
       "kind": "memory"
     }
   },
@@ -510,17 +510,17 @@
     },
     {
       "at": "549:60",
-      "source": "drop-of-ichor",
+      "source": "drop-of-ichor-2",
       "value": "Aspect Legacy Relic"
     },
     {
       "at": "549:66",
-      "gain": "drop-of-ichor",
+      "gain": "drop-of-ichor-2",
       "name": "Drop of Ichor"
     },
     {
       "at": "549:66",
-      "runes": "drop-of-ichor"
+      "runes": "drop-of-ichor-2"
     },
     {
       "at": "550:11",

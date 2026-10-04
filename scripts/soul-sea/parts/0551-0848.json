@@ -181,7 +181,7 @@
       "name": "Morgan's Warbow"
     },
     {
-      "id": "drop-of-ichor",
+      "id": "drop-of-ichor-2",
       "kind": "memory",
       "name": "Drop of Ichor"
     },
@@ -240,12 +240,12 @@
   "events": [
     {
       "at": "551:7",
-      "runes": "drop-of-ichor",
+      "runes": "drop-of-ichor-2",
       "to": "551:17"
     },
     {
       "at": "551:61",
-      "lose": "drop-of-ichor",
+      "lose": "drop-of-ichor-2",
       "how": "consumed"
     },
     {

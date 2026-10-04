@@ -65,7 +65,8 @@ const isRuneLine = (t) =>
   !!fieldsOf(t) ||
   isMessage(t) ||
   /^\s*(…\s*|\.\.\.\s*)?(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:\s*[[\-—"0-9?]/.test(t) ||
-  /^\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}Description:\s*$/.test(t)
+  /^\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}Description:\s*$/.test(t) ||
+  /Description:\s*\[/.test(t) // a garbled sheet ("[Fragment of the Shadow Realm].??: ????: ??Description: […]")
 // Brackets a line leaves open: a description that carries on over the next paragraphs.
 const openBrackets = (t) => (t.match(/\[/g) || []).length - (t.match(/\]/g) || []).length
 const cutShort = (t) => /(…|\.\.\.)\]?\.?\s*$/.test(t)
