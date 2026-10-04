@@ -305,6 +305,7 @@ function row(x, gone, prevSt) {
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
   else if (x.facts && Object.keys(x.facts).length) detail.append(buildSheet([], x));
+  else detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
   // Where it came from: the creature, the giver, or what it evolved from.
   const before = x.from && stateOf(x.from);
   const origin = x.source || (before && nameOf(before) !== nameOf(x) ? nameOf(before) : null);
@@ -455,9 +456,10 @@ function buildSheet(paras, x) {
     );
   const prose = (text, cls) => text.split(/\n\n+/).map((t) => h("p", { class: cls }, t));
   if (epigraph) box.append(...prose(epigraph, "soulsea__epigraph"));
+  else if (paras.length) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
   // Under each list ("Enchantments"), every name in the book's order, with its
   // description when the book gives one.
-  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? prose(n.text, "soulsea__note-text") : null);
+  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? prose(n.text, "soulsea__note-text") : h("p", { class: "soulsea__none" }, "No description yet"));
   const placed = new Set();
   for (const l of lists) {
     const entries = l.names.map((name) => {
