@@ -1891,7 +1891,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* ---- Soul Sea (Shadow Slave inventory, src/soulsea.js) ----------------------
    A full-screen panel over the reader on the phone; a side panel on wide
-   screens (wide.css). Rune sheets and passages are the book's own text, set in
+   screens (wide.css). Rune sheets are the book’s own text, set in
    the book face; everything else is app chrome. */
 .soulsea {
   position: fixed;
@@ -1944,8 +1944,8 @@ html { -webkit-tap-highlight-color: transparent; }
   color: var(--text-dim);
 }
 .soulsea__h--toggle { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; width: 100%; }
-.soulsea__h--toggle svg, .soulsea__fold-head svg { display: block; transition: transform 0.15s; }
-.soulsea__h--toggle[aria-expanded="true"] svg, .soulsea__fold-head[aria-expanded="true"] svg { transform: rotate(90deg); }
+.soulsea__h--toggle svg { display: block; transition: transform 0.15s; }
+.soulsea__h--toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
 .soulsea__count { font-weight: 500; color: var(--text-dimmest); letter-spacing: 0; }
 .soulsea__changes { display: flex; flex-wrap: wrap; gap: 6px; }
 .soulsea__change { font: 500 12.5px var(--font-ui); padding: 4px 10px; border-radius: 999px; background: var(--pill); }
@@ -2022,23 +2022,10 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__note-block { display: flex; flex-direction: column; gap: 3px; }
 .soulsea__note-title { font: 600 13px var(--font-ui); color: var(--text-primary); }
 .soulsea__note-text { margin: 0; font: 400 14.5px/1.55 var(--font-serif); color: var(--text-body); }
-.soulsea__passage { border-left: 2px solid var(--border-strong); padding-left: 12px; margin-top: 8px; }
-.soulsea__para { margin: 5px 0; font: 400 14.5px/1.6 var(--font-serif); color: var(--text-body); }
-.soulsea__flashback { font: 500 10px var(--font-ui); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dimmest); }
 .soulsea__empty { margin: 6px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); }
+.soulsea__origin { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; }
+.soulsea__origin-v { font: 500 13.5px var(--font-ui); color: var(--text-secondary); }
+.soulsea__origin + .soulsea__when-note { margin-top: 4px; }
 .soulsea__when-note { margin: 14px 0 0; font: 400 11.5px var(--font-ui); color: var(--text-dimmest); }
-.soulsea__fold { margin-top: 14px; }
-.soulsea__fold-head {
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font: 500 12.5px var(--font-ui);
-  color: var(--text-muted);
-  cursor: pointer;
-}
 .soulsea__note { margin: 24px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); text-align: center; }
 @media (prefers-reduced-motion: reduce) { .soulsea { animation: none; } }

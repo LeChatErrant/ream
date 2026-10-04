@@ -34,7 +34,7 @@ const events = []
 for (const e of tl.events) {
   const at = pos(e.at)
   const t = para(at)
-  const id = e.gain ?? e.lose ?? e.runes ?? e.history ?? e.become ?? e.name ?? e.set
+  const id = e.gain ?? e.lose ?? e.runes ?? e.history ?? e.become ?? e.name ?? e.set ?? e.source
   if (t == null) { errors.push(`${e.at}: no such paragraph`); continue }
   if (!tl.entries[id]) errors.push(`${e.at}: unknown entry "${id}"`)
   if (e.to && !tl.entries[e.to] && !/^\d+:\d+$/.test(e.to)) errors.push(`${e.at}: unknown entry "${e.to}"`)
@@ -181,7 +181,7 @@ console.log(`\n${events.length} events, all anchors and strings verified against
 // ---- the app's copy: references only, no book text -------------------------------
 // The reader resolves every [chapter, paragraph, fingerprint] against the user's own
 // epub and shows a paragraph only when its fingerprint matches.
-const TYPES = ['gain', 'lose', 'become', 'name', 'set', 'runes', 'history']
+const TYPES = ['gain', 'lose', 'become', 'name', 'set', 'runes', 'history', 'source']
 const app = {
   format: 'ream-soul-sea',
   series: tl.series,

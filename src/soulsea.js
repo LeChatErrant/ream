@@ -4,7 +4,7 @@
 //
 // The data (soul-sea/shadow-slave.json, made by scripts/soul-sea) holds no book
 // text: just item names and references — [chapter, paragraph, fingerprint] —
-// to the rune sheets and passages. Those are read from the reader's own epubs
+// to the rune sheets. Those are read from the reader's own epubs
 // (any imported volume of the series) and a paragraph is shown only when its
 // fingerprint matches, so everything on screen is the book's own words.
 //
@@ -110,7 +110,7 @@ function reached(e, point) {
 
 function stateAt(point) {
   const s = {};
-  const get = (id) => (s[id] ??= { id, kind: data.entries[id]?.kind, sheet: null, history: [] });
+  const get = (id) => (s[id] ??= { id, kind: data.entries[id]?.kind, sheet: null });
   for (const e of data.events) {
     if (!reached(e, point)) continue;
     const x = get(e.id);
@@ -122,7 +122,7 @@ function stateAt(point) {
     } else if (e.type === "name") x.name = e.value;
     else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0] });
     else if (e.type === "runes") x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
-    else if (e.type === "history") x.history.push(e);
+    else if (e.type === "source") x.source = e.value;
   }
   return s;
 }
@@ -177,6 +177,7 @@ function render() {
   const point = atLive ? (live.num > data.reviewedThrough ? { num: data.reviewedThrough } : live) : { num: shown };
   const viewNum = atLive ? Math.min(live.num, data.reviewedThrough) : shown;
   const st = stateAt(point);
+  current = st;
   const items = Object.values(st);
   const prevSt = stateAt({ num: viewNum - 1 });
 
@@ -290,6 +291,8 @@ function render() {
 }
 
 const nameOf = (x) => x.name || `“${x.label}”`;
+let current = {}; // id → item, in the state being drawn
+const stateOf = (id) => current[id];
 const toggle = (key) => (expanded.has(key) ? expanded.delete(key) : expanded.add(key), render());
 
 function row(x, gone, prevSt) {
@@ -308,21 +311,17 @@ function row(x, gone, prevSt) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
-  if (x.history.length) detail.append(fold(`${x.id}#history`, "From the book", () => x.history.map(passage)));
-  const when = gone ? `${HOW[x.how] || "Lost"} in chapter ${x.lost}` : `Acquired in chapter ${x.since}`;
+  // Where it came from: the creature, the giver, or what it evolved from.
+  const before = x.from && stateOf(x.from);
+  const origin = x.source || (before && nameOf(before) !== nameOf(x) ? nameOf(before) : null);
+  if (origin)
+    detail.append(
+      h("div", { class: "soulsea__origin" }, h("span", { class: "soulsea__k" }, x.source ? "Obtained from" : "Evolved from"), h("span", { class: "soulsea__origin-v" }, origin))
+    );
+  const when = gone ? `${HOW[x.how] || "Lost"} in chapter ${x.lost}` : `Chapter ${x.since}`;
   detail.append(h("p", { class: "soulsea__when-note" }, when));
   out.append(detail);
   return out;
-}
-
-function fold(key, label, kids) {
-  const open = expanded.has(key);
-  const wrap = h("div", { class: "soulsea__fold" + (open ? " soulsea__fold--open" : "") });
-  wrap.append(
-    h("button", { class: "soulsea__fold-head", "aria-expanded": String(open), onclick: () => toggle(key) }, svg(ICON.chevron), label)
-  );
-  if (open) wrap.append(...kids());
-  return wrap;
 }
 
 // ---- rune sheets -----------------------------------------------------------------
@@ -451,7 +450,3 @@ function whenLoaded(e, draw) {
 }
 
 const sheet = (e, x) => whenLoaded(e, (ts) => buildSheet(ts, x));
-const passage = (e) =>
-  whenLoaded(e, (ts) =>
-    h("div", { class: "soulsea__passage" }, ts.map((t) => h("p", { class: "soulsea__para" }, t)), e.flashback ? h("div", { class: "soulsea__flashback" }, "Flashback") : null)
-  );

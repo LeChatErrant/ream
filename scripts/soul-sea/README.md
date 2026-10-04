@@ -40,7 +40,8 @@ Events, anchored at `"chapter:paragraph"` (paragraph index as in `text.json`):
 | `become` + `to` + `name` | turns into another entry (Echo → Shadow, Attribute evolution) |
 | `set` + `value` | a stat (True Name, Rank, Core) |
 | `runes` (+ `to`) | the rune sheet: rune lines in that paragraph range |
-| `history` (+ `to`) | a passage about the item; `flashback: true` when told out of order |
+| `source` + `value` | where it came from: the creature slain, the giver (“Obtained from”) |
+| `history` (+ `to`) | a passage about the item (review page only); `flashback: true` when told out of order |
 
 Order is **reading order**: a flashback (ch 122–168) adds history, it doesn't
 rewind the inventory. Status sheets that aren't Sunny's are skipped by name;

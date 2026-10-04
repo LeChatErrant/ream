@@ -92,6 +92,7 @@ function stateAt(upto) {
     if (e.set) Object.assign(get(e.set), { held: true, value: e.value, since: e.ref });
     if (e.runes) get(e.runes).runes.unshift(e.paras);
     if (e.history) get(e.history).history.push(e);
+    if (e.source) get(e.source).source = e.value;
   }
   return s;
 }
@@ -103,6 +104,7 @@ const title = (x) => x.name ? '<span class="name">' + esc(x.name) + '</span>' : 
 function card(x, gone) {
   let h = '<div class="card' + (gone ? ' gone' : '') + '"><div class="head">' + title(x) +
     '<span class="since">' + (gone ? (esc(x.how || 'lost') + ' · ' + link(x.lost)) : 'since ' + link(x.since)) + '</span></div>';
+  if (x.source) h += '<div class="since">Obtained from ' + esc(x.source) + '</div>';
   if (x.runes[0]) h += sheet(x.runes[0]);
   else if (!gone) h += '<div class="runes empty">No rune sheet yet</div>';
   if (x.history.length) h += '<details><summary>From the book (' + x.history.length + ')</summary>' +
@@ -111,8 +113,8 @@ function card(x, gone) {
 }
 
 function evLine(e) {
-  const id = e.gain || e.lose || e.become || e.runes || e.history || e.name || e.set;
-  const kind = e.gain ? ['gain', 'gained'] : e.lose ? ['lose', e.how || 'lost'] : e.become ? ['other', 'became'] : e.runes ? ['other', 'runes'] : e.history ? ['other', 'passage'] : e.name ? ['other', 'named'] : ['other', 'stat'];
+  const id = e.gain || e.lose || e.become || e.runes || e.history || e.name || e.set || e.source;
+  const kind = e.gain ? ['gain', 'gained'] : e.lose ? ['lose', e.how || 'lost'] : e.become ? ['other', 'became'] : e.runes ? ['other', 'runes'] : e.history ? ['other', 'passage'] : e.name ? ['other', 'named'] : e.source ? ['other', 'from'] : ['other', 'stat'];
   const x = stateAt(e.at)[e.become ? e.to : id] || {};
   const what = e.set ? D.entries[id].label + ': ' + e.value : x.name || (x.label ? '“' + x.label + '”' : id);
   const ps = e.paras && !e.runes ? e.paras : [e.ref];

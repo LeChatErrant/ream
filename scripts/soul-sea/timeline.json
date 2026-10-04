@@ -54,10 +54,10 @@
     { "at": "3:14", "runes": "fated" },
     { "at": "3:15", "runes": "mark-of-divinity" },
     { "at": "3:16", "runes": "child-of-shadows" },
-
+    { "at": "8:43", "source": "silver-bell", "value": "a dormant human, name unknown" },
     { "at": "8:52", "gain": "silver-bell", "name": "Silver Bell" },
     { "at": "8:57", "runes": "silver-bell" },
-
+    { "at": "14:77", "source": "puppeteers-shroud", "value": "Mountain King" },
     { "at": "15:7", "gain": "puppeteers-shroud", "name": "Puppeteer's Shroud" },
     { "at": "15:27", "set": "true-name", "value": "Lost from Light" },
     { "at": "15:37", "become": "temple-slave", "to": "shadow-slave", "name": "Shadow Slave" },
@@ -70,48 +70,43 @@
     { "at": "16:46", "runes": "shadow-control", "to": "16:47" },
     { "at": "17:3", "gain": "clear-conscience", "name": "Clear Conscience" },
     { "at": "17:3", "runes": "clear-conscience", "to": "17:4" },
-
     { "at": "24:12", "runes": "puppeteers-shroud", "to": "24:15" },
-
+    { "at": "33:41", "source": "azure-blade", "value": "Carapace Scavenger" },
     { "at": "33:42", "gain": "azure-blade", "name": "Azure Blade" },
     { "at": "34:23", "runes": "azure-blade", "to": "34:26" },
-
     { "at": "46:83", "gain": "carapace-scavenger", "name": "Carapace Scavenger" },
     { "at": "47:9", "runes": "carapace-scavenger", "to": "47:13" },
-
+    { "at": "52:71", "source": "starlight-legion-armor", "value": "Carapace Centurion" },
     { "at": "52:73", "gain": "starlight-legion-armor", "name": "Starlight Legion Armor" },
     { "at": "54:13", "runes": "starlight-legion-armor", "to": "54:16" },
     { "at": "54:33", "lose": "starlight-legion-armor", "how": "given" },
-
     { "at": "67:0", "lose": "carapace-scavenger", "how": "destroyed" },
     { "at": "67:5", "history": "carapace-scavenger" },
-
     { "at": "71:50", "history": "azure-blade" },
     { "at": "71:53", "lose": "azure-blade", "how": "destroyed" },
-
+    { "at": "74:8", "source": "midnight-shard", "value": "Nephis" },
     { "at": "74:9", "gain": "midnight-shard", "name": "Midnight Shard" },
     { "at": "74:12", "runes": "midnight-shard", "to": "74:15" },
-
+    { "at": "80:45", "source": "drop-of-ichor", "value": "Vile Thieving Bird's Spawn" },
     { "at": "81:1", "gain": "drop-of-ichor", "name": "Drop of Ichor" },
     { "at": "81:32", "runes": "drop-of-ichor", "to": "81:35" },
     { "at": "81:56", "lose": "drop-of-ichor", "how": "consumed" },
-
     { "at": "83:19", "runes": "puppeteers-shroud", "to": "83:34" },
     { "at": "83:39", "runes": "midnight-shard", "to": "83:44" },
-
     { "at": "85:43", "become": "mark-of-divinity", "to": "spark-of-divinity", "name": "Spark of Divinity" },
     { "at": "85:44", "runes": "spark-of-divinity" },
     { "at": "85:55", "gain": "blood-weave", "name": "Blood Weave" },
     { "at": "85:56", "runes": "blood-weave" },
-
     { "at": "96:7", "gain": "prowling-thorn", "label": "a triangular leaf-shaped throwing dagger" },
     { "at": "96:39", "gain": "ordinary-rock", "label": "this particular rock" },
     { "at": "100:21", "gain": "endless-spring", "label": "the beautiful bottle made out of patterned blue glass" },
+    { "at": "100:21", "source": "endless-spring", "value": "Cassie" },
     { "at": "103:17", "gain": "stone-saint-echo", "name": "Stone Saint" },
     { "at": "104:20", "name": "prowling-thorn", "value": "Prowling Thorn" },
     { "at": "104:20", "name": "ordinary-rock", "value": "Ordinary Rock" },
     { "at": "104:20", "name": "endless-spring", "value": "Endless Spring" },
     { "at": "104:22", "history": "prowling-thorn" },
+    { "at": "104:22", "source": "prowling-thorn", "value": "a monstrous armored porcupine" },
     { "at": "104:23", "runes": "prowling-thorn", "to": "104:29" },
     { "at": "104:32", "runes": "ordinary-rock", "to": "104:38" },
     { "at": "104:42", "runes": "endless-spring", "to": "104:48" },
@@ -122,21 +117,24 @@
     { "at": "106:15", "become": "stone-saint-echo", "to": "stone-saint", "name": "Stone Saint" },
     { "at": "106:33", "runes": "stone-saint", "to": "106:43" },
     { "at": "106:36", "history": "stone-saint", "to": "106:37" },
-
     { "at": "109:34", "history": "tower-shield" },
     { "at": "109:44", "lose": "tower-shield", "how": "destroyed" },
     { "at": "110:8", "runes": "stone-saint" },
+    { "at": "110:9", "source": "tower-shield", "value": "a particularly hardy wraith" },
     { "at": "110:13", "history": "basilisk-eye" },
+    { "at": "110:14", "source": "basilisk-eye", "value": "a basilisk-like creature" },
     { "at": "110:18", "lose": "basilisk-eye", "how": "destroyed" },
     { "at": "110:23", "runes": "stone-saint" },
     { "at": "110:25", "history": "rusty-armor" },
+    { "at": "110:25", "source": "rusty-armor", "value": "monstrous, flesh-devouring termites" },
     { "at": "110:29", "lose": "rusty-armor", "how": "destroyed" },
     { "at": "110:30", "runes": "stone-saint" },
     { "at": "110:32", "history": "silver-bell", "to": "110:36" },
-
+    { "at": "123:51", "source": "ordinary-rock", "value": "Rolling Stone" },
     { "at": "123:57", "history": "ordinary-rock", "to": "123:61", "flashback": true },
     { "at": "164:73", "history": "endless-spring", "to": "164:76", "flashback": true },
-
+    { "at": "174:61", "source": "kai-lesser-memories", "value": "Kai" },
+    { "at": "174:61", "source": "onyx-armor", "value": "Kai" },
     { "at": "174:67", "gain": "kai-lesser-memories", "label": "ten Memories to feed to his Shadow" },
     { "at": "182:11", "runes": "stone-saint", "to": "182:15" },
     { "at": "182:17", "history": "kai-lesser-memories" },
@@ -147,11 +145,10 @@
     { "at": "182:45", "name": "onyx-armor", "value": "M… Un…old" },
     { "at": "182:45", "runes": "onyx-armor", "to": "182:50" },
     { "at": "182:67", "history": "onyx-armor" },
-
     { "at": "189:35", "gain": "emporium-memories", "label": "five Memories" },
     { "at": "189:39", "lose": "emporium-memories", "how": "destroyed" },
     { "at": "189:44", "runes": "stone-saint", "to": "189:45" },
-
+    { "at": "203:35", "source": "blood-arrow", "value": "Corpse Eater" },
     { "at": "203:38", "history": "blood-arrow" },
     { "at": "204:24", "gain": "blood-arrow", "name": "Blood Arrow" },
     { "at": "204:26", "runes": "blood-arrow", "to": "204:33" }
