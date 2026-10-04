@@ -513,7 +513,8 @@ export function openCorrections(container) {
   const summary = [n("pending") && `${n("pending")} to review`, n("accepted") && `${n("accepted")} accepted`, n("discarded") && `${n("discarded")} discarded`]
     .filter(Boolean)
     .join(" · ");
-  card.replaceChildren(
+  // Native replaceChildren would print a null slot as "null" — drop the empty ones.
+  card.replaceChildren(...[
     h("h2", { class: "sheet-title" }, "Corrections in this chapter"),
     h("p", { class: "proof-list__summary" }, rows.length ? summary : "No corrections in this chapter."),
     n("pending") ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
@@ -529,7 +530,7 @@ export function openCorrections(container) {
         )
       )
     )
-  );
+  ].filter(Boolean));
   root.hidden = false;
   armOverlay(() => (root.hidden = true));
 }
