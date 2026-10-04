@@ -412,8 +412,14 @@ function buildSheet(paras, x) {
   let pending = null; // a name line ("Enchantment: [Doubtless].", "[Blade of Darkness].") titling the description after it
   const clean = (n) => n.trim().replace(/\.$/, "");
   // Repeated lines: the later one wins (sheets are in reading order).
+  // …unless it's cut short ("A pitiful little creature...") and the earlier one is the full text.
+  const cutOf = (nu, old) => {
+    const stem = nu?.replace(/\s*(…|\.\.\.)$/, "");
+    return !!old && stem !== nu && old.startsWith(stem) && old.length > stem.length;
+  };
   const put = (arr, item, same) => {
     const i = arr.findIndex(same);
+    if (i >= 0 && cutOf(item.text ?? item.value, arr[i].text ?? arr[i].value)) return;
     if (i >= 0) arr.splice(i, 1);
     arr.push(item);
   };
@@ -429,9 +435,11 @@ function buildSheet(paras, x) {
       if (bareName ? clean(t.replace(/[[\]]/g, "")) !== x.name : value !== x.name) pending = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
       continue;
     }
-    // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title.
-    if (!r.subject && value === x.name) continue;
+    // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title —
+    // or names what it evolved from.
+    if (!r.subject && (value === x.name || /^(Memory|Shadow|Echo)$/.test(r.label))) continue;
     const own = !r.subject || r.subject === x.name;
+    if (/(^|\s)Description$/.test(label) && cutOf(prose, epigraph)) continue;
     if (/(^|\s)Description$/.test(label) && label !== "Description" && !(own && !pending && (x.kind === "attribute" || x.kind === "ability"))) {
       const title = r.subject || pending;
       put(notes, { title, kind: label, text: prose }, (n) => title && n.title === title);

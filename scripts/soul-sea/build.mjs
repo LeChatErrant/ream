@@ -139,11 +139,36 @@ for (const e of tl.events) {
   // Every "Label:" in a paragraph (some paragraphs run several rune lines together).
   const labelsOf = (t) => [...t.matchAll(/(?:^|(?<=[.\]\-—]))\s*(?:…|\.\.\.)?\s*((?:\[[^\]]+\]\s+)?[A-Z][\w' ]{1,40}):\s/g)].map((m) => m[1].toLowerCase().replace(/^\[|\]$/g, ''))
   const value = (t) => norm(t.slice(t.indexOf(':') + 1)).replace(/^[\s[]+|[\s.\]]+$/g, '')
+  // A paragraph's "Label: value" lines.
+  const segments = (t) => {
+    const ms = [...t.matchAll(/(?:^|(?<=[.\]\-—?]))\s*(?:…|\.\.\.)?\s*((?:\[[^\]]+\]\s+)?[A-Z][\w' ]{1,40}):\s/g)]
+    if (!ms.length) return [{ key: (label(t) ?? t).toLowerCase(), val: t }]
+    return ms.map((m, i) => ({ key: m[1].toLowerCase().replace(/^\[|\]$/g, ''), val: t.slice(m.index + m[0].length, ms[i + 1]?.index ?? t.length) }))
+  }
+  const bareVal = (v) => norm(v).replace(/^[\s["]+|[\s.\]"…]+$/g, '').trim()
+  // Does the sheet already hold this line in full?
+  const fullerIn = (cur, sg) =>
+    cur.some((x) =>
+      x.unit.some((r) =>
+        segments(text[r.ch][r.p]).some((o) => o.key === sg.key && bareVal(o.val).startsWith(bareVal(sg.val)) && bareVal(o.val).length > bareVal(sg.val).length + 3)
+      )
+    )
   const sheets = {}
+  const carried = []
   for (const e of events.filter((e) => e.runes || e.become).sort((a, b) => cmp(a.at, b.at))) {
-    // An Echo turned Shadow keeps what the book said about its Attributes.
+    // An evolution keeps what the book said about the item: an Echo turned Shadow its
+    // Attribute descriptions; a Shadow or Memory evolving its description, Attributes,
+    // Abilities and Enchantments — but not its Rank / Class / Tier / fragments, which
+    // the evolution changes (until the book shows them again). The item-name line goes.
     if (e.become) {
-      sheets[e.to] = (sheets[e.become] ?? []).filter((x) => /attribute description/.test(x.key))
+      const from = tl.entries[e.become]?.kind
+      const to = tl.entries[e.to]?.kind
+      const keep = from === 'echo' && to === 'shadow' ? (x) => /attribute description/.test(x.key)
+        : from === to && (to === 'shadow' || to === 'memory') ? (x) => ![...x.keys].some((k) => /^(memory|shadow|echo)$|rank$|class$|tier$|fragments$/.test(k))
+        : () => false
+      sheets[e.to] = (sheets[e.become] ?? []).filter(keep)
+      // So the evolved item shows it even if the book never prints its runes again.
+      if (sheets[e.to].length) carried.push({ runes: e.to, at: e.at, ref: e.ref, paras: sheets[e.to].flatMap((x) => x.unit), carried: true })
       continue
     }
     const cur = [...(sheets[e.runes] ?? [])]
@@ -163,11 +188,15 @@ for (const e of tl.events) {
       seen[key] = (seen[key] ?? 0) + 1
       if (seen[key] > 1) key += '#' + seen[key]
       const keys = new Set([key, ...labelsOf(t)])
+      // Lines this paragraph cuts short ("[A pitiful little creature...]") where an
+      // earlier sheet has them in full: those earlier lines stay.
+      const cutKeys = new Set(segments(t).filter((sg) => cutShort(sg.val) && fullerIn(cur, sg)).map((sg) => sg.key))
+      if (keys.size === 1 && cutKeys.size) continue
       if (keys.size > 1) {
         // A paragraph holding several lines replaces what it fully covers; anything it
         // only partly overlaps stays, and the newer paragraph goes after it.
-        const covered = cur.filter((x) => [...x.keys].every((k) => keys.has(k)))
-        const overlaps = cur.some((x) => !covered.includes(x) && [...x.keys].some((k) => keys.has(k)))
+        const covered = cur.filter((x) => [...x.keys].every((k) => keys.has(k)) && ![...x.keys].some((k) => cutKeys.has(k)))
+        const overlaps = cutKeys.size > 0 || cur.some((x) => !covered.includes(x) && [...x.keys].some((k) => keys.has(k)))
         const at = covered.length ? cur.indexOf(covered[0]) : -1
         for (const x of covered) cur.splice(cur.indexOf(x), 1)
         const pos = overlaps ? cur.length : at >= 0 ? at : last + 1
@@ -192,6 +221,7 @@ for (const e of tl.events) {
     sheets[e.runes] = cur
     e.paras = cur.flatMap((x) => x.unit)
   }
+  events.push(...carried)
 }
 
 // ---- Sunny's Shadow Fragments, derived from the runes ---------------------------
