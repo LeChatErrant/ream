@@ -2019,8 +2019,6 @@ html { -webkit-tap-highlight-color: transparent; }
   color: var(--text-secondary);
 }
 .soulsea__list-row { display: flex; flex-direction: column; gap: 10px; }
-.soulsea__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.soulsea__chip { padding: 4px 10px; border-radius: 13px; background: var(--pill); font: 500 12px var(--font-ui); color: var(--text-muted); }
 .soulsea__note-block { display: flex; flex-direction: column; gap: 3px; }
 .soulsea__note-title { font: 600 13px var(--font-ui); color: var(--text-primary); }
 .soulsea__note-text { margin: 0; font: 400 14.5px/1.55 var(--font-serif); color: var(--text-body); }

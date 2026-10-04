@@ -410,23 +410,17 @@ function buildSheet(lines, x) {
       )
     );
   if (epigraph) box.append(h("p", { class: "soulsea__epigraph" }, epigraph));
-  // Under each list ("Enchantments"), a name the book describes gets its
-  // description; the ones it doesn't stay as chips.
-  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, h("p", { class: "soulsea__note-text" }, n.text));
+  // Under each list ("Enchantments"), every name in the book's order, with its
+  // description when the book gives one.
+  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? h("p", { class: "soulsea__note-text" }, n.text) : null);
   const placed = new Set();
   for (const l of lists) {
-    const described = notes.filter((n) => n.title && l.names.includes(n.title));
-    described.forEach((n) => placed.add(n));
-    const bare = l.names.filter((name) => !described.some((n) => n.title === name));
-    box.append(
-      h(
-        "div",
-        { class: "soulsea__list-row" },
-        h("span", { class: "soulsea__k" }, l.label),
-        described.map(note),
-        bare.length ? h("span", { class: "soulsea__chips" }, bare.map((n) => h("span", { class: "soulsea__chip" }, n))) : null
-      )
-    );
+    const entries = l.names.map((name) => {
+      const n = notes.find((m) => m.title === name);
+      if (n) placed.add(n);
+      return n || { title: name };
+    });
+    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note)));
   }
   for (const n of notes) if (!placed.has(n)) box.append(note(n));
   return box;

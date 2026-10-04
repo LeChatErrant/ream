@@ -121,6 +121,7 @@
     { "at": "105:9", "runes": "stone-saint-echo", "to": "105:20" },
     { "at": "106:15", "become": "stone-saint-echo", "to": "stone-saint", "name": "Stone Saint" },
     { "at": "106:33", "runes": "stone-saint", "to": "106:43" },
+    { "at": "106:36", "history": "stone-saint", "to": "106:37" },
 
     { "at": "109:34", "history": "tower-shield" },
     { "at": "109:44", "lose": "tower-shield", "how": "destroyed" },
