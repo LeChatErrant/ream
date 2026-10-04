@@ -63,7 +63,7 @@ export function fieldsOf(text) {
     label: m[2].replace(/\s+/g, ' '),
     value: t.slice(m.index + m[0].length, hits[i + 1]?.index ?? t.length).trim(),
   }))
-  if (!/^[[\-—–A-Z0-9"….]/.test(fields[0].value)) return null
+  if (!/^[[\-—–A-Z0-9"“«….]/.test(fields[0].value)) return null
   return fields
 }
 

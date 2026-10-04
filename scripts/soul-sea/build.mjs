@@ -64,13 +64,39 @@ const has = (hay, needle) => norm(hay).includes(norm(needle))
 const isRuneLine = (t) =>
   !!fieldsOf(t) ||
   isMessage(t) ||
-  /^\s*(…\s*|\.\.\.\s*)?(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:\s*[[\-—"0-9?]/.test(t) ||
+  /^\s*(…\s*|\.\.\.\s*)?(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:\s*[[\-—"“«0-9?]/.test(t) ||
   /^\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}Description:\s*$/.test(t) ||
   /Description:\s*\[/.test(t) // a garbled sheet ("[Fragment of the Shadow Realm].??: ????: ??Description: […]")
 // Brackets a line leaves open: a description that carries on over the next paragraphs.
 const openBrackets = (t) => (t.match(/\[/g) || []).length - (t.match(/\]/g) || []).length
 const cutShort = (t) => /(…|\.\.\.)\]?\.?\s*$/.test(t)
 const bare = (t) => /^\s*\[[^:]*\]\.?\s*$/.test(t)
+// A line that only names what the next description is about: "Attribute: Soul Companion.",
+// "Enchantment: [Simple Trick].", "[Soul Arrow]."
+const NAME_LINE = /^\s*(?:(?:Memory |Aspect |Shadow )?(?:Enchantment|Attribute|Ability)\s*:\s*\[?([^\]:]{1,60}?)\]?|\[([^\]:]{1,60})\])\.?\s*$/
+/** What a description line describes, from the line itself or the name line before it in the book. */
+function subjectOf(chap, p) {
+  const t = chap[p]
+  let m = t.match(/^\s*(?:…|\.\.\.)?\s*\[([^\]]+)\]\s+[\w ]*?Descriptions?\s*:/)
+  if (m) return m[1].trim()
+  m = t.match(/^\s*((?:[A-Z][\w']*\s){1,4})(?:Attribute|Enchantment|Ability)s? Descriptions?\s*:/)
+  if (m && !/^(Memory|Echo|Shadow|Aspect|Flaw|Aspect Ability)$/.test(m[1].trim())) return m[1].trim()
+  m = t.match(/(?:Enchantment|Attribute|Ability)\s*:\s*\[([^\]]+)\]\.?\s*(?:Attribute|Enchantment|Ability) Descriptions?\s*:/)
+  if (m) return m[1].trim()
+  if (!/^\s*(?:…\s*)?(?:Attribute|Enchantments?|Ability) Descriptions?\s*:/.test(t)) return null
+  for (let q = p - 1; q >= Math.max(0, p - 8); q--) {
+    const u = chap[q].trim()
+    if (/Descriptions?\s*:/.test(u)) return null
+    const n = u.match(NAME_LINE)
+    if (n) return (n[1] ?? n[2]).trim()
+    const one = u.match(/^(?:Memory |Shadow |Echo )?(?:Enchantments|Attributes|Abilities)\s*:\s*\[([^\]]+)\]\.?\s*$/)
+    if (one) return one[1].trim()
+    // Narration naming exactly one thing: "The [Soul Beast] wasn't there before..."
+    const named = [...u.matchAll(/\[([^\]:]{1,60})\]/g)]
+    if (named.length === 1 && !/:/.test(u)) return named[0][1].trim()
+  }
+  return null
+}
 
 const ref = ([c, p]) => ({ ch: c, p, fp: textKey(text[c][p]) })
 
@@ -110,11 +136,15 @@ for (const e of tl.events) {
       // The corrected line the book prints right after a cut-off one replaces it.
       if (prevCut && bare(t)) { ps.push({ ...ref([at[0], p]), cont: true }); prevCut = false; continue }
       if (!isRuneLine(t)) continue
-      ps.push(ref([at[0], p]))
+      // `about` names a description's subject by hand when only the narration says it.
+      const subject = e.about?.[`${at[0]}:${p}`] ?? subjectOf(chap, p)
+      if (e.about?.[`${at[0]}:${p}`] && !e.paras?.length && !chap.slice(Math.max(0, p - 8), p + 1).some((u) => u.includes(subject)))
+        errors.push(`${at[0]}:${p}: "${subject}" isn't named near that description`)
+      ps.push(subject ? { ...ref([at[0], p]), s: subject } : ref([at[0], p]))
       prevCut = cutShort(t)
       const depth = /Description:\s*$/.test(t) ? 0 : openBrackets(t)
       if (depth > 0 || /Description:\s*$/.test(t)) {
-        const q = /Description:\s*$/.test(t) ? (/^\s*\[/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
+        const q = /Description:\s*$/.test(t) ? (/^\s*["“«\[]/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
         if (q > 0) {
           for (let c = p + 1; c <= q; c++) ps.push({ ...ref([at[0], c]), cont: true })
           p = q
@@ -173,7 +203,6 @@ for (const e of tl.events) {
     }
     const cur = [...(sheets[e.runes] ?? [])]
     const seen = {}
-    let enchantment = ''
     let last = -1
     // A line and its continuation paragraphs move together.
     const units = []
@@ -182,12 +211,16 @@ for (const e of tl.events) {
     for (const unit of units) {
       const r = unit[0]
       const t = text[r.ch][r.p]
+      // A bare name line has done its job once the description after it knows its subject.
+      if (NAME_LINE.test(t)) continue
       let key = (label(t) ?? t).toLowerCase().replace(/^\[|\]$/g, '')
-      if (key === 'enchantment') enchantment = value(t)
-      if (key === 'enchantment description') key += '|' + enchantment
+      // Descriptions are keyed by what they describe, however the book phrased the line.
+      if (r.s) key = (/attribute/.test(key) ? 'attribute' : /ability/.test(key) ? 'ability' : /enchant/.test(key) ? 'enchantment' : key) + '|' + r.s.toLowerCase()
       seen[key] = (seen[key] ?? 0) + 1
       if (seen[key] > 1) key += '#' + seen[key]
-      const keys = new Set([key, ...labelsOf(t)])
+      // Several "Label:" lines in one paragraph → keyed by all of them; otherwise by its own key.
+      const labels = labelsOf(t)
+      const keys = r.s || labels.length < 2 ? new Set([key]) : new Set([key, ...labels])
       // Lines this paragraph cuts short ("[A pitiful little creature...]") where an
       // earlier sheet has them in full: those earlier lines stay.
       const cutKeys = new Set(segments(t).filter((sg) => cutShort(sg.val) && fullerIn(cur, sg)).map((sg) => sg.key))
@@ -362,11 +395,18 @@ const app = {
   events: events.map((e) => {
     const type = TYPES.find((t) => e[t] != null)
     const o = { type, id: e[type], at: e.at, fp: e.ref.fp }
-    for (const k of ['label', 'value', 'how']) if (e[k] != null) o[k] = e[k]
+    for (const k of ['label', 'value', 'how', 'item']) if (e[k] != null) o[k] = e[k]
     if ((type === 'gain' || type === 'become') && e.name) o.name = e.name
     if (type === 'become') o.to = e.to
-    // [paragraph, fingerprint, chapter (when not the event's), 1 (when it continues the line before)]
-    if (e.paras) o.paras = e.paras.map((r) => (r.cont ? [r.p, r.fp, r.ch, 1] : r.ch === e.at[0] ? [r.p, r.fp] : [r.p, r.fp, r.ch]))
+    // { p, fp, ch (when not the event's chapter), c: 1 (continues the line before), s: what a description describes }
+    if (e.paras)
+      o.paras = e.paras.map((r) => {
+        const x = { p: r.p, fp: r.fp }
+        if (r.ch !== e.at[0]) x.ch = r.ch
+        if (r.cont) x.c = 1
+        if (r.s) x.s = r.s
+        return x
+      })
     if (e.flashback) o.flashback = true
     if (e.auto) o.auto = true
     return o

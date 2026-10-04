@@ -93,7 +93,13 @@
   ],
   "entries": {
     "shadow-dance": {
-      "kind": "aspect"
+      "kind": "aspect",
+      "relics": [
+        "soul-serpent",
+        "drop-of-ichor-2",
+        "shadow-lantern",
+        "fragment-of-the-shadow-realm"
+      ]
     },
     "blood-blossom": {
       "kind": "memory"
@@ -151,6 +157,11 @@
       "to": "219:12"
     },
     {
+      "at": "233:6",
+      "source": "dark-wing",
+      "value": "Flesh Reaver"
+    },
+    {
       "at": "241:38",
       "gain": "blood-blossom",
       "name": "Blood Blossom"
@@ -164,11 +175,6 @@
       "at": "242:3",
       "runes": "dark-wing",
       "to": "242:13"
-    },
-    {
-      "at": "242:32",
-      "source": "dark-wing",
-      "value": "his Shadow"
     },
     {
       "at": "242:37",
@@ -327,7 +333,8 @@
     {
       "at": "358:64",
       "source": "soul-serpent",
-      "value": "an Aspect Legacy Relic"
+      "value": "an Aspect Legacy Relic",
+      "item": "shadow-dance"
     },
     {
       "at": "358:65",

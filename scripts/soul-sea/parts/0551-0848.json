@@ -289,7 +289,10 @@
     {
       "at": "653:21",
       "runes": "soul-serpent",
-      "to": "653:25"
+      "to": "653:25",
+      "about": {
+        "653:25": "Grace of Shadows"
+      }
     },
     {
       "at": "653:53",
@@ -299,7 +302,8 @@
     {
       "at": "653:64",
       "source": "shadow-lantern",
-      "value": "an Aspect Legacy Relic"
+      "value": "an Aspect Legacy Relic",
+      "item": "shadow-dance"
     },
     {
       "at": "653:69",
@@ -486,6 +490,11 @@
       "at": "848:31",
       "source": "shadow-chair",
       "value": "Noctis"
+    },
+    {
+      "at": "848:38",
+      "runes": "shadow-slave",
+      "to": "848:41"
     }
   ]
 }

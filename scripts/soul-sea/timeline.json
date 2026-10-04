@@ -80,7 +80,7 @@
     { "at": "67:5", "history": "carapace-scavenger" },
     { "at": "71:50", "history": "azure-blade" },
     { "at": "71:53", "lose": "azure-blade", "how": "destroyed" },
-    { "at": "74:8", "source": "midnight-shard", "value": "Nephis" },
+    { "at": "73:96", "source": "midnight-shard", "value": "Carapace Demon" },
     { "at": "74:9", "gain": "midnight-shard", "name": "Midnight Shard" },
     { "at": "74:12", "runes": "midnight-shard", "to": "74:15" },
     { "at": "80:45", "source": "drop-of-ichor", "value": "Vile Thieving Bird's Spawn" },

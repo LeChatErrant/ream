@@ -125,7 +125,7 @@ function stateAt(point) {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
       x.facts = {}; // a newer sheet supersedes facts told in prose
     } else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
-    else if (e.type === "source") x.source = e.value;
+    else if (e.type === "source") Object.assign(x, { source: e.value, sourceItem: e.item });
   }
   return s;
 }
@@ -307,8 +307,12 @@ function row(x, gone, prevSt) {
   else if (x.facts && Object.keys(x.facts).length) detail.append(buildSheet([], x));
   else detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
   // Where it came from: the creature, the giver, or what it evolved from.
+  // Another item of the Soul Sea (what it evolved from, the Legacy whose relic it is) is a link.
   const before = x.from && stateOf(x.from);
-  const origin = x.source || (before && nameOf(before) !== nameOf(x) ? nameOf(before) : null);
+  const via = x.sourceItem && stateOf(x.sourceItem);
+  const origin = x.source
+    ? via ? itemLink(via, cap(x.source)) : cap(x.source)
+    : before && nameOf(before) !== nameOf(x) ? itemLink(before) : null;
   if (origin)
     detail.append(
       h("div", { class: "soulsea__origin" }, h("span", { class: "soulsea__k" }, x.source ? "Obtained from" : "Evolved from"), h("span", { class: "soulsea__origin-v" }, origin))
@@ -322,32 +326,38 @@ function row(x, gone, prevSt) {
 // ---- rune sheets -----------------------------------------------------------------
 // The lines are the book's own; only the layout is ours. "Memory Rank: Awakened."
 // becomes a Rank / Awakened row: the label loses the item-kind word, brackets and
-// the closing full stop, and a list of names becomes chips. The item's description
-// reads as an epigraph; enchantments, attributes and abilities get their name as
-// a heading.
+// the closing full stop, and a list of names becomes a list. The item's description
+// reads as an epigraph; enchantments, attributes and abilities get their name as a
+// heading — the build tells each description what it describes (`s`), since the
+// book often names it on the line before.
 
-const KIND_WORD = /^(Memory|Echo|Shadow|Aspect|Flaw)\s+/;
+// "Memory Rank" → "Rank" — but "Shadow Dance Mastery Level" stays itself.
+const KIND_WORD = /^(Memory|Echo|Shadow|Aspect|Flaw)\s+(?=(Rank|Tier|Type|Class|Description|Attributes|Abilities|Enchantments?|Ability Description|Legacy|Fragments)$)/;
 // A short value loses its full stop ("Awakened."); prose keeps its own, losing
 // only one that closes the brackets ("[…deserts].").
 const unwrap = (v, prose = false) =>
   v
     .trim()
-    .replace(prose ? /(?<=[\]"])\.$/ : /\.$/, "")
+    .replace(prose ? /(?<=[\]"»])\.$/ : /\.$/, "")
     .replace(/^\[([^[\]]*)\]$/, "$1")
     .replace(/^"([^"]*)"$/, "$1")
+    .replace(/^«([^«»]*)»$/, "$1")
     .replace(/^\[(.*)\]$/s, "$1")
     // a bracket the book opens and never closes (or the reverse)
     .replace(/^\[(?=[^\]]*$)/s, "")
+    .replace(/^«(?=[^»]*$)/s, "")
     .replace(/(?<=^[^[]*)\](?=\.?$)/s, "")
     .trim();
+// The book sometimes starts a description in lower case ("a small memento…").
+const cap = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
 /** One rune line → { label, subject?, value }. */
 function parseRune(t) {
-  t = t.trim();
-  let m = t.match(/^\[([^\]]+)\]\s+(\w+ Description)\s*:\s*(.*)$/s); // [Fated] Attribute Description: "…"
-  if (m) return { label: m[2], subject: m[1], value: m[3] };
+  t = t.trim().replace(/^(…|\.\.\.)\s*/, "");
+  let m = t.match(/^\[([^\]]+)\]\s+(\w+ Descriptions?)\s*:\s*(.*)$/s); // [Fated] Attribute Description: "…"
+  if (m) return { label: m[2].replace(/s$/, "").replace(/Enchantments/, "Enchantment"), subject: m[1], value: m[3] };
   m = t.match(/^((?:[A-Z][\w']*\s){1,4})(Attribute|Enchantment|Ability) Description\s*:\s*(.*)$/s); // Battle Master Attribute Description: […]
-  if (m && !KIND_WORD.test(m[1] + " ")) return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
+  if (m && !/^(Memory|Echo|Shadow|Aspect|Flaw|Aspect Ability)$/.test(m[1].trim())) return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
   m = t.match(/^([A-Z][\w' ]{0,40}?)\s*:\s*(.*)$/s); // Memory Rank: Awakened.
   if (m) return { label: m[1], value: m[2] };
   m = t.match(/^\[(.*)\]\.?$/s); // a Spell message: "[Silver Bell: a small memento…]", "[Shadow Fragments: 0/200.]"
@@ -383,18 +393,18 @@ function splitFields(t) {
 }
 
 /**
- * Paragraphs → rune lines. A continuation (`cont`) is the rest of the line before:
- * more paragraphs of a long description, or — right after a line the book cuts
- * short — the full text it prints next, which replaces the cut-off one.
+ * Paragraphs → rune lines { t, s }. A continuation (`cont`) is the rest of the line
+ * before: more paragraphs of a long description, or — right after a line the book
+ * cuts short — the full text it prints next, which replaces the cut-off one.
  */
 function runeLines(paras) {
   const lines = [];
-  for (const { t, cont } of paras) {
+  for (const { t, cont, s } of paras) {
     const prev = lines.at(-1);
-    if (cont && prev != null) {
-      const cut = /(…|\.\.\.)\]?\.?\s*$/.test(prev) && /^\s*\[[^:]*\]\.?\s*$/.test(t);
-      lines[lines.length - 1] = cut ? prev.slice(0, prev.indexOf(":") + 1) + " " + t.trim() : `${prev}\n\n${t.trim()}`;
-    } else lines.push(...splitFields(t));
+    if (cont && prev) {
+      const cut = /(…|\.\.\.)\]?\.?\s*$/.test(prev.t) && /^\s*\[[^:]*\]\.?\s*$/.test(t);
+      prev.t = cut ? prev.t.slice(0, prev.t.indexOf(":") + 1) + " " + t.trim() : /:\s*$/.test(prev.t) ? `${prev.t} ${t.trim()}` : `${prev.t}\n\n${t.trim()}`;
+    } else for (const part of splitFields(t)) lines.push({ t: part, s: /Description/.test(part) ? s : undefined });
   }
   return lines;
 }
@@ -402,6 +412,13 @@ function runeLines(paras) {
 // Tiers are Roman numerals in the runes; the book once spells one out ("Memory Tier: Seven.").
 const TIER_WORDS = { one: "I", two: "II", three: "III", four: "IV", five: "V", six: "VI", seven: "VII", eight: "VIII", nine: "IX" };
 const romanTier = (v) => TIER_WORDS[v.toLowerCase()] ?? v;
+const ORDINAL = { First: 0, Second: 1, Third: 2, Fourth: 3, Fifth: 4, Sixth: 5, Seventh: 6 };
+
+// A reference to another item of the Soul Sea: tapping it opens that item.
+function itemLink(other, text = nameOf(other)) {
+  return h("button", { class: "soulsea__link", type: "button", onclick: (e) => (e.stopPropagation(), focusItem(other)) }, text);
+}
+const itemNamed = (name, self) => Object.values(current).find((o) => o !== self && o.kind !== "stat" && o.name === name);
 
 function buildSheet(paras, x) {
   const lines = runeLines(paras);
@@ -410,8 +427,8 @@ function buildSheet(paras, x) {
   const notes = []; // named descriptions: enchantments, attributes, abilities
   let epigraph = null;
   let pending = null; // a name line ("Enchantment: [Doubtless].", "[Blade of Darkness].") titling the description after it
-  const clean = (n) => n.trim().replace(/\.$/, "");
-  // Repeated lines: the later one wins (sheets are in reading order).
+  const clean = (n) => n.trim().replace(/(\.+|…)$/, "");
+  // Repeated lines: the later one wins (sheets are in reading order)…
   // …unless it's cut short ("A pitiful little creature...") and the earlier one is the full text.
   const cutOf = (nu, old) => {
     const stem = nu?.replace(/\s*(…|\.\.\.)$/, "");
@@ -423,28 +440,31 @@ function buildSheet(paras, x) {
     if (i >= 0) arr.splice(i, 1);
     arr.push(item);
   };
-  for (const t of lines) {
+  for (const { t, s } of lines) {
     // A garbled name line the Spell couldn't finish ("[Fragment of the Shadow Realm].??: ????: ??").
     if (t.startsWith(`[${x.name}]`) && /\?\?/.test(t)) continue;
     const r = parseRune(t);
-    const label = r.label.replace(KIND_WORD, "").replace(/^(…|\.\.\.)\s*/, "");
+    const label = r.label.replace(KIND_WORD, "");
     const value = clean(unwrap(r.value));
     const prose = unwrap(r.value, true);
     const bareName = /^\s*\[[^:\]]{1,60}\]\.?\s*$/.test(t);
     if (bareName || label === "Enchantment" || label === "Ability" || label === "Attribute") {
-      if (bareName ? clean(t.replace(/[[\]]/g, "")) !== x.name : value !== x.name) pending = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
+      const name = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
+      if (name !== x.name) pending = name;
       continue;
     }
     // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title —
     // or names what it evolved from.
-    if (!r.subject && (value === x.name || /^(Memory|Shadow|Echo)$/.test(r.label))) continue;
-    const own = !r.subject || r.subject === x.name;
-    if (/(^|\s)Description$/.test(label) && cutOf(prose, epigraph)) continue;
-    if (/(^|\s)Description$/.test(label) && label !== "Description" && !(own && !pending && (x.kind === "attribute" || x.kind === "ability"))) {
-      const title = r.subject || pending;
-      put(notes, { title, kind: label, text: prose }, (n) => title && n.title === title);
+    if (!r.subject && (value === x.name || /^(Memory|Shadow|Echo|Aspect Legacy)$/.test(r.label))) continue;
+    if (/Description$/.test(label)) {
+      // "Shadow Dance Description", "[Fated] Attribute Description", or a description with no other subject: the item's own.
+      const title = r.subject || s || (label !== "Description" && !/^(Attribute|Ability|Enchantment) Description$/.test(label) ? label.replace(/ Description$/, "") : null) || pending;
       pending = null;
-    } else if (/(^|\s)Description$/.test(label)) epigraph = prose; // the item's own description
+      const own = title === x.name || (!title && (label === "Description" || x.kind === "attribute" || x.kind === "ability"));
+      if (own) {
+        if (!cutOf(prose, epigraph)) epigraph = prose;
+      } else put(notes, { title, kind: label, text: prose }, (n) => title && n.title === title);
+    }
     // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]".
     else if (/^\[[^\]\d][^\]]*\](,\s*\[.+\])*$/.test(r.value.trim().replace(/\.$/, "")) && /s$/.test(label))
       put(lists, { label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => clean(m[1])) }, (l) => l.label === label);
@@ -452,26 +472,57 @@ function buildSheet(paras, x) {
   }
   // What the book has said since the last rune sheet ("now a Transcendent Devil").
   for (const [label, value] of Object.entries(x.facts || {})) put(facts, { label, value }, (f) => f.label === label);
-  // Enchantment descriptions the book lists without naming: in the order of the list.
-  const ench = lists.find((l) => l.label === "Enchantments");
-  const unnamed = notes.filter((n) => n.kind === "Enchantment Description" && !n.title);
-  if (ench && unnamed.length === ench.names.length) unnamed.forEach((n, i) => (n.title = ench.names[i]));
+  // A list's "???" the book later reveals ("[Where is my eye?]"): the described name not in the list.
+  for (const l of lists) {
+    const unknown = l.names.indexOf("???");
+    const kind = { Enchantments: "Enchantment Description", Attributes: "Attribute Description", Abilities: "Ability Description" }[l.label];
+    const revealed = notes.filter((n) => n.kind === kind && n.title && !l.names.includes(n.title));
+    if (unknown >= 0 && revealed.length === 1) l.names[unknown] = revealed[0].title;
+  }
+  // Descriptions the book lists without naming: in the order of the list.
+  for (const l of lists) {
+    const kind = { Enchantments: "Enchantment Description", Attributes: "Attribute Description", Abilities: "Ability Description" }[l.label];
+    const unnamed = notes.filter((n) => n.kind === kind && !n.title);
+    const open = l.names.filter((name) => !notes.some((n) => n.title === name));
+    if (unnamed.length && unnamed.length === open.length) unnamed.forEach((n, i) => (n.title = open[i]));
+  }
 
   const box = h("div", { class: "soulsea__sheet" });
+  const relics = data.entries[x.id]?.relics;
   if (facts.length)
     box.append(
       h(
         "div",
         { class: "soulsea__facts" },
-        facts.map((f) => h("div", { class: "soulsea__fact" }, h("span", { class: "soulsea__fact-k" }, f.label), h("span", { class: "soulsea__fact-v" }, f.value)))
+        facts.map((f) => {
+          // "Second Relic: Claimed" → and which item it was; "Innate Ability: Shadow Bond" → that ability.
+          // A relic Sunny holds (or held) is claimed, even if this sheet predates the claim ("[Claim]").
+          const relic = relics && /Relic$/.test(f.label) && current[relics[ORDINAL[f.label.split(" ")[0]]]];
+          const other = relic || itemNamed(f.value, x);
+          return h(
+            "div",
+            { class: "soulsea__fact" },
+            h("span", { class: "soulsea__fact-k" }, f.label),
+            h("span", { class: "soulsea__fact-v" }, relic ? itemLink(relic) : other ? itemLink(other, f.value) : f.value)
+          );
+        })
       )
     );
-  const prose = (text, cls) => text.split(/\n\n+/).map((t) => h("p", { class: cls }, t));
+  const prose = (text, cls) => cap(text).split(/\n\n+/).map((t) => h("p", { class: cls }, t));
   if (epigraph) box.append(...prose(epigraph, "soulsea__epigraph"));
   else if (paras.length) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
   // Under each list ("Enchantments"), every name in the book's order, with its
-  // description when the book gives one.
-  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? prose(n.text, "soulsea__note-text") : h("p", { class: "soulsea__none" }, "No description yet"));
+  // description when the book gives one; a name that is an item of its own (an
+  // Aspect's Abilities) links to it instead.
+  const note = (n) => {
+    const other = n.title && !n.text && itemNamed(n.title, x);
+    return h(
+      "div",
+      { class: "soulsea__note-block" },
+      n.title ? h("div", { class: "soulsea__note-title" }, other ? itemLink(other) : n.title) : null,
+      n.text ? prose(n.text, "soulsea__note-text") : other ? null : h("p", { class: "soulsea__none" }, "No description yet")
+    );
+  };
   const placed = new Set();
   for (const l of lists) {
     const entries = l.names.map((name) => {
@@ -479,23 +530,20 @@ function buildSheet(paras, x) {
       if (n) placed.add(n);
       return n || { title: name };
     });
-    // A description the book doesn't name goes at the end of its list.
-    const kind = { Attributes: "Attribute Description", Abilities: "Ability Description", Enchantments: "Enchantment Description" }[l.label];
-    const loose = notes.filter((n) => !n.title && n.kind === kind);
-    loose.forEach((n) => placed.add(n));
-    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note), loose.map(note)));
+    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note)));
   }
   for (const n of notes) if (!placed.has(n)) box.append(note(n));
   return box;
 }
 
 // Resolved paragraphs, so a re-render (expanding another row) draws instantly.
+// A reference is { p, fp, ch?, c?, s? } (see build.mjs).
 const textCache = new Map();
 function load(e) {
   const [ch] = e.at;
-  const refs = (e.paras || [[e.at[1], e.fp]]).map(([p, fp, from = ch, cont]) => ({ r: [from, p, fp], cont: !!cont }));
+  const refs = (e.paras || [{ p: e.at[1], fp: e.fp }]).map((r) => ({ r: [r.ch ?? ch, r.p, r.fp], cont: !!r.c, s: r.s }));
   const key = ({ r }) => r.join(":");
-  const out = (ts) => refs.map((ref, i) => ({ t: ts[i], cont: ref.cont })).filter((x) => x.t != null);
+  const out = (ts) => refs.map((ref, i) => ({ t: ts[i], cont: ref.cont, s: ref.s })).filter((x) => x.t != null);
   if (refs.every((ref) => textCache.has(key(ref)))) return out(refs.map((ref) => textCache.get(key(ref))));
   return Promise.all(refs.map((ref) => paragraph(...ref.r).then((t) => (textCache.set(key(ref), t), t)))).then(out);
 }

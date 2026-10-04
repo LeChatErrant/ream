@@ -455,7 +455,8 @@
     {
       "at": "549:60",
       "source": "drop-of-ichor-2",
-      "value": "Aspect Legacy Relic"
+      "value": "Aspect Legacy Relic",
+      "item": "shadow-dance"
     },
     {
       "at": "549:66",

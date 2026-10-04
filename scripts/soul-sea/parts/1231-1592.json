@@ -377,9 +377,18 @@
       "runes": "fragment-of-the-shadow-realm"
     },
     {
+      "at": "1302:48",
+      "source": "fragment-of-the-shadow-realm",
+      "value": "the fourth relic granted to him by Shadow Dance",
+      "item": "shadow-dance"
+    },
+    {
       "at": "1315:46",
       "runes": "ravenous-fiend",
-      "to": "1315:52"
+      "to": "1315:52",
+      "about": {
+        "1315:52": "Complete Steel body"
+      }
     },
     {
       "at": "1341:35",
@@ -717,9 +726,19 @@
       "runes": "lord-of-shadows"
     },
     {
+      "at": "1592:54",
+      "runes": "shadow-slave",
+      "to": "1592:56"
+    },
+    {
       "at": "1592:58",
       "name": "shadow-incarnation",
       "value": "Shadow Incarnation"
+    },
+    {
+      "at": "1592:58",
+      "runes": "shadow-slave",
+      "to": "1592:59"
     }
   ]
 }
