@@ -104,7 +104,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const pkg = await buildPackage()
     const dir = path.join(WORK, 'out')
     await mkdir(dir, { recursive: true })
-    const file = path.join(dir, `ream-proofreading-${pkg.createdAt.slice(0, 10)}.json`)
+    const file = path.join(dir, 'ream-proofreading.json')
     await writeFile(file, JSON.stringify(pkg))
     const pending = pkg.findings.filter((f) => !pkg.decisions[f.id]).length
     console.log(`${path.relative(process.cwd(), file)} — ${pkg.findings.length} findings (${pending} pending)`)

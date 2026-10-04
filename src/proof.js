@@ -146,33 +146,105 @@ export async function importProofreading(file) {
   return `Merged — ${taken} decision${taken === 1 ? "" : "s"} taken`;
 }
 
-/** Export the proofreading file with every decision known here (share sheet on a phone, download elsewhere). */
-export async function exportProofreading() {
+// ---- the linked file ----------------------------------------------------------
+// One fixed name everywhere, so re-exporting replaces the file rather than piling
+// up copies. Where the browser can write to a chosen file (Chrome / Edge on a
+// computer), the file you import from — or first export to — is remembered and
+// every later export overwrites it in place.
+export const FILE_NAME = "ream-proofreading.json";
+const HANDLE_KEY = "proof-file-handle"; // kv: FileSystemFileHandle of the linked file
+const FILE_TYPES = [{ description: "Ream proofreading", accept: { "application/json": [".json"] } }];
+const canWriteFiles = () => typeof window.showSaveFilePicker === "function" && !matchMedia("(pointer: coarse)").matches;
+export const canPickFiles = () => typeof window.showOpenFilePicker === "function" && !matchMedia("(pointer: coarse)").matches;
+
+let linked = null; // the linked file's handle (kept in memory, and in IndexedDB across launches)
+let linkedName = null; // its name, for the menu
+async function linkedHandle() {
+  if (linked) return linked;
+  try {
+    const hnd = await kvGet(HANDLE_KEY);
+    linked = hnd?.kind === "file" && typeof hnd.createWritable === "function" ? hnd : null;
+  } catch (_) {
+    linked = null;
+  }
+  return linked;
+}
+proofReady.then(async () => {
+  linkedName = (await linkedHandle())?.name || null;
+  notify();
+});
+async function linkFile(handle) {
+  linked = handle || null;
+  linkedName = handle?.name || null;
+  try {
+    if (handle) await kvSet(HANDLE_KEY, handle);
+    else await kvDelete(HANDLE_KEY);
+  } catch (_) {
+    /* the browser can't store handles: exports just ask each time */
+  }
+}
+export const linkedFileName = () => linkedName;
+
+/** Pick a proofreading file through the browser's file picker and remember it (computer, Chrome / Edge). */
+export async function pickAndImport() {
+  let handle;
+  try {
+    [handle] = await window.showOpenFilePicker({ types: FILE_TYPES, multiple: false });
+  } catch (e) {
+    if (e?.name === "AbortError") return null;
+    throw e;
+  }
+  const message = await importProofreading(await handle.getFile());
+  await linkFile(handle);
+  notify();
+  return message;
+}
+
+/**
+ * Export the proofreading file with every decision known here. Overwrites the
+ * linked file when the browser allows it (asking where to save the first time,
+ * or always with `saveAs`); otherwise the share sheet on a phone, a download
+ * elsewhere — both under the same fixed name. Returns the file name, or null
+ * when cancelled.
+ */
+export async function exportProofreading({ saveAs = false } = {}) {
   if (!pkg) throw new Error("Nothing to export yet — import a proofreading file first.");
   const decisions = { ...(pkg.decisions || {}) };
   for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
   const data = { ...pkg, createdAt: new Date().toISOString(), decisions };
-  const stamp = data.createdAt.slice(0, 16).replace(/[T:]/g, "-");
-  const name = `ream-proofreading-${stamp}.json`;
-  const file = new File([JSON.stringify(data)], name, { type: "application/json" });
-  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: "Ream proofreading" });
-    } catch (e) {
-      if (e?.name === "AbortError") return false;
-      throw e;
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  let savedAs = FILE_NAME;
+  try {
+    if (canWriteFiles()) {
+      let handle = saveAs ? null : await linkedHandle();
+      if (handle && (await handle.queryPermission({ mode: "readwrite" })) !== "granted")
+        if ((await handle.requestPermission({ mode: "readwrite" })) !== "granted") handle = null;
+      if (!handle) handle = await window.showSaveFilePicker({ suggestedName: linkedName || FILE_NAME, types: FILE_TYPES });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      await linkFile(handle);
+      savedAs = handle.name;
+    } else {
+      const file = new File([blob], FILE_NAME, { type: "application/json" });
+      if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Ream proofreading" });
+      } else {
+        const a = h("a", { href: URL.createObjectURL(file), download: FILE_NAME });
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      }
     }
-  } else {
-    const a = h("a", { href: URL.createObjectURL(file), download: name });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  } catch (e) {
+    if (e?.name === "AbortError") return null;
+    throw e;
   }
   local.exportedAt = new Date().toISOString();
   await kvSet(LOCAL_KEY, local);
   notify();
-  return true;
+  return savedAs;
 }
 
 /** Forget the proofreading file and this device's decisions. */
@@ -184,6 +256,7 @@ export async function removePackage() {
   bookPending = null;
   await kvDelete(PKG_KEY);
   await kvDelete(LOCAL_KEY);
+  await linkFile(null);
   for (const c of chapters.values()) unmarkChapter(c);
   notify();
 }

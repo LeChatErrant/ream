@@ -28,7 +28,11 @@ decision — with no server. In the reader drawer → **Proofreading** → *Impo
 proofreading…* on any device (computer or phone), review while reading, then
 *Export proofreading* to save the file with the latest decisions (share sheet →
 AirDrop on the phone). Importing always merges: per suggestion the most recent
-decision wins, so importing twice or from several devices is safe. Suggestions are
+decision wins, so importing twice or from several devices is safe.
+The file is always called `ream-proofreading.json`. On a computer with Chrome /
+Edge, the file you import (or first export to) is remembered and every later
+export overwrites it in place (*Export to another file…* picks a new one); on the
+phone, *Save to Files* offers to replace it. Suggestions are
 matched by paragraph fingerprints (`src/lib/proof-key.js`), so separate volumes,
 a grouped series or renamed files all work.
 

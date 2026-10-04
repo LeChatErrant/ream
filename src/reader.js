@@ -31,7 +31,7 @@ import { addVolumeToSeries } from "./import.js";
 import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
-  importProofreading, exportProofreading, removePackage,
+  importProofreading, exportProofreading, removePackage, pickAndImport, canPickFiles, linkedFileName,
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 
@@ -993,6 +993,18 @@ function toast(text) {
 }
 
 function pickPackageFile() {
+  // On a computer that can (Chrome / Edge), the browser's own picker — the file
+  // is then remembered, and exports overwrite it.
+  if (canPickFiles()) {
+    pickAndImport()
+      .then((message) => {
+        if (!message) return;
+        toast(message);
+        reopenAtPosition();
+      })
+      .catch((e) => toast(e.message));
+    return;
+  }
   const input = h("input", { type: "file", accept: ".json,application/json", hidden: true });
   input.addEventListener("change", async () => {
     const file = input.files[0];
@@ -1012,6 +1024,15 @@ function pickPackageFile() {
 // The Proofreading row's menu: Import / Export the proofreading file (every
 // suggestion + every decision known here), the same on every device; importing
 // merges — per suggestion, the newest decision wins.
+async function runExport(opts) {
+  try {
+    const name = await exportProofreading(opts);
+    if (name) toast(linkedFileName() ? `Saved to ${name}` : "Proofreading exported — import it on your other device");
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
 function openProofMenu() {
   const s = proofState();
   const actions = [
@@ -1019,15 +1040,11 @@ function openProofMenu() {
     {
       label: s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
       now: true,
-      onClick: async () => {
-        try {
-          if (await exportProofreading()) toast("Proofreading exported — import it on your other device");
-        } catch (e) {
-          toast(e.message);
-        }
-      },
+      onClick: () => runExport(),
     },
   ];
+  // A remembered file is overwritten in place; this picks another one.
+  if (s.hasFile && linkedFileName()) actions.push({ label: "Export to another file…", now: true, onClick: () => runExport({ saveAs: true }) });
   if (s.hasFile)
     actions.push({
       label: "Remove proofreading file",

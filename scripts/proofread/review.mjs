@@ -90,7 +90,7 @@ createServer(async (req, res) => {
     // The proofreading file: export it with the decisions so far, or merge one in.
     if (req.method === 'GET' && url.pathname === '/api/proof/package') {
       const pkg = await buildPackage()
-      res.setHeader('content-disposition', `attachment; filename="ream-proofreading-${pkg.createdAt.slice(0, 10)}.json"`)
+      res.setHeader('content-disposition', 'attachment; filename="ream-proofreading.json"')
       return send(res, 200, 'application/json', JSON.stringify(pkg))
     }
     if (req.method === 'POST' && url.pathname === '/api/proof/merge') {
