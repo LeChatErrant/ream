@@ -205,7 +205,7 @@ function render() {
       "div",
       { class: "ch-bar__titles" },
       h("div", { class: "ch-bar__title" }, "Soul Sea"),
-      h("div", { class: "ch-bar__context" }, `${data.character} · as of chapter ${viewNum}${atLive ? "" : " (looking back)"}`)
+      h("div", { class: "ch-bar__context" }, `${data.character} · Chapter ${viewNum}${atLive ? "" : " · looking back"}`)
     )
   );
   const when = h(
@@ -250,7 +250,7 @@ function render() {
             "div",
             { class: "soulsea__stat" },
             h("span", { class: "soulsea__stat-k" }, data.entries[x.id].label),
-            h("span", { class: "soulsea__stat-v" }, x.value, h("span", { class: "soulsea__meta" }, ` · ch. ${x.since}`))
+            h("span", { class: "soulsea__stat-v" }, x.value)
           )
         )
       )
@@ -272,7 +272,7 @@ function render() {
         {
           class: "soulsea__h soulsea__h--toggle",
           "aria-expanded": String(open),
-          onclick: () => (expanded.has("#gone") ? expanded.delete("#gone") : expanded.add("#gone"), render()),
+          onclick: () => toggle("#gone"),
         },
         svg(ICON.chevron),
         "No longer held",
@@ -290,74 +290,174 @@ function render() {
 }
 
 const nameOf = (x) => x.name || `“${x.label}”`;
+const toggle = (key) => (expanded.has(key) ? expanded.delete(key) : expanded.add(key), render());
 
 function row(x, gone, prevSt) {
   const open = expanded.has(x.id);
   const isNew = !gone && !prevSt[x.id]?.held;
-  const meta = gone ? `${HOW[x.how] || "Lost"} · ch. ${x.lost}` : `ch. ${x.since}`;
   const head = h(
     "button",
-    {
-      class: "soulsea__row-head",
-      "aria-expanded": String(open),
-      onclick: () => (expanded.has(x.id) ? expanded.delete(x.id) : expanded.add(x.id), render()),
-    },
+    { class: "soulsea__row-head", "aria-expanded": String(open), onclick: () => toggle(x.id) },
     h("span", { class: "soulsea__name" + (x.name ? "" : " soulsea__name--label") }, nameOf(x)),
-    isNew ? h("span", { class: "soulsea__new" }, "new") : null,
-    h("span", { class: "soulsea__meta" }, meta)
+    isNew ? h("span", { class: "soulsea__new" }, "New") : null,
+    gone ? h("span", { class: "soulsea__meta" }, HOW[x.how] || "Lost") : null,
+    h("span", { class: "soulsea__chev" }, svg(ICON.chevron))
   );
   const out = h("div", { class: "soulsea__row" + (gone ? " soulsea__row--gone" : "") + (open ? " soulsea__row--open" : "") }, head);
   if (!open) return out;
 
   const detail = h("div", { class: "soulsea__detail" });
-  if (x.sheet) detail.append(sheet(x.sheet));
-  else detail.append(h("p", { class: "soulsea__empty" }, "No runes shown in the book yet."));
-  if (x.history.length)
-    detail.append(fold(`${x.id}#history`, `From the book (${x.history.length})`, () => x.history.map((e) => passage(e))));
+  if (x.sheet) detail.append(sheet(x.sheet, x));
+  if (x.history.length) detail.append(fold(`${x.id}#history`, "From the book", () => x.history.map(passage)));
+  const when = gone ? `${HOW[x.how] || "Lost"} in chapter ${x.lost}` : `Acquired in chapter ${x.since}`;
+  detail.append(h("p", { class: "soulsea__when-note" }, when));
   out.append(detail);
   return out;
 }
 
 function fold(key, label, kids) {
   const open = expanded.has(key);
-  const wrap = h("div", { class: "soulsea__fold" });
+  const wrap = h("div", { class: "soulsea__fold" + (open ? " soulsea__fold--open" : "") });
   wrap.append(
-    h(
-      "button",
-      { class: "soulsea__fold-head", "aria-expanded": String(open), onclick: () => (expanded.has(key) ? expanded.delete(key) : expanded.add(key), render()) },
-      svg(ICON.chevron),
-      label
-    )
+    h("button", { class: "soulsea__fold-head", "aria-expanded": String(open), onclick: () => toggle(key) }, svg(ICON.chevron), label)
   );
   if (open) wrap.append(...kids());
   return wrap;
 }
 
-// Paragraphs are filled in as they load from the epub; one that isn't found
-// verbatim in this copy is left out rather than approximated.
-function fill(box, e, cls) {
-  const [ch] = e.at;
-  const refs = e.paras || [[e.at[1], e.fp]];
-  const ps = refs.map(() => h("p", { class: cls + " soulsea__loading" }, "…"));
-  box.append(...ps);
-  refs.forEach(([p, fp, from = ch], i) =>
-    paragraph(from, p, fp).then((t) => {
-      if (t == null) ps[i].remove();
-      else {
-        ps[i].textContent = t;
-        ps[i].classList.remove("soulsea__loading");
-      }
-      if (!box.querySelector("p")) box.append(h("p", { class: "soulsea__empty" }, `Chapter ${ch} isn’t in your library (or differs from the mapped copy).`));
-    })
-  );
+// ---- rune sheets -----------------------------------------------------------------
+// The lines are the book's own; only the layout is ours. "Memory Rank: Awakened."
+// becomes a Rank / Awakened row: the label loses the item-kind word, brackets and
+// the closing full stop, and a list of names becomes chips. The item's description
+// reads as an epigraph; enchantments, attributes and abilities get their name as
+// a heading.
+
+const KIND_WORD = /^(Memory|Echo|Shadow|Aspect|Flaw)\s+/;
+// A short value loses its full stop ("Awakened."); prose keeps its own, losing
+// only one that closes the brackets ("[…deserts].").
+const unwrap = (v, prose = false) =>
+  v
+    .trim()
+    .replace(prose ? /(?<=[\]"])\.$/ : /\.$/, "")
+    .replace(/^\[([^[\]]*)\]$/, "$1")
+    .replace(/^"([^"]*)"$/, "$1")
+    .replace(/^\[(.*)\]$/s, "$1")
+    .trim();
+
+/** One rune line → { label, subject?, value }. */
+function parseRune(t) {
+  t = t.trim();
+  let m = t.match(/^\[([^\]]+)\]\s+(\w+ Description)\s*:\s*(.*)$/s); // [Fated] Attribute Description: "…"
+  if (m) return { label: m[2], subject: m[1], value: m[3] };
+  m = t.match(/^((?:[A-Z][\w']*\s){1,4})(Attribute|Enchantment|Ability) Description\s*:\s*(.*)$/s); // Battle Master Attribute Description: […]
+  if (m && !KIND_WORD.test(m[1] + " ")) return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
+  m = t.match(/^([A-Z][\w' ]{0,40}?)\s*:\s*(.*)$/s); // Memory Rank: Awakened.
+  if (m) return { label: m[1], value: m[2] };
+  m = t.match(/^\[(.*)\]\.?$/s); // a Spell message: "[Silver Bell: a small memento…]", "[Shadow Fragments: 0/200.]"
+  if (m) {
+    const inner = parseRune(m[1]);
+    // "[Silver Bell: …]" names the item, then describes it.
+    return inner.label && !/^[A-Z][\w' ]*(Fragments|Rank|Tier|Type|Class)$/.test(inner.label)
+      ? { label: "Description", value: inner.value }
+      : inner.label
+        ? inner
+        : { label: "Description", value: m[1] };
+  }
+  return { label: "Description", value: t };
+}
+
+function buildSheet(lines, x) {
+  const facts = [];
+  const lists = [];
+  const notes = []; // named descriptions: enchantments, attributes, abilities
+  let epigraph = null;
+  let enchantment = null;
+  for (const t of lines) {
+    const r = parseRune(t);
+    const label = r.label.replace(KIND_WORD, "");
+    const value = unwrap(r.value);
+    const prose = unwrap(r.value, true);
+    if (label === "Enchantment") {
+      enchantment = value;
+      continue;
+    }
+    // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title.
+    if (!r.subject && value === x.name) continue;
+    const own = !r.subject || r.subject === x.name;
+    // An attribute's or ability's own description is its epigraph.
+    if (/(^|\s)Description$/.test(label) && own && !epigraph && (x.kind === "attribute" || x.kind === "ability")) epigraph = prose;
+    else if (/(^|\s)Description$/.test(label) && label !== "Description") {
+      notes.push({ title: r.subject || (label === "Enchantment Description" ? enchantment : null), kind: label, text: prose });
+      enchantment = null;
+    } else if (label === "Description" || /^(Memory|Echo|Shadow|Aspect|Flaw) Description$/.test(r.label)) epigraph = prose;
+    // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]".
+    else if (/^\[[^\]\d][^\]]*\](,\s*\[.+\])*$/.test(r.value.trim().replace(/\.$/, "")) && /s$/.test(label))
+      lists.push({ label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => m[1].trim()) });
+    else facts.push({ label, value });
+  }
+  // Enchantment descriptions the book lists without naming: in the order of the list.
+  const ench = lists.find((l) => l.label === "Enchantments");
+  const unnamed = notes.filter((n) => n.kind === "Enchantment Description" && !n.title);
+  if (ench && unnamed.length === ench.names.length) unnamed.forEach((n, i) => (n.title = ench.names[i]));
+
+  const box = h("div", { class: "soulsea__sheet" });
+  if (facts.length)
+    box.append(
+      h(
+        "div",
+        { class: "soulsea__facts" },
+        facts.map((f) => h("div", { class: "soulsea__fact" }, h("span", { class: "soulsea__fact-k" }, f.label), h("span", { class: "soulsea__fact-v" }, f.value)))
+      )
+    );
+  if (epigraph) box.append(h("p", { class: "soulsea__epigraph" }, epigraph));
+  // Under each list ("Enchantments"), a name the book describes gets its
+  // description; the ones it doesn't stay as chips.
+  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, h("p", { class: "soulsea__note-text" }, n.text));
+  const placed = new Set();
+  for (const l of lists) {
+    const described = notes.filter((n) => n.title && l.names.includes(n.title));
+    described.forEach((n) => placed.add(n));
+    const bare = l.names.filter((name) => !described.some((n) => n.title === name));
+    box.append(
+      h(
+        "div",
+        { class: "soulsea__list-row" },
+        h("span", { class: "soulsea__k" }, l.label),
+        described.map(note),
+        bare.length ? h("span", { class: "soulsea__chips" }, bare.map((n) => h("span", { class: "soulsea__chip" }, n))) : null
+      )
+    );
+  }
+  for (const n of notes) if (!placed.has(n)) box.append(note(n));
   return box;
 }
 
-const sheet = (e) =>
-  fill(h("div", { class: "soulsea__runes" }, h("div", { class: "soulsea__src" }, `As of chapter ${e.at[0]}`)), e, "soulsea__rune");
+// Resolved paragraphs, so a re-render (expanding another row) draws instantly.
+const textCache = new Map();
+function load(e) {
+  const [ch] = e.at;
+  const refs = (e.paras || [[e.at[1], e.fp]]).map(([p, fp, from = ch]) => [from, p, fp]);
+  const key = (r) => r.join(":");
+  if (refs.every((r) => textCache.has(key(r)))) return refs.map((r) => textCache.get(key(r))).filter((t) => t != null);
+  return Promise.all(refs.map((r) => paragraph(...r).then((t) => (textCache.set(key(r), t), t)))).then((ts) => ts.filter((t) => t != null));
+}
+
+// Paragraphs come from the reader's own epubs; one that isn't found verbatim in
+// this copy is left out rather than approximated.
+function whenLoaded(e, draw) {
+  const box = h("div", { class: "soulsea__loadbox" });
+  const done = (ts) => box.replaceChildren(ts.length ? draw(ts) : h("p", { class: "soulsea__empty" }, "This chapter isn’t in your library, or differs from the mapped copy."));
+  const got = load(e);
+  if (Array.isArray(got)) done(got);
+  else {
+    box.append(h("p", { class: "soulsea__empty" }, "…"));
+    got.then(done);
+  }
+  return box;
+}
+
+const sheet = (e, x) => whenLoaded(e, (ts) => buildSheet(ts, x));
 const passage = (e) =>
-  fill(
-    h("div", { class: "soulsea__passage" }, h("div", { class: "soulsea__src" }, `Chapter ${e.at[0]}` + (e.flashback ? " · flashback" : ""))),
-    e,
-    "soulsea__para"
+  whenLoaded(e, (ts) =>
+    h("div", { class: "soulsea__passage" }, ts.map((t) => h("p", { class: "soulsea__para" }, t)), e.flashback ? h("div", { class: "soulsea__flashback" }, "Flashback") : null)
   );

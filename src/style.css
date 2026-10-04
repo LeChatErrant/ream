@@ -1997,19 +1997,39 @@ html { -webkit-tap-highlight-color: transparent; }
   color: #9fe0b8;
 }
 .soulsea__meta { flex: none; font: 400 12px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
-.soulsea__detail { padding: 0 14px 14px; }
-.soulsea__src { font: 500 11px var(--font-ui); color: var(--text-dimmest); margin: 4px 0 4px; }
-.soulsea__runes {
-  border-radius: 9px;
-  background: var(--surface-alt);
-  padding: 8px 12px 10px;
+.soulsea__chev { flex: none; display: inline-flex; align-self: center; color: var(--text-dimmest); transition: transform 0.18s ease; }
+.soulsea__row--open .soulsea__chev { transform: rotate(90deg); }
+.soulsea__row--open { background: var(--row-current); }
+
+/* The opened item: its rune sheet, laid out (the words stay the book's). */
+.soulsea__detail { padding: 2px 14px 14px; }
+.soulsea__sheet { display: flex; flex-direction: column; gap: 14px; }
+.soulsea__facts { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.soulsea__fact { display: flex; flex-direction: column; gap: 3px; }
+.soulsea__k, .soulsea__fact-k {
+  font: 500 10px var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dimmest);
 }
-.soulsea__rune { margin: 3px 0; font: 400 14.5px/1.55 var(--font-serif); color: #c3cdeb; overflow-wrap: anywhere; }
-.soulsea__passage { margin-top: 8px; border-left: 2px solid var(--border-strong); padding-left: 12px; }
+.soulsea__fact-v { font: 500 13.5px var(--font-ui); color: var(--text-secondary); }
+.soulsea__epigraph {
+  margin: 0;
+  font: italic 400 15px/1.6 var(--font-serif);
+  color: var(--text-secondary);
+}
+.soulsea__list-row { display: flex; flex-direction: column; gap: 10px; }
+.soulsea__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.soulsea__chip { padding: 4px 10px; border-radius: 13px; background: var(--pill); font: 500 12px var(--font-ui); color: var(--text-muted); }
+.soulsea__note-block { display: flex; flex-direction: column; gap: 3px; }
+.soulsea__note-title { font: 600 13px var(--font-ui); color: var(--text-primary); }
+.soulsea__note-text { margin: 0; font: 400 14.5px/1.55 var(--font-serif); color: var(--text-body); }
+.soulsea__passage { border-left: 2px solid var(--border-strong); padding-left: 12px; margin-top: 8px; }
 .soulsea__para { margin: 5px 0; font: 400 14.5px/1.6 var(--font-serif); color: var(--text-body); }
-.soulsea__loading { color: var(--text-dimmest); }
+.soulsea__flashback { font: 500 10px var(--font-ui); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dimmest); }
 .soulsea__empty { margin: 6px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); }
-.soulsea__fold { margin-top: 10px; }
+.soulsea__when-note { margin: 14px 0 0; font: 400 11.5px var(--font-ui); color: var(--text-dimmest); }
+.soulsea__fold { margin-top: 14px; }
 .soulsea__fold-head {
   appearance: none;
   border: 0;

@@ -63,14 +63,19 @@ for (const e of tl.events) {
   const value = (t) => norm(t.slice(t.indexOf(':') + 1)).replace(/^[\s[]+|[\s.\]]+$/g, '')
   const cutShort = (t) => /(…|\.\.\.)\]?\.?\s*$/.test(t)
   const sheets = {}
-  for (const e of events.filter((e) => e.runes).sort((a, b) => cmp(a.at, b.at))) {
+  for (const e of events.filter((e) => e.runes || e.become).sort((a, b) => cmp(a.at, b.at))) {
+    // An Echo turned Shadow keeps what the book said about its Attributes.
+    if (e.become) {
+      sheets[e.to] = (sheets[e.become] ?? []).filter((x) => /attribute description/.test(x.key))
+      continue
+    }
     const cur = [...(sheets[e.runes] ?? [])]
     const seen = {}
     let enchantment = ''
     let last = -1
     for (const r of e.paras) {
       const t = text[r.ch][r.p]
-      let key = (label(t) ?? t).toLowerCase()
+      let key = (label(t) ?? t).toLowerCase().replace(/^\[|\]$/g, '')
       if (key === 'enchantment') enchantment = value(t)
       if (key === 'enchantment description') key += '|' + enchantment
       seen[key] = (seen[key] ?? 0) + 1
