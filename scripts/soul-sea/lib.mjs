@@ -9,6 +9,8 @@ import { textKey } from '../../src/lib/proof-key.js'
 export { ROOT, textKey }
 export const WORK = path.join(ROOT, 'soul-sea')
 export const TIMELINE = path.join(import.meta.dirname, 'timeline.json')
+// What the app ships: references and fingerprints only (see build.mjs).
+export const APP_DATA = path.join(ROOT, 'src/soul-sea/shadow-slave.json')
 
 /** Every Shadow Slave chapter, keyed by its global number: { n, vol, href, title, paras }. */
 export async function readSeries() {
@@ -72,7 +74,7 @@ export function listOf(value) {
 }
 
 /** A system message: a paragraph that is one bracketed line, e.g. "[You have received a Memory: Azure Blade.]" */
-export const isMessage = (text) => /^\s*\[[^[\]]*(\[[^\]]*\][^[\]]*)*\]\s*$/.test(text) && !fieldsOf(text)
+export const isMessage = (text) => /^\s*\[[^[\]]*(\[[^\]]*\][^[\]]*)*\]\.?\s*$/.test(text) && !fieldsOf(text)
 
 // Which kind of block a field opens. Anything else continues the open block.
 const OPENS = {

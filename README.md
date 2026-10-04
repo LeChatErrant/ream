@@ -15,6 +15,8 @@ Everything runs locally in the browser — no book ever leaves your device.
 - Resumes the last book and reading position automatically (IndexedDB)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
 - Designed for the phone, with a full tablet / desktop layout (see below)
+- **Soul Sea** (Shadow Slave only) — Sunny's Memories, Echoes, Shadows, Attributes
+  and Aspect as of where you are, in the book's own words (`scripts/soul-sea/`)
 
 ### On a computer
 

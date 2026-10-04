@@ -1888,3 +1888,139 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-item__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .proof-item__kind { font: 600 12.5px var(--font-ui); color: var(--text-secondary); }
 .proof-item__text { font: 400 13.5px/1.45 var(--font-serif); color: var(--text-muted); overflow-wrap: anywhere; }
+
+/* ---- Soul Sea (Shadow Slave inventory, src/soulsea.js) ----------------------
+   A full-screen panel over the reader on the phone; a side panel on wide
+   screens (wide.css). Rune sheets and passages are the book's own text, set in
+   the book face; everything else is app chrome. */
+.soulsea {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  background: var(--page);
+  animation: soulsea-in 0.18s ease-out;
+}
+.soulsea[hidden] { display: none; }
+@keyframes soulsea-in { from { transform: translateY(12px); opacity: 0; } }
+.soulsea__when {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 16px 12px;
+  border-bottom: 1px solid var(--border-hair);
+}
+.soulsea__ch { font: 500 11.5px var(--font-ui); color: var(--text-dim); flex: none; }
+.soulsea__range { flex: 1 1 auto; min-width: 0; accent-color: var(--fill-card); }
+.soulsea__now {
+  appearance: none;
+  border: 0;
+  flex: none;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--text-secondary);
+  font: 600 12px var(--font-ui);
+  cursor: pointer;
+}
+.soulsea__now--on { background: transparent; color: var(--text-dim); cursor: default; }
+.soulsea__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px calc(32px + env(safe-area-inset-bottom));
+}
+.soulsea__h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 8px;
+  font: 600 11.5px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.soulsea__h--toggle { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; width: 100%; }
+.soulsea__h--toggle svg, .soulsea__fold-head svg { display: block; transition: transform 0.15s; }
+.soulsea__h--toggle[aria-expanded="true"] svg, .soulsea__fold-head[aria-expanded="true"] svg { transform: rotate(90deg); }
+.soulsea__count { font-weight: 500; color: var(--text-dimmest); letter-spacing: 0; }
+.soulsea__changes { display: flex; flex-wrap: wrap; gap: 6px; }
+.soulsea__change { font: 500 12.5px var(--font-ui); padding: 4px 10px; border-radius: 999px; background: var(--pill); }
+.soulsea__change--gain { color: #9fe0b8; background: rgba(111, 207, 151, 0.12); }
+.soulsea__change--lose { color: var(--danger-hover); background: rgba(217, 112, 102, 0.12); }
+.soulsea__stats {
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px 14px;
+}
+.soulsea__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border-hair);
+  font: 400 13.5px var(--font-ui);
+}
+.soulsea__stat:first-child { border-top: 0; }
+.soulsea__stat-k { color: var(--text-muted); }
+.soulsea__stat-v { color: var(--text-primary); text-align: right; }
+.soulsea__list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.soulsea__list:empty { display: none; }
+.soulsea__row + .soulsea__row { border-top: 1px solid var(--border-hair); }
+.soulsea__row-head {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.soulsea__row-head:hover { background: var(--row-current); }
+.soulsea__name { flex: 1 1 auto; min-width: 0; font: 500 14.5px var(--font-ui); color: var(--text-primary); }
+.soulsea__name--label { font: italic 400 14.5px/1.4 var(--font-serif); color: var(--text-secondary); }
+.soulsea__row--gone .soulsea__name { color: var(--text-muted); }
+.soulsea__new {
+  flex: none;
+  font: 600 10px var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9fe0b8;
+}
+.soulsea__meta { flex: none; font: 400 12px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
+.soulsea__detail { padding: 0 14px 14px; }
+.soulsea__src { font: 500 11px var(--font-ui); color: var(--text-dimmest); margin: 4px 0 4px; }
+.soulsea__runes {
+  border-radius: 9px;
+  background: var(--surface-alt);
+  padding: 8px 12px 10px;
+}
+.soulsea__rune { margin: 3px 0; font: 400 14.5px/1.55 var(--font-serif); color: #c3cdeb; overflow-wrap: anywhere; }
+.soulsea__passage { margin-top: 8px; border-left: 2px solid var(--border-strong); padding-left: 12px; }
+.soulsea__para { margin: 5px 0; font: 400 14.5px/1.6 var(--font-serif); color: var(--text-body); }
+.soulsea__loading { color: var(--text-dimmest); }
+.soulsea__empty { margin: 6px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); }
+.soulsea__fold { margin-top: 10px; }
+.soulsea__fold-head {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.soulsea__note { margin: 24px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .soulsea { animation: none; } }

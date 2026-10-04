@@ -509,3 +509,15 @@
   .sheet-scrim, .sheet-card, .editor, .editor__panel, .select-bar { animation: none; }
   .tile__cover, .series-stack, #topbar, #viewer, #topbar::after { transition: none; }
 }
+
+/* Soul Sea: a panel docked to the right edge over the reader. */
+@media (min-width: 640px) {
+  .soulsea {
+    left: auto;
+    width: min(460px, 100%);
+    border-left: 1px solid var(--border-strong);
+    box-shadow: -18px 0 48px rgba(0, 0, 0, 0.35);
+    animation-name: soulsea-in-side;
+  }
+  @keyframes soulsea-in-side { from { transform: translateX(24px); opacity: 0; } }
+}

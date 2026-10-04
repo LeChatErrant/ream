@@ -124,6 +124,7 @@ function wireEvents() {
       }
       return;
     }
+    if (overlayOpen()) return; // reading keys are for the text, not a sheet or panel above it
     handleReaderKey(e);
   });
 

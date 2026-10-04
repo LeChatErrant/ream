@@ -22,6 +22,7 @@ import {
   flatten, CHAPTER_DONE_PCT, MIN_SCROLL_PCT,
 } from "./lib/chapters.js";
 import { parseChapterLabel, stripVolume } from "./lib/text.js";
+import { textKey } from "./lib/proof-key.js";
 import {
   chapterProgress, bookPercent, volumeChapterOffset, volumeNumber, nextVolume,
   seriesVolumes, displayTitle, absChapterNum, volumeFirstAbs, volumeLastAbs,
@@ -34,6 +35,7 @@ import {
   importProofreading, exportProofreading, removePackage, pickAndImport, canPickFiles, linkedFileName,
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
+import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -324,6 +326,7 @@ export async function renderReader(lib, startHref = null) {
   el.btnPrev.disabled = false;
   el.btnNext.disabled = false;
   mountProofControls();
+  mountSoulSeaButton(lib);
 
   // A chapter tapped in the Chapters screen wins; otherwise resume the saved
   // position, falling back to the first real chapter (skipping the epub's own
@@ -950,6 +953,39 @@ function forwardChapterKeys(contents) {
 // -------------------------------------------------------------------------
 const isDocked = () => DESK.matches && !!ui.readerSidebar;
 // -------------------------------------------------------------------------
+// Soul Sea (Shadow Slave only, see soulsea.js): a top-bar button that opens the
+// character's inventory as of the reading position.
+let soulSeaBtn = null;
+function mountSoulSeaButton(lib) {
+  if (!soulSeaBtn) {
+    soulSeaBtn = h(
+      "button",
+      { id: "btn-soulsea", class: "icon-btn", "aria-label": "Soul Sea", title: "Soul Sea", onclick: () => openSoulSea(readingPoint()) },
+      svg(ORB_ICON)
+    );
+    el.btnPrev.before(soulSeaBtn);
+  }
+  soulSeaBtn.hidden = !soulSeaFor(lib);
+}
+// Where the reader is: the chapter number, and which of its paragraphs have been
+// on screen (by fingerprint, as the Soul Sea data references them).
+function readingPoint() {
+  // Until the first chapter has laid out, fall back to the saved position.
+  const saved = progressMap[currentBook?.id];
+  const num = parseChapterLabel(chapterLabelFor(currentHref || saved?.href) || saved?.chapterLabel).num ?? 0;
+  if (!currentHref) return { num };
+  const doc = readerContentDoc();
+  const c = rendition?.manager?.container;
+  const frame = c?.querySelector("iframe");
+  if (!doc?.body || !frame) return { num };
+  const bottom = c.getBoundingClientRect().bottom - frame.getBoundingClientRect().top;
+  const paras = [...doc.body.querySelectorAll("p")];
+  let seenCount = 0;
+  while (seenCount < paras.length && paras[seenCount].getBoundingClientRect().top < bottom) seenCount++;
+  const keys = paras.map((p) => textKey(p.textContent));
+  return { num, seen: new Set(keys.slice(0, seenCount)), all: new Set(keys), seenCount };
+}
+
 // Proofreading mode controls (see proof.js): a switch at the top of the drawer
 // and, while it's on, a top-bar pill counting this chapter's open suggestions
 // (tap → jump to the next one).

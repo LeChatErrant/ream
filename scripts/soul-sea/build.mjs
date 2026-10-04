@@ -10,7 +10,7 @@
 // those lists are the checkpoints that catch a missed gain or loss.
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { TIMELINE, WORK, fieldsOf, isMessage, listOf, textKey } from './lib.mjs'
+import { APP_DATA, TIMELINE, WORK, fieldsOf, isMessage, listOf, textKey } from './lib.mjs'
 
 const tl = JSON.parse(await readFile(TIMELINE, 'utf8'))
 const text = JSON.parse(await readFile(path.join(WORK, 'text.json'), 'utf8'))
@@ -52,6 +52,25 @@ for (const e of tl.events) {
   events.push(out)
 }
 
+// ---- a line the book cuts short ("Memory Description: [A worm of doubt…]") is
+// shown from the earlier sheet that printed it in full -------------------------------
+{
+  const label = (t) => t.match(/^\s*([^:]{1,60}):/)?.[1]
+  const value = (t) => norm(t.slice(t.indexOf(':') + 1)).replace(/^[\s[]+|[\s.\]]+$/g, '')
+  const earlier = {}
+  for (const e of events.filter((e) => e.runes).sort((a, b) => cmp(a.at, b.at))) {
+    const prev = (earlier[e.runes] ??= [])
+    e.paras = e.paras.map((r) => {
+      const t = text[r.ch][r.p]
+      if (!/(…|\.\.\.)\]?\.?\s*$/.test(t)) return r
+      const cut = value(t).replace(/(…|\.\.\.)$/, '').trim()
+      const full = prev.find((q) => label(text[q.ch][q.p]) === label(t) && value(text[q.ch][q.p]).startsWith(cut) && value(text[q.ch][q.p]).length > cut.length + 3)
+      return full ?? r
+    })
+    prev.unshift(...e.paras)
+  }
+}
+
 // ---- Sunny's Shadow Fragments, derived from the runes ---------------------------
 // A "Shadow Fragments: [x/y]" line is Sunny's when it sits in his own sheet, or
 // stands alone with the same denominator as his last sheet (his Shadow has its own).
@@ -64,16 +83,18 @@ for (const e of tl.events) {
       const d = f.value.match(/\/\s*(\d+)/)?.[1]
       if (own) denom = d
       else if (b.kind !== 'status' || !denom || d !== denom) continue
-      events.push({ set: 'fragments', value: f.value.replace(/[.\s]+$/, ''), at: [b.ch, f.p], ref: ref([b.ch, f.p]), auto: true })
+      events.push({ set: 'fragments', value: f.value.replace(/^\[|[\].\s]+$/g, ''), at: [b.ch, f.p], ref: ref([b.ch, f.p]), auto: true })
     }
   }
   for (const m of runes.messages.filter((m) => m.ch <= tl.reviewedThrough)) {
-    const v = m.text.match(/^\[Shadow Fragments: \[?(\d+\/(\d+))\]?\.?\]$/)
-    if (v && v[2] === (denom ?? v[2])) events.push({ set: 'fragments', value: `[${v[1]}]`, at: [m.ch, m.p], ref: ref([m.ch, m.p]), auto: true })
+    const v = m.text.match(/^\[Shadow Fragments: \[?(\d+\/(\d+))\]?\.?\]\.?$/)
+    if (v && v[2] === (denom ?? v[2])) events.push({ set: 'fragments', value: v[1], at: [m.ch, m.p], ref: ref([m.ch, m.p]), auto: true })
   }
   tl.entries.fragments = { kind: 'stat', label: 'Shadow Fragments' }
 }
 
+for (const e of events.filter((e) => e.auto))
+  if (!has(para(e.at), e.value)) errors.push(`${e.at.join(':')}: derived "${e.value}" is not in the paragraph`)
 events.sort((a, b) => cmp(a.at, b.at))
 
 // ---- replay ----------------------------------------------------------------------
@@ -131,3 +152,28 @@ if (errors.length) {
   process.exit(1)
 }
 console.log(`\n${events.length} events, all anchors and strings verified against the text.`)
+
+// ---- the app's copy: references only, no book text -------------------------------
+// The reader resolves every [chapter, paragraph, fingerprint] against the user's own
+// epub and shows a paragraph only when its fingerprint matches.
+const TYPES = ['gain', 'lose', 'become', 'name', 'set', 'runes', 'history']
+const app = {
+  format: 'ream-soul-sea',
+  series: tl.series,
+  character: tl.character,
+  reviewedThrough: tl.reviewedThrough,
+  entries: tl.entries,
+  events: events.map((e) => {
+    const type = TYPES.find((t) => e[t] != null)
+    const o = { type, id: e[type], at: e.at, fp: e.ref.fp }
+    for (const k of ['label', 'value', 'how']) if (e[k] != null) o[k] = e[k]
+    if ((type === 'gain' || type === 'become') && e.name) o.name = e.name
+    if (type === 'become') o.to = e.to
+    if (e.paras) o.paras = e.paras.map((r) => (r.ch === e.at[0] ? [r.p, r.fp] : [r.p, r.fp, r.ch]))
+    if (e.flashback) o.flashback = true
+    if (e.auto) o.auto = true
+    return o
+  }),
+}
+await writeFile(APP_DATA, JSON.stringify(app) + '\n')
+console.log(`App data → ${path.relative(process.cwd(), APP_DATA)}`)
