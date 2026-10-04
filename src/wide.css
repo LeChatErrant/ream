@@ -513,6 +513,7 @@
 /* Soul Sea: a panel docked to the right edge over the reader. */
 @media (min-width: 640px) {
   .soulsea {
+    --ch-pad: 24px; /* the shared header (.ch-bar) pads by this: lines up with the panel's 16px content */
     left: auto;
     width: min(460px, 100%);
     border-left: 1px solid var(--border-strong);
