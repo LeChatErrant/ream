@@ -101,33 +101,97 @@ export function setProofEnabled(on) {
 
 // ---- package import / export -------------------------------------------------
 
-/** Import a package file exported from the review page. Returns { findings, pending }. */
-export async function importPackage(file) {
+/** Newest of two decisions (by their `at` timestamps). */
+const newer = (a, b) => (!a ? b : !b ? a : (a.at || "") >= (b.at || "") ? a : b);
+
+async function readProofFile(file) {
   let data;
   try {
     data = JSON.parse(await file.text());
   } catch (err) {
-    throw new Error("That file isn't a proofreading package.", { cause: err });
+    throw new Error("That file isn't a proofreading file.", { cause: err });
   }
-  if (data?.format === DECISIONS_FORMAT)
-    throw new Error("That's an export of decisions — merge it on the computer (review page → Import from phone).");
-  if (data?.format !== PACKAGE_FORMAT || !Array.isArray(data.findings)) throw new Error("That file isn't a proofreading package.");
-  pkg = data;
-  indexPackage();
-  bookOfLib.clear();
-  bookPending = null;
-  await kvSet(PKG_KEY, data);
-  setProofEnabled(true);
-  const pending = data.findings.filter((f) => !(local.decisions[f.id] || data.decisions?.[f.id])).length;
-  return { findings: data.findings.length, pending };
+  if (data?.format === PACKAGE_FORMAT && Array.isArray(data.findings)) return data;
+  if (data?.format === DECISIONS_FORMAT && data.decisions && typeof data.decisions === "object") return data; // older exports
+  throw new Error("That file isn't a proofreading file.");
 }
 
-/** Share / download this device's decisions as a file to merge on the computer. */
-export async function exportDecisions() {
-  const exportedAt = new Date().toISOString();
-  const payload = { format: DECISIONS_FORMAT, version: 1, exportedAt, package: pkg?.createdAt || null, decisions: local.decisions };
-  const name = `ream-proofreading-decisions-${exportedAt.slice(0, 16).replace(/[T:]/g, "-")}.json`;
-  const file = new File([JSON.stringify(payload)], name, { type: "application/json" });
+async function serverReachable() {
+  if (connection === "connected") return true;
+  try {
+    await api("/api/proof/ping");
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Import a proofreading file (from the computer or another device).
+ * - Reading against the local server (no package here): its decisions are merged
+ *   into the server's decisions.json.
+ * - Otherwise: the file's findings become this device's package, and its
+ *   decisions merge with the ones made here — per finding, the newest wins.
+ * Returns a short description of what happened.
+ */
+export async function importProofreading(file) {
+  const data = await readProofFile(file);
+  if (!pkg && (await serverReachable())) {
+    const r = await api("/api/proof/merge", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+    if (!r.ok) throw new Error(r.error || "The server refused the file.");
+    connection = "connected";
+    notify();
+    return `Merged into the computer's file — ${r.added + r.updated} decision${r.added + r.updated === 1 ? "" : "s"} taken`;
+  }
+  const incoming = data.decisions || {};
+  if (data.format === PACKAGE_FORMAT) {
+    // Keep this device's decisions; carry over any of the old package's that the new one lacks.
+    const merged = { ...(pkg?.decisions || {}) };
+    for (const [id, d] of Object.entries(incoming)) merged[id] = newer(merged[id], d);
+    pkg = { ...data, decisions: merged };
+    indexPackage();
+    bookOfLib.clear();
+    bookPending = null;
+    await kvSet(PKG_KEY, pkg);
+    setProofEnabled(true);
+    const pending = pkg.findings.filter((f) => !decisionOf(f.id, pkg.decisions)).length;
+    return `Proofreading imported — ${pending.toLocaleString()} of ${pkg.findings.length.toLocaleString()} to review`;
+  }
+  // An older decisions-only export: fold it into this device's package.
+  if (!pkg) throw new Error("Import a full proofreading file first.");
+  let taken = 0;
+  for (const [id, d] of Object.entries(incoming)) {
+    if (!d || !["accepted", "discarded"].includes(d.status)) continue;
+    if (newer(decisionOf(id, pkg.decisions), d) === d && decisionOf(id, pkg.decisions) !== d) {
+      pkg.decisions[id] = d;
+      taken++;
+    }
+  }
+  await kvSet(PKG_KEY, pkg);
+  notify();
+  return `Merged — ${taken} decision${taken === 1 ? "" : "s"} taken`;
+}
+
+/**
+ * Export the full proofreading file: every finding + every decision known here.
+ * From the computer's server when reading against it, else from this device's
+ * package (with the decisions made here folded in). Same format either way, so
+ * any side can import what the other exports.
+ */
+export async function exportProofreading() {
+  let data;
+  if (pkg) {
+    const decisions = { ...(pkg.decisions || {}) };
+    for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
+    data = { ...pkg, createdAt: new Date().toISOString(), decisions };
+  } else if (await serverReachable()) {
+    data = await api("/api/proof/package");
+  } else {
+    throw new Error("Nothing to export yet — import a proofreading file, or run the proofreading server on the computer.");
+  }
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+  const name = `ream-proofreading-${stamp}.json`;
+  const file = new File([JSON.stringify(data)], name, { type: "application/json" });
   // On a phone the share sheet (AirDrop, Files, Mail…) is the natural way out;
   // elsewhere a plain download.
   if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
@@ -144,8 +208,10 @@ export async function exportDecisions() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   }
-  local.exportedAt = exportedAt;
-  await kvSet(LOCAL_KEY, local);
+  if (pkg) {
+    local.exportedAt = new Date().toISOString();
+    await kvSet(LOCAL_KEY, local);
+  }
   notify();
   return true;
 }
@@ -194,7 +260,7 @@ function withDecision(f, d) {
   return v;
 }
 
-const decisionOf = (id, base) => local.decisions[id] || base?.[id];
+const decisionOf = (id, base) => newer(local.decisions[id], base?.[id]);
 const pendingInBook = (key) => (pkg?.findings || []).filter((f) => f.book === key && !decisionOf(f.id, pkg.decisions)).length;
 
 /**

@@ -31,16 +31,19 @@ Edit, Discard (`D`) or Later. Decisions go into the same `decisions.json`, and
 accepted fixes show applied as you read. The deployed app reaches the local server
 over `http://localhost:5180`; Chrome asks once to allow local-network access.
 
-**On the phone (offline)**: on the review page click **Export for phone** (or
-`npm run proofread:package`) and send the file to the phone. In Ream, open the
-reader drawer → **Proofreading** → *Import proofreading package…*. Everything then
-works offline; decisions stay on the phone until you choose *Export decisions*
-(share sheet → AirDrop / Files). Back on the computer, **Import from phone** on the
-review page (or `npm run proofread:merge -- <file>`) folds them into
-`decisions.json` — per finding the most recent decision wins, so merging twice or
-from several devices is safe. Findings are matched by paragraph fingerprints
-(`src/lib/proof-key.js`), so separate volumes, a grouped series or renamed files
-all work.
+**Between devices (offline on the phone)**: one proofreading file — every finding
+plus every decision known on that device — goes back and forth, and importing it
+always merges (per finding, the most recent decision wins, so importing twice or
+from several devices is safe).
+- *From the computer*: in Ream's reader drawer → **Proofreading** → *Export
+  proofreading* (reading against the local server), or **Export proofreading** on
+  the review page, or `npm run proofread:package`.
+- *On the phone*: drawer → Proofreading → *Import proofreading…*; everything then
+  works offline. After reading, *Export proofreading* (share sheet → AirDrop).
+- *Back on the computer*: drawer → Proofreading → *Import proofreading…* in Ream,
+  or **Import proofreading** on the review page, or `npm run proofread:merge -- <file>`.
+Findings are matched by paragraph fingerprints (`src/lib/proof-key.js`), so
+separate volumes, a grouped series or renamed files all work.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.

@@ -72,8 +72,9 @@ export async function buildPackage() {
  * devices — is safe.
  */
 export async function mergeDecisions(incoming) {
-  if (incoming?.format !== DECISIONS_FORMAT || typeof incoming.decisions !== 'object')
-    throw new Error('Not a Ream proofreading export (expected format "ream-proofreading-decisions").')
+  // A full proofreading file (any device's export) or an older decisions-only export.
+  if (![PACKAGE_FORMAT, DECISIONS_FORMAT].includes(incoming?.format) || typeof incoming.decisions !== 'object')
+    throw new Error("That file isn't a Ream proofreading file.")
   const known = new Set((await loadFindings()).map((f) => f.id))
   const file = path.join(WORK, 'decisions.json')
   const current = await loadDecisions()
@@ -111,7 +112,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const s = await mergeDecisions(JSON.parse(await readFile(arg, 'utf8')))
     console.log(`Merged: ${s.added} new, ${s.updated} updated, ${s.older} kept (newer here), ${s.unknown} unknown`)
   } else {
-    console.log('usage: sync.mjs package | sync.mjs merge <ream-proofreading-decisions….json>')
+    console.log('usage: sync.mjs package | sync.mjs merge <ream-proofreading….json>')
     process.exitCode = 1
   }
 }

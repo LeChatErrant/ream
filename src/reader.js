@@ -31,7 +31,7 @@ import { addVolumeToSeries } from "./import.js";
 import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
-  importPackage, exportDecisions, removePackage,
+  importProofreading, exportProofreading, removePackage,
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 
@@ -998,8 +998,7 @@ function pickPackageFile() {
     input.remove();
     if (!file) return;
     try {
-      const { findings, pending } = await importPackage(file);
-      toast(`Proofreading imported — ${pending.toLocaleString()} of ${findings.toLocaleString()} to review`);
+      toast(await importProofreading(file));
       reopenAtPosition();
     } catch (e) {
       toast(e.message);
@@ -1009,6 +1008,9 @@ function pickPackageFile() {
   input.click();
 }
 
+// The Proofreading row's menu. Import / Export are always offered and work the
+// same on every device: one file (every finding + every decision known here)
+// goes back and forth, and importing merges — per finding, the newest wins.
 function openProofMenu() {
   const s = proofState();
   const actions = [
@@ -1019,30 +1021,29 @@ function openProofMenu() {
         if (proofEnabled()) remarkChapters();
       },
     },
-    { label: s.source === "package" ? "Import a newer package…" : "Import proofreading package…", now: true, onClick: pickPackageFile },
+    { label: "Import proofreading…", now: true, onClick: pickPackageFile },
+    {
+      label: s.source === "package" && s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
+      now: true,
+      onClick: async () => {
+        try {
+          if (await exportProofreading()) toast("Proofreading exported — import it on your other device");
+        } catch (e) {
+          toast(e.message);
+        }
+      },
+    },
   ];
-  if (s.source === "package") {
-    if (s.decided)
-      actions.push({
-        label: s.toExport ? `Export decisions (${s.toExport} new)` : "Export decisions again",
-        now: true,
-        onClick: async () => {
-          try {
-            if (await exportDecisions()) toast("Decisions exported — merge them on the computer");
-          } catch (e) {
-            toast(`Export failed: ${e.message}`);
-          }
-        },
-      });
+  if (s.source === "package")
     actions.push({
-      label: "Remove proofreading package",
+      label: "Remove proofreading file",
       danger: true,
       onClick: async () => {
         const ok = await showConfirmSheet(
           "Remove proofreading?",
           s.toExport
             ? `${s.toExport} decision${s.toExport > 1 ? "s haven't" : " hasn't"} been exported yet and will be lost.`
-            : "The package and this device's decisions are removed. Your books are not touched.",
+            : "The proofreading file and this device's decisions are removed. Your books are not touched.",
           "Remove"
         );
         if (!ok) return;
@@ -1050,7 +1051,6 @@ function openProofMenu() {
         reopenAtPosition();
       },
     });
-  }
   showActionSheet(actions);
 }
 
