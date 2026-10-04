@@ -29,6 +29,7 @@ import {
 import { go, openInfo, openSeries } from "./router.js";
 import { addVolumeToSeries } from "./import.js";
 import { scrollReaderMark } from "./brand.js";
+import { proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, nextSuggestion } from "./proof.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -311,11 +312,14 @@ export async function renderReader(lib, startHref = null) {
   // per-chapter fetch — no flash, and it works fully offline.
   rendition.themes.default({ "html, body": { background: "#1f2129 !important" } });
   rendition.hooks.content.register(injectReaderTheme);
+  // Before the chapter-end card, so it snapshots only the story's paragraphs.
+  rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
   rendition.hooks.content.register(injectChapterNav);
   rendition.hooks.content.register(forwardChapterKeys);
 
   el.btnPrev.disabled = false;
   el.btnNext.disabled = false;
+  mountProofControls();
 
   // A chapter tapped in the Chapters screen wins; otherwise resume the saved
   // position, falling back to the first real chapter (skipping the epub's own
@@ -941,6 +945,62 @@ function forwardChapterKeys(contents) {
 // untouched.
 // -------------------------------------------------------------------------
 const isDocked = () => DESK.matches && !!ui.readerSidebar;
+// -------------------------------------------------------------------------
+// Proofreading mode controls (see proof.js): a switch at the top of the drawer
+// and, while it's on, a top-bar pill counting this chapter's open suggestions
+// (tap → jump to the next one).
+// -------------------------------------------------------------------------
+const spineHref = (contents) =>
+  book?.spine?.get?.(typeof contents?.sectionIndex === "number" ? contents.sectionIndex : -1)?.href || null;
+
+let proofRow = null;
+let proofPill = null;
+function mountProofControls() {
+  if (proofRow) return renderProofControls();
+  proofRow = h("button", { class: "proof-row", type: "button", onclick: () => toggleProof() });
+  el.drawer.insertBefore(proofRow, el.drawer.querySelector(".drawer-label"));
+  proofPill = h("button", {
+    class: "proof-pill",
+    type: "button",
+    title: "Next suggested correction",
+    onclick: () => nextSuggestion(rendition?.manager?.container),
+  });
+  el.btnPrev.parentElement.prepend(proofPill);
+  onProofChange(renderProofControls);
+  renderProofControls();
+}
+
+function toggleProof() {
+  setProofEnabled(!proofEnabled());
+  // Switching on: mark the chapter already on screen.
+  if (proofEnabled()) for (const c of rendition?.getContents?.() || []) proofChapter(c, currentBook, spineHref(c));
+}
+
+function renderProofControls() {
+  if (!proofRow) return;
+  const s = proofState();
+  const status = !s.enabled
+    ? "Off"
+    : s.connection === "offline"
+      ? "Server not running — npm run proofread"
+      : s.connection === "connected"
+        ? s.bookPending != null
+          ? `${s.bookPending.toLocaleString()} left in this book`
+          : "Connected"
+        : "Connecting…";
+  proofRow.replaceChildren(
+    h("span", { class: "proof-row__text" }, h("span", { class: "proof-row__label" }, "Proofreading"), h("span", { class: "proof-row__status" }, status)),
+    h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
+  );
+  proofRow.setAttribute("aria-pressed", String(s.enabled));
+  proofRow.classList.toggle("proof-row--offline", s.enabled && s.connection === "offline");
+  const n = s.chapterPending;
+  proofPill.hidden = !(s.enabled && s.connection === "connected");
+  proofPill.textContent = n ? `✎ ${n}` : "✓";
+  proofPill.classList.toggle("proof-pill--clear", !n);
+  proofPill.title = n ? `${n} suggested correction${n > 1 ? "s" : ""} in this chapter — next` : "No open suggestions in this chapter";
+}
+
 function applyDock() {
   document.getElementById("app").classList.toggle("sidebar-docked", !!ui.readerSidebar);
   // The menu button is a toggle only where it docks; elsewhere it just opens.

@@ -23,6 +23,14 @@ exact doubled blocks, the chapter title repeated as a paragraph, paragraphs
 fused with line breaks, sentences split across two paragraphs, `‘` used as an
 apostrophe, doubled words, chapter-title clean-up (missing colon, `lnferno` → `Inferno`).
 
+**While reading in Ream**: run `npm run proofread` (the review server) on this
+computer, then open the reader drawer and switch **Proofreading** on. Each chapter's
+open suggestions are marked in the text (paragraph-level ones get a side bar);
+tap one — or the `✎ n` pill in the top bar to jump to the next — and Accept (`A`),
+Edit, Discard (`D`) or Later. Decisions go into the same `decisions.json`, and
+accepted fixes show applied as you read. The deployed app reaches the local server
+over `http://localhost:5180`; Chrome asks once to allow local-network access.
+
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.
 "Accept all shown…" accepts everything matching the current filters.
