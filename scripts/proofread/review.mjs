@@ -8,7 +8,8 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import path from 'node:path'
 import { ROOT, WORK } from './lib.mjs'
-import { loadDecisions, loadFindings, resolve } from './apply.mjs'
+import { loadDecisions, loadFindings } from './apply.mjs'
+import { buildPackage, mergeDecisions, readerFinding } from './sync.mjs'
 
 const PORT = +(process.env.PORT ?? 5180)
 const DECISIONS = path.join(WORK, 'decisions.json')
@@ -51,45 +52,18 @@ async function data() {
   return { findings: out, decisions: await loadDecisions() }
 }
 
-/** One chapter's findings for the reader, with the decision already folded in. */
+/** One chapter's findings for the reader (same shape as the phone package), plus the decisions so far. */
 async function chapterFindings(slug, href) {
   const b = await book(slug).catch(() => null)
   // The reader's spine href is relative to the OPF; ours is zip-relative.
   const c = b?.chapters.find((c) => c.href === href || c.href.endsWith('/' + href))
-  if (!c) return { findings: [] }
+  if (!c) return { findings: [], decisions: {} }
   const decisions = await loadDecisions()
   const all = (await loadFindings()).filter((f) => f.book === slug)
-  const bookPending = all.filter((f) => !decisions[f.id]).length
-  const findings = all
-    .filter((f) => f.href === c.href)
-    .map((f) => {
-      const d = decisions[f.id]
-      const r = resolve(f, d)
-      const end = r.op === 'delete-paras' ? r.paraEnd : (r.alsoDelete ?? r.para)
-      // The paragraph texts the edit was computed against — the reader checks them
-      // so a finding never lands on a different (e.g. already corrected) epub.
-      const expect = r.para == null ? {} : Object.fromEntries(Array.from({ length: end - r.para + 1 }, (_, i) => [r.para + i, c.paras[r.para + i]]))
-      return {
-        id: f.id,
-        op: r.op,
-        kind: f.kind,
-        source: f.source,
-        note: f.note,
-        confidence: f.confidence ?? null,
-        para: r.para,
-        paraEnd: r.paraEnd ?? null,
-        alsoDelete: r.alsoDelete ?? null,
-        join: !!r.join,
-        original: r.original,
-        replacement: r.replacement,
-        suggested: f.replacement,
-        dupOf: f.dupOf ?? null,
-        status: d?.status ?? 'pending',
-        expect,
-      }
-    })
-    .sort((a, b) => (a.para ?? -1) - (b.para ?? -1))
-  return { title: c.title, bookPending, findings }
+  const findings = []
+  for (const f of all.filter((f) => f.href === c.href)) findings.push(await readerFinding(f))
+  const mine = Object.fromEntries(findings.filter((f) => decisions[f.id]).map((f) => [f.id, decisions[f.id]]))
+  return { bookPending: all.filter((f) => !decisions[f.id]).length, findings, decisions: mine }
 }
 
 // The deployed reader (https) talks to this local server: allow its origin, and
@@ -145,6 +119,19 @@ createServer(async (req, res) => {
     if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html'))
       return send(res, 200, 'text/html; charset=utf-8', await readFile(path.join(import.meta.dirname, 'review.html')))
     if (req.method === 'GET' && req.url === '/api/data') return send(res, 200, 'application/json', JSON.stringify(await data()))
+    // Offline package for the phone, and merging the phone's decisions back.
+    if (req.method === 'GET' && url.pathname === '/api/proof/package') {
+      const pkg = await buildPackage()
+      res.setHeader('content-disposition', `attachment; filename="ream-proofreading-${pkg.createdAt.slice(0, 10)}.json"`)
+      return send(res, 200, 'application/json', JSON.stringify(pkg))
+    }
+    if (req.method === 'POST' && url.pathname === '/api/proof/merge') {
+      try {
+        return send(res, 200, 'application/json', JSON.stringify({ ok: true, ...(await mergeDecisions(await body(req))) }))
+      } catch (e) {
+        return send(res, 400, 'application/json', JSON.stringify({ ok: false, error: e.message }))
+      }
+    }
     if (req.method === 'POST' && req.url === '/api/decisions') {
       await saveDecisions(await body(req))
       return send(res, 200, 'application/json', '{"ok":true}')

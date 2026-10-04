@@ -29,7 +29,11 @@ import {
 import { go, openInfo, openSeries } from "./router.js";
 import { addVolumeToSeries } from "./import.js";
 import { scrollReaderMark } from "./brand.js";
-import { proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, nextSuggestion } from "./proof.js";
+import {
+  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, nextSuggestion,
+  importPackage, exportDecisions, removePackage,
+} from "./proof.js";
+import { showActionSheet, showConfirmSheet } from "./sheets.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -957,7 +961,7 @@ let proofRow = null;
 let proofPill = null;
 function mountProofControls() {
   if (proofRow) return renderProofControls();
-  proofRow = h("button", { class: "proof-row", type: "button", onclick: () => toggleProof() });
+  proofRow = h("button", { class: "proof-row", type: "button", onclick: () => openProofMenu() });
   el.drawer.insertBefore(proofRow, el.drawer.querySelector(".drawer-label"));
   proofPill = h("button", {
     class: "proof-pill",
@@ -970,32 +974,106 @@ function mountProofControls() {
   renderProofControls();
 }
 
-function toggleProof() {
-  setProofEnabled(!proofEnabled());
-  // Switching on: mark the chapter already on screen.
-  if (proofEnabled()) for (const c of rendition?.getContents?.() || []) proofChapter(c, currentBook, spineHref(c));
+// Re-draw the chapter(s) on screen after the proofreading source changes.
+function remarkChapters() {
+  for (const c of rendition?.getContents?.() || []) proofChapter(c, currentBook, spineHref(c));
+}
+function reopenAtPosition() {
+  if (currentBook) renderReader(currentBook);
+}
+
+let toastTimer = null;
+function toast(text) {
+  if (!el.busyToast) return;
+  el.busyToastText.textContent = text;
+  el.busyToast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.busyToast.hidden = true), 3200);
+}
+
+function pickPackageFile() {
+  const input = h("input", { type: "file", accept: ".json,application/json", hidden: true });
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    input.remove();
+    if (!file) return;
+    try {
+      const { findings, pending } = await importPackage(file);
+      toast(`Proofreading imported — ${pending.toLocaleString()} of ${findings.toLocaleString()} to review`);
+      reopenAtPosition();
+    } catch (e) {
+      toast(e.message);
+    }
+  });
+  document.body.append(input);
+  input.click();
+}
+
+function openProofMenu() {
+  const s = proofState();
+  const actions = [
+    {
+      label: s.enabled ? "Turn proofreading off" : "Turn proofreading on",
+      onClick: () => {
+        setProofEnabled(!s.enabled);
+        if (proofEnabled()) remarkChapters();
+      },
+    },
+    { label: s.source === "package" ? "Import a newer package…" : "Import proofreading package…", now: true, onClick: pickPackageFile },
+  ];
+  if (s.source === "package") {
+    if (s.decided)
+      actions.push({
+        label: s.toExport ? `Export decisions (${s.toExport} new)` : "Export decisions again",
+        now: true,
+        onClick: async () => {
+          try {
+            if (await exportDecisions()) toast("Decisions exported — merge them on the computer");
+          } catch (e) {
+            toast(`Export failed: ${e.message}`);
+          }
+        },
+      });
+    actions.push({
+      label: "Remove proofreading package",
+      danger: true,
+      onClick: async () => {
+        const ok = await showConfirmSheet(
+          "Remove proofreading?",
+          s.toExport
+            ? `${s.toExport} decision${s.toExport > 1 ? "s haven't" : " hasn't"} been exported yet and will be lost.`
+            : "The package and this device's decisions are removed. Your books are not touched.",
+          "Remove"
+        );
+        if (!ok) return;
+        await removePackage();
+        reopenAtPosition();
+      },
+    });
+  }
+  showActionSheet(actions);
 }
 
 function renderProofControls() {
   if (!proofRow) return;
   const s = proofState();
-  const status = !s.enabled
-    ? "Off"
-    : s.connection === "offline"
-      ? "Server not running — npm run proofread"
-      : s.connection === "connected"
-        ? s.bookPending != null
-          ? `${s.bookPending.toLocaleString()} left in this book`
-          : "Connected"
-        : "Connecting…";
+  let status;
+  if (!s.enabled) status = "Off";
+  else if (s.source === "package")
+    status = [s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Offline package", s.toExport ? `${s.toExport} to export` : null]
+      .filter(Boolean)
+      .join(" · ");
+  else if (s.connection === "offline") status = "No package — import one, or run npm run proofread";
+  else if (s.connection === "connected") status = s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Connected";
+  else status = "Connecting…";
   proofRow.replaceChildren(
     h("span", { class: "proof-row__text" }, h("span", { class: "proof-row__label" }, "Proofreading"), h("span", { class: "proof-row__status" }, status)),
     h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
   );
-  proofRow.setAttribute("aria-pressed", String(s.enabled));
-  proofRow.classList.toggle("proof-row--offline", s.enabled && s.connection === "offline");
+  proofRow.setAttribute("aria-haspopup", "menu");
+  proofRow.classList.toggle("proof-row--offline", s.enabled && s.source === "server" && s.connection === "offline");
   const n = s.chapterPending;
-  proofPill.hidden = !(s.enabled && s.connection === "connected");
+  proofPill.hidden = !(s.enabled && (s.source === "package" || s.connection === "connected"));
   proofPill.textContent = n ? `✎ ${n}` : "✓";
   proofPill.classList.toggle("proof-pill--clear", !n);
   proofPill.title = n ? `${n} suggested correction${n > 1 ? "s" : ""} in this chapter — next` : "No open suggestions in this chapter";

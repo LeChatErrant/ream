@@ -57,9 +57,21 @@
       select {
         padding: 5px 8px;
       }
-      button {
+      button,
+      a.btn {
         padding: 8px 14px;
         cursor: pointer;
+      }
+      a.btn {
+        font: inherit;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-decoration: none;
+      }
+      a.btn:hover {
+        border-color: var(--muted);
       }
       button:hover {
         border-color: var(--muted);
@@ -271,6 +283,9 @@
       <div class="tools">
         <button id="bulk" title="Accept every pending finding matching the filters">Accept all shown…</button>
         <button id="apply" class="primary">Write corrected epubs</button>
+        <a id="export-phone" class="btn" href="/api/proof/package" download title="Package every finding + the decisions so far, to import in Ream on the phone">Export for phone</a>
+        <button id="import-phone" title="Merge the decisions exported from Ream on the phone">Import from phone</button>
+        <input id="import-file" type="file" accept=".json,application/json" hidden />
       </div>
     </header>
     <main id="main"></main>
@@ -499,6 +514,21 @@
         log.style.display = 'block'
         log.textContent = (r.ok ? '✓ ' : '✗ ') + r.log + `\n${r.out}`
         $('#main').prepend(log)
+      }
+      $('#import-phone').onclick = () => $('#import-file').click()
+      $('#import-file').onchange = async (e) => {
+        const file = e.target.files[0]
+        e.target.value = ''
+        if (!file) return
+        let r
+        try {
+          r = await (await fetch('/api/proof/merge', { method: 'POST', headers: { 'content-type': 'application/json' }, body: await file.text() })).json()
+        } catch (err) {
+          r = { ok: false, error: String(err) }
+        }
+        if (!r.ok) return alert(`Couldn't merge ${file.name}:\n${r.error}`)
+        alert(`Merged ${file.name}: ${r.added} new decisions, ${r.updated} updated, ${r.older} kept (newer here)${r.unknown ? `, ${r.unknown} unknown` : ''}.`)
+        await load()
       }
       for (const id of ['#f-book', '#f-kind', '#f-status', '#f-source']) $(id).onchange = () => refilter(false)
 

@@ -28,7 +28,14 @@ export function showActionSheet(actions, { anchor = null, at = null } = {}) {
         "button",
         {
           class: "action-item" + (a.danger ? " action-item--danger" : ""),
-          onclick: () => closeOverlay(a.onClick),
+          // `now` actions run inside the tap itself: a file picker or share sheet
+          // must open from a user gesture (iOS refuses it once the menu has closed).
+          onclick: a.now
+            ? () => {
+                a.onClick();
+                closeOverlay();
+              }
+            : () => closeOverlay(a.onClick),
         },
         a.label
       )

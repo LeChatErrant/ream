@@ -31,6 +31,17 @@ Edit, Discard (`D`) or Later. Decisions go into the same `decisions.json`, and
 accepted fixes show applied as you read. The deployed app reaches the local server
 over `http://localhost:5180`; Chrome asks once to allow local-network access.
 
+**On the phone (offline)**: on the review page click **Export for phone** (or
+`npm run proofread:package`) and send the file to the phone. In Ream, open the
+reader drawer → **Proofreading** → *Import proofreading package…*. Everything then
+works offline; decisions stay on the phone until you choose *Export decisions*
+(share sheet → AirDrop / Files). Back on the computer, **Import from phone** on the
+review page (or `npm run proofread:merge -- <file>`) folds them into
+`decisions.json` — per finding the most recent decision wins, so merging twice or
+from several devices is safe. Findings are matched by paragraph fingerprints
+(`src/lib/proof-key.js`), so separate volumes, a grouped series or renamed files
+all work.
+
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.
 "Accept all shown…" accepts everything matching the current filters.

@@ -1,7 +1,7 @@
 {
   "name": "webnovel-reader",
   "private": true,
-  "version": "0.1.53",
+  "version": "0.1.54",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -10,6 +10,8 @@
     "seed:fetch": "node scripts/fetch-seed.mjs",
     "icons": "node scripts/icons.mjs",
     "proofread": "node scripts/proofread/review.mjs",
+    "proofread:package": "node scripts/proofread/sync.mjs package",
+    "proofread:merge": "node scripts/proofread/sync.mjs merge",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
