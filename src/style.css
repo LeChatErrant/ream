@@ -1068,7 +1068,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .vsheet__facts > .vsheet__fact:first-child { border-top: 0; }
 .vsheet__fact-k { color: var(--text-dimmest); flex: 0 0 auto; }
 .vsheet__fact-v { color: var(--text-body); text-align: right; min-width: 0; word-break: break-word; }
-.vsheet__textactions { display: flex; gap: 18px; padding: 16px 24px 0; }
+.vsheet__textactions { display: flex; flex-wrap: wrap; column-gap: 18px; padding: 16px 24px 0; }
 .vsheet__textactions .text-btn { padding: 8px 0; }
 
 .action-item {

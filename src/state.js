@@ -87,6 +87,47 @@ function reconcilePendingProgress() {
   }
 }
 
+// Drop any background-flush mirror for a book, so it can't resurrect a record
+// we just rewrote or removed at the next launch (see reconcilePendingProgress).
+function dropPendingProgress(bookId) {
+  try {
+    localStorage.removeItem(PENDING_POS_PREFIX + bookId);
+  } catch (_) {}
+}
+
+// Mark a whole book read without scrolling through it (e.g. one imported after
+// reading it elsewhere): every readable chapter becomes done and the book
+// finished. Any existing per-chapter positions and the book-level resume spot
+// are kept, so "Read again" still lands where you were; a book never opened
+// here has none and starts again from chapter 1.
+export async function markBookRead(book) {
+  const prev = progressMap[book.id];
+  const chapters = { ...(prev?.chapters || {}) };
+  for (const e of book.chapters || []) {
+    const key = baseHref(e.href);
+    if (!key || isFrontMatter(e.label)) continue;
+    chapters[key] = { ...chapters[key], pct: 100, cfi: chapters[key]?.cfi || null, done: true };
+  }
+  dropPendingProgress(book.id);
+  await putProgress({
+    cfi: null,
+    chapterIndex: 0,
+    chapterLabel: "",
+    ...prev,
+    bookId: book.id,
+    chapters,
+    finished: true,
+    updatedAt: Date.now(),
+  });
+}
+
+// Forget all reading progress for a book — back to "not started".
+export async function clearProgress(bookId) {
+  delete progressMap[bookId];
+  dropPendingProgress(bookId);
+  await dbDelete("progress", bookId);
+}
+
 // One-time upgrade for progress written before per-chapter tracking: synthesize
 // a `chapters` map from the old furthest-opened index + within-chapter %.
 // Chapters before the furthest become read; the furthest one becomes in
@@ -148,7 +189,7 @@ export async function deleteBook(id) {
   }
 
   books = books.filter((x) => x.id !== id);
-  delete progressMap[id];
+  await clearProgress(id);
   if (coverUrls.has(id)) {
     URL.revokeObjectURL(coverUrls.get(id));
     coverUrls.delete(id);
@@ -158,5 +199,4 @@ export async function deleteBook(id) {
     await saveUi();
   }
   await dbDelete("books", id);
-  await dbDelete("progress", id);
 }

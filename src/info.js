@@ -6,7 +6,7 @@
 // volume sheet raised by long-pressing a volume row.
 // =========================================================================
 import { el, h, svg, ICON, coverNode, coverUrlFor, progressBar, attachLongPress, attachOrderDrag } from "./dom.js";
-import { progressMap, bookById, seriesById, deleteBook } from "./state.js";
+import { progressMap, bookById, seriesById, deleteBook, markBookRead, clearProgress } from "./state.js";
 import { dbPut } from "./db.js";
 import { stripVolume } from "./lib/text.js";
 import { chapterCount } from "./lib/chapters.js";
@@ -15,10 +15,10 @@ import { COMPARISON_BOOKS, formatMultiplier, bestComparison, refTitle, refShortT
 import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 import {
   overrideOf, displayTitle, bookPercent, bookIsStarted, seriesVolumes, currentVolume,
-  volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead,
+  volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent,
 } from "./reading.js";
 import { openBook } from "./reader.js";
-import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay } from "./router.js";
+import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay, renderCurrentRoute } from "./router.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { chaptersModel, chapterPreview, previewItemsFor, openChapters } from "./chapters.js";
 import { addVolumeToSeries } from "./import.js";
@@ -458,6 +458,30 @@ async function confirmDeleteVolume(book) {
   else go({ route: "library" });
 }
 
+// Mark read / unread — for a book finished elsewhere before it was imported,
+// without scrolling to the end of its last chapter. Marking read is harmless
+// (positions are kept), so it runs straight away; marking unread wipes your
+// place, so it asks first.
+async function markRead(vols) {
+  for (const b of vols) await markBookRead(b);
+  renderCurrentRoute();
+}
+async function confirmMarkUnread(vols, name) {
+  const ok = await showConfirmSheet(
+    "Mark as unread?",
+    `Your place in “${name}” and its read chapters will be cleared.`,
+    "Mark unread"
+  );
+  if (!ok) return;
+  for (const b of vols) await clearProgress(b.id);
+  renderCurrentRoute();
+}
+function markAction(vols, name, isRead, noun) {
+  return isRead
+    ? { label: `Mark ${noun} as unread`, onClick: () => confirmMarkUnread(vols, name) }
+    : { label: `Mark ${noun} as read`, onClick: () => markRead(vols) };
+}
+
 // The ⋯ overflow menu on the info page (and a series tile's long-press).
 // `place` ({ anchor } or { at }) positions it as a popover on wide screens.
 export function openInfoMenu(m, place) {
@@ -465,11 +489,13 @@ export function openInfoMenu(m, place) {
     showActionSheet([
       { label: "Edit details", onClick: () => showEditDetails(m) },
       { label: "Series details", onClick: () => showSeriesDetails(m.series) },
+      markAction(seriesVolumes(m.series), m.series.name, seriesPercent(m.series) >= 100, "series"),
       { label: "Delete series", danger: true, onClick: () => confirmDeleteSeries(m.series) },
     ], place);
   } else {
     showActionSheet([
       { label: "Edit details", onClick: () => showEditDetails(m) },
+      markAction([m.book], displayTitle(m.book), bookPercent(m.book) >= 100, "book"),
       { label: "Delete book", danger: true, onClick: () => confirmDeleteBook(m.book) },
     ], place);
   }
@@ -707,6 +733,8 @@ function showVolumeSheet(s, book, start, end) {
   // volume as if it were a standalone book.
   const editVolume = () => closeOverlay(() => showEditDetails(infoModel("book", book.id)));
   const removeVolume = () => closeOverlay(() => confirmDeleteVolume(book));
+  const markVolume = () =>
+    closeOverlay(() => (pct >= 100 ? confirmMarkUnread([book], displayTitle(book)) : markRead([book])));
 
   const card = el.volumeCard;
   card.innerHTML = "";
@@ -736,6 +764,7 @@ function showVolumeSheet(s, book, start, end) {
       "div",
       { class: "vsheet__textactions" },
       h("button", { class: "text-btn", onclick: editVolume }, "Edit details"),
+      h("button", { class: "text-btn", onclick: markVolume }, pct >= 100 ? "Mark as unread" : "Mark as read"),
       h("button", { class: "text-btn text-btn--danger", onclick: removeVolume }, "Remove from series")
     )
   );
