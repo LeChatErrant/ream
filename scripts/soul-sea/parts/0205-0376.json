@@ -92,14 +92,8 @@
     }
   ],
   "entries": {
-    "kai-trade-memories": {
-      "kind": "memory"
-    },
     "shadow-dance": {
       "kind": "aspect"
-    },
-    "spider-silk-cloak": {
-      "kind": "memory"
     },
     "blood-blossom": {
       "kind": "memory"
@@ -111,9 +105,6 @@
       "kind": "memory"
     },
     "moonlight-shard": {
-      "kind": "memory"
-    },
-    "cohort-memories": {
       "kind": "memory"
     },
     "weavers-mask": {
@@ -145,21 +136,6 @@
       "how": "given"
     },
     {
-      "at": "209:0",
-      "source": "kai-trade-memories",
-      "value": "Kai"
-    },
-    {
-      "at": "209:0",
-      "gain": "kai-trade-memories",
-      "label": "three Memories"
-    },
-    {
-      "at": "209:1",
-      "lose": "kai-trade-memories",
-      "how": "destroyed"
-    },
-    {
       "at": "218:40",
       "gain": "shadow-dance",
       "name": "Shadow Dance"
@@ -173,21 +149,6 @@
       "at": "219:4",
       "runes": "shadow-dance",
       "to": "219:12"
-    },
-    {
-      "at": "222:55",
-      "source": "spider-silk-cloak",
-      "value": "Iron Spider"
-    },
-    {
-      "at": "223:25",
-      "gain": "spider-silk-cloak",
-      "label": "a cloak weaved from spider silk"
-    },
-    {
-      "at": "223:26",
-      "lose": "spider-silk-cloak",
-      "how": "destroyed"
     },
     {
       "at": "241:38",
@@ -248,21 +209,6 @@
       "at": "262:37",
       "lose": "dusk-shard",
       "how": "given"
-    },
-    {
-      "at": "263:26",
-      "source": "cohort-memories",
-      "value": "other members of the cohort"
-    },
-    {
-      "at": "263:26",
-      "gain": "cohort-memories",
-      "label": "Memories"
-    },
-    {
-      "at": "263:26",
-      "lose": "cohort-memories",
-      "how": "destroyed"
     },
     {
       "at": "273:48",

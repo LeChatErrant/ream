@@ -136,9 +136,6 @@
     "autumn-leaf": {
       "kind": "memory"
     },
-    "chained-isles-memories": {
-      "kind": "memory"
-    },
     "cruel-sight": {
       "kind": "memory"
     },
@@ -150,15 +147,6 @@
     },
     "bone-weave": {
       "kind": "attribute"
-    },
-    "auction-memories": {
-      "kind": "memory"
-    },
-    "obsidian-spear": {
-      "kind": "memory"
-    },
-    "gate-battle-memories": {
-      "kind": "memory"
     },
     "shadow-blade-kurt": {
       "kind": "echo"
@@ -226,16 +214,6 @@
       "at": "392:35",
       "name": "autumn-leaf",
       "value": "Autumn Leaf"
-    },
-    {
-      "at": "399:2",
-      "gain": "chained-isles-memories",
-      "label": "three Memories of questionable utility"
-    },
-    {
-      "at": "399:2",
-      "lose": "chained-isles-memories",
-      "how": "destroyed"
     },
     {
       "at": "413:41",
@@ -306,40 +284,6 @@
       "at": "456:17",
       "runes": "weavers-mask",
       "to": "456:18"
-    },
-    {
-      "at": "475:25",
-      "gain": "auction-memories",
-      "label": "a couple of cheap lower Rank Memories"
-    },
-    {
-      "at": "475:26",
-      "lose": "auction-memories",
-      "how": "destroyed"
-    },
-    {
-      "at": "491:10",
-      "gain": "obsidian-spear",
-      "label": "a Memory"
-    },
-    {
-      "at": "491:22",
-      "runes": "obsidian-spear"
-    },
-    {
-      "at": "492:67",
-      "lose": "obsidian-spear",
-      "how": "destroyed"
-    },
-    {
-      "at": "494:55",
-      "gain": "gate-battle-memories",
-      "label": "several Memories"
-    },
-    {
-      "at": "497:26",
-      "lose": "gate-battle-memories",
-      "how": "destroyed"
     },
     {
       "at": "497:27",

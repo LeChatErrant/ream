@@ -209,13 +209,7 @@
     "nightmare": {
       "kind": "shadow"
     },
-    "colosseum-memories": {
-      "kind": "memory"
-    },
     "bone-singer": {
-      "kind": "memory"
-    },
-    "emerald-amulet": {
       "kind": "memory"
     },
     "extraordinary-rock": {
@@ -267,21 +261,6 @@
     {
       "at": "586:40",
       "runes": "patient-avenger"
-    },
-    {
-      "at": "626:12",
-      "gain": "colosseum-memories",
-      "label": "thirty-nine of them"
-    },
-    {
-      "at": "627:4",
-      "name": "colosseum-memories",
-      "value": "Memories from the Colosseum"
-    },
-    {
-      "at": "627:4",
-      "source": "colosseum-memories",
-      "value": "the Colosseum"
     },
     {
       "at": "644:65",
@@ -356,11 +335,6 @@
       "to": "695:13"
     },
     {
-      "at": "695:45",
-      "source": "emerald-amulet",
-      "value": "Noctis"
-    },
-    {
       "at": "695:54",
       "become": "ordinary-rock",
       "to": "extraordinary-rock",
@@ -370,21 +344,6 @@
       "at": "696:11",
       "gain": "shadow-chair",
       "label": "[???]"
-    },
-    {
-      "at": "696:15",
-      "gain": "emerald-amulet",
-      "label": "the amulet"
-    },
-    {
-      "at": "696:17",
-      "lose": "emerald-amulet",
-      "how": "destroyed"
-    },
-    {
-      "at": "701:17",
-      "lose": "colosseum-memories",
-      "how": "destroyed"
     },
     {
       "at": "701:17",
