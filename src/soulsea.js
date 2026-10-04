@@ -399,6 +399,10 @@ function runeLines(paras) {
   return lines;
 }
 
+// Tiers are Roman numerals in the runes; the book once spells one out ("Memory Tier: Seven.").
+const TIER_WORDS = { one: "I", two: "II", three: "III", four: "IV", five: "V", six: "VI", seven: "VII", eight: "VIII", nine: "IX" };
+const romanTier = (v) => TIER_WORDS[v.toLowerCase()] ?? v;
+
 function buildSheet(paras, x) {
   const lines = runeLines(paras);
   const facts = [];
@@ -436,7 +440,7 @@ function buildSheet(paras, x) {
     // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]".
     else if (/^\[[^\]\d][^\]]*\](,\s*\[.+\])*$/.test(r.value.trim().replace(/\.$/, "")) && /s$/.test(label))
       put(lists, { label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => clean(m[1])) }, (l) => l.label === label);
-    else put(facts, { label, value }, (f) => f.label === label);
+    else put(facts, { label, value: label === "Tier" ? romanTier(value) : value }, (f) => f.label === label);
   }
   // What the book has said since the last rune sheet ("now a Transcendent Devil").
   for (const [label, value] of Object.entries(x.facts || {})) put(facts, { label, value }, (f) => f.label === label);
