@@ -1,0 +1,332 @@
+{
+  "range": [
+    1027,
+    1230
+  ],
+  "seedNote": "Seed = Memories listed at 1026:5 (full), Shadows at 944, Attributes at 848 (may have changed by 1026 — check). Aspect, abilities, flaw: establish and add.",
+  "seed": [
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "extraordinary-rock",
+      "kind": "memory",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "dark-wing",
+      "kind": "memory",
+      "name": "Dark Wing"
+    },
+    {
+      "id": "moonlight-shard",
+      "kind": "memory",
+      "name": "Moonlight Shard"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "autumn-leaf",
+      "kind": "memory",
+      "name": "Autumn Leaf"
+    },
+    {
+      "id": "cruel-sight",
+      "kind": "memory",
+      "name": "Cruel Sight"
+    },
+    {
+      "id": "covetous-coffer",
+      "kind": "memory",
+      "name": "Covetous Coffer"
+    },
+    {
+      "id": "heavenly-burden",
+      "kind": "memory",
+      "name": "Heavenly Burden"
+    },
+    {
+      "id": "memory-of-fire",
+      "kind": "memory",
+      "name": "Memory of Fire"
+    },
+    {
+      "id": "memory-of-ice",
+      "kind": "memory",
+      "name": "Memory of Ice"
+    },
+    {
+      "id": "strike-of-thunder",
+      "kind": "memory",
+      "name": "Strike of Thunder"
+    },
+    {
+      "id": "morgans-warbow",
+      "kind": "memory",
+      "name": "Morgan's Warbow"
+    },
+    {
+      "id": "shadow-lantern",
+      "kind": "memory",
+      "name": "Shadow Lantern"
+    },
+    {
+      "id": "bone-singer",
+      "kind": "memory",
+      "name": "Bone Singer"
+    },
+    {
+      "id": "shadow-chair",
+      "kind": "memory",
+      "name": "Shadow Chair"
+    },
+    {
+      "id": "overpriced-saddle",
+      "kind": "memory",
+      "name": "Overpriced Saddle"
+    },
+    {
+      "id": "dying-wish",
+      "kind": "memory",
+      "name": "Dying Wish"
+    },
+    {
+      "id": "sin-of-solace",
+      "kind": "memory",
+      "name": "Sin of Solace"
+    },
+    {
+      "id": "bitter-cusp",
+      "kind": "memory",
+      "name": "Bitter Cusp"
+    },
+    {
+      "id": "stifled-scream",
+      "kind": "memory",
+      "name": "Stifled Scream"
+    },
+    {
+      "id": "weavers-needle",
+      "kind": "memory",
+      "name": "Weaver's Needle"
+    },
+    {
+      "id": "essence-pearl",
+      "kind": "memory",
+      "name": "Essence Pearl"
+    },
+    {
+      "id": "nimble-catch",
+      "kind": "memory",
+      "name": "Nimble Catch"
+    },
+    {
+      "id": "shroud-of-graceless-dusk",
+      "kind": "memory",
+      "name": "Shroud of Graceless Dusk"
+    },
+    {
+      "id": "siege-souvenir",
+      "kind": "memory",
+      "name": "Siege Souvenir"
+    },
+    {
+      "id": "onyx-saint",
+      "kind": "shadow",
+      "name": "Onyx Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    },
+    {
+      "id": "nightmare",
+      "kind": "shadow",
+      "name": "Nightmare"
+    },
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "flame-of-divinity",
+      "kind": "attribute",
+      "name": "Flame of Divinity"
+    },
+    {
+      "id": "master-of-shadows",
+      "kind": "attribute",
+      "name": "Master of Shadows"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "marble-shell",
+      "kind": "attribute",
+      "name": "Marble Shell"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "shadow-manifestation",
+      "kind": "ability",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    }
+  ],
+  "entries": {
+    "ravenous-fiend-echo": {
+      "kind": "echo"
+    },
+    "ravenous-fiend": {
+      "kind": "shadow"
+    },
+    "mirror-of-truth": {
+      "kind": "memory"
+    },
+    "dire-fang-echo": {
+      "kind": "echo"
+    }
+  },
+  "events": [
+    {
+      "at": "1031:41",
+      "lose": "siege-souvenir",
+      "how": "destroyed"
+    },
+    {
+      "at": "1046:52",
+      "source": "ravenous-fiend-echo",
+      "value": "Corrupted Devil"
+    },
+    {
+      "at": "1046:58",
+      "gain": "ravenous-fiend-echo",
+      "label": "an Echo"
+    },
+    {
+      "at": "1047:21",
+      "name": "ravenous-fiend-echo",
+      "value": "Ravenous Fiend"
+    },
+    {
+      "at": "1079:13",
+      "become": "ravenous-fiend-echo",
+      "to": "ravenous-fiend",
+      "name": "Ravenous Fiend"
+    },
+    {
+      "at": "1080:5",
+      "runes": "ravenous-fiend",
+      "to": "1080:38"
+    },
+    {
+      "at": "1090:39",
+      "set": "class",
+      "value": "Tyrant"
+    },
+    {
+      "at": "1118:20",
+      "source": "mirror-of-truth",
+      "value": "Defiled Seeker of Truth"
+    },
+    {
+      "at": "1118:20",
+      "gain": "mirror-of-truth",
+      "label": "a Memory"
+    },
+    {
+      "at": "1122:6",
+      "name": "mirror-of-truth",
+      "value": "Mirror of Truth"
+    },
+    {
+      "at": "1122:6",
+      "runes": "mirror-of-truth",
+      "to": "1122:46"
+    },
+    {
+      "at": "1123:37",
+      "set": "core",
+      "value": "Shadow Cores: [5/7]"
+    },
+    {
+      "at": "1161:12",
+      "runes": "ravenous-fiend",
+      "to": "1161:40"
+    },
+    {
+      "at": "1202:8",
+      "source": "dire-fang-echo",
+      "value": "Dire Fang"
+    },
+    {
+      "at": "1208:47",
+      "gain": "dire-fang-echo",
+      "label": "the prize he had received for slaying Dire Fang"
+    },
+    {
+      "at": "1209:17",
+      "name": "dire-fang-echo",
+      "value": "Dire Fang"
+    },
+    {
+      "at": "1209:34",
+      "lose": "dire-fang-echo",
+      "how": "destroyed"
+    }
+  ],
+  "checkpointNotes": {}
+}

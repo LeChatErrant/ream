@@ -121,7 +121,10 @@ function stateAt(point) {
       Object.assign(get(e.to), { held: true, name: e.name, since: e.at[0], from: e.id });
     } else if (e.type === "name") x.name = e.value;
     else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0] });
-    else if (e.type === "runes") x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
+    else if (e.type === "runes") {
+      x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
+      x.facts = {}; // a newer sheet supersedes facts told in prose
+    } else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
     else if (e.type === "source") x.source = e.value;
   }
   return s;
@@ -138,7 +141,7 @@ const SECTIONS = [
   ["echo", "Echoes"],
   ["shadow", "Shadows"],
 ];
-const HOW = { destroyed: "Destroyed", given: "Given away", consumed: "Consumed", became: "Evolved" };
+const HOW = { destroyed: "Destroyed", given: "Given away", consumed: "Consumed", lost: "Lost", sold: "Sold", stolen: "Stolen", became: "Evolved" };
 
 let root = null;
 let live = null; // { point, max } — where the reader is
@@ -240,7 +243,8 @@ function render() {
     );
   }
 
-  const stats = items.filter((x) => x.kind === "stat" && x.held);
+  const STAT_ORDER = ["true-name", "rank", "class", "core", "fragments"];
+  const stats = items.filter((x) => x.kind === "stat" && x.held).sort((a, b) => STAT_ORDER.indexOf(a.id) - STAT_ORDER.indexOf(b.id));
   if (stats.length)
     body.append(
       h(
@@ -326,6 +330,7 @@ function row(x, gone, prevSt) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
+  else if (x.facts && Object.keys(x.facts).length) detail.append(buildSheet([], x));
   // Where it came from: the creature, the giver, or what it evolved from.
   const before = x.from && stateOf(x.from);
   const origin = x.source || (before && nameOf(before) !== nameOf(x) ? nameOf(before) : null);
@@ -356,6 +361,9 @@ const unwrap = (v, prose = false) =>
     .replace(/^\[([^[\]]*)\]$/, "$1")
     .replace(/^"([^"]*)"$/, "$1")
     .replace(/^\[(.*)\]$/s, "$1")
+    // a bracket the book opens and never closes (or the reverse)
+    .replace(/^\[(?=[^\]]*$)/s, "")
+    .replace(/(?<=^[^[]*)\](?=\.?$)/s, "")
     .trim();
 
 /** One rune line → { label, subject?, value }. */
@@ -380,35 +388,81 @@ function parseRune(t) {
   return { label: "Description", value: t };
 }
 
-function buildSheet(lines, x) {
+// Lines the epub runs together in one paragraph ("Echoes: -Shadows: [Onyx Saint]…")
+// are split where a new "Label:" starts outside any brackets.
+const LABEL_AT = /^(?:\[[^\]]+\]\s+)?[A-Z][A-Za-z' ]{1,40}:\s/;
+function splitFields(t) {
+  const out = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < t.length; i++) {
+    if (depth === 0 && i > start && /[.\]\-—]/.test(t[i - 1]) && LABEL_AT.test(t.slice(i, i + 80))) {
+      out.push(t.slice(start, i).trim());
+      start = i;
+    }
+    if (t[i] === "[") depth++;
+    else if (t[i] === "]") depth = Math.max(0, depth - 1);
+  }
+  out.push(t.slice(start).trim());
+  return out.filter(Boolean);
+}
+
+/**
+ * Paragraphs → rune lines. A continuation (`cont`) is the rest of the line before:
+ * more paragraphs of a long description, or — right after a line the book cuts
+ * short — the full text it prints next, which replaces the cut-off one.
+ */
+function runeLines(paras) {
+  const lines = [];
+  for (const { t, cont } of paras) {
+    const prev = lines.at(-1);
+    if (cont && prev != null) {
+      const cut = /(…|\.\.\.)\]?\.?\s*$/.test(prev) && /^\s*\[[^:]*\]\.?\s*$/.test(t);
+      lines[lines.length - 1] = cut ? prev.slice(0, prev.indexOf(":") + 1) + " " + t.trim() : `${prev}\n\n${t.trim()}`;
+    } else lines.push(...splitFields(t));
+  }
+  return lines;
+}
+
+function buildSheet(paras, x) {
+  const lines = runeLines(paras);
   const facts = [];
   const lists = [];
   const notes = []; // named descriptions: enchantments, attributes, abilities
   let epigraph = null;
-  let enchantment = null;
+  let pending = null; // a name line ("Enchantment: [Doubtless].", "[Blade of Darkness].") titling the description after it
+  const clean = (n) => n.trim().replace(/\.$/, "");
+  // Repeated lines: the later one wins (sheets are in reading order).
+  const put = (arr, item, same) => {
+    const i = arr.findIndex(same);
+    if (i >= 0) arr.splice(i, 1);
+    arr.push(item);
+  };
   for (const t of lines) {
     const r = parseRune(t);
-    const label = r.label.replace(KIND_WORD, "");
-    const value = unwrap(r.value);
+    const label = r.label.replace(KIND_WORD, "").replace(/^(…|\.\.\.)\s*/, "");
+    const value = clean(unwrap(r.value));
     const prose = unwrap(r.value, true);
-    if (label === "Enchantment") {
-      enchantment = value;
+    const bareName = /^\s*\[[^:\]]{1,60}\]\.?\s*$/.test(t);
+    if (bareName || label === "Enchantment" || label === "Ability" || label === "Attribute") {
+      if (bareName ? clean(t.replace(/[[\]]/g, "")) !== x.name : value !== x.name) pending = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
       continue;
     }
     // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title.
     if (!r.subject && value === x.name) continue;
     const own = !r.subject || r.subject === x.name;
-    // An attribute's or ability's own description is its epigraph.
-    if (/(^|\s)Description$/.test(label) && own && !epigraph && (x.kind === "attribute" || x.kind === "ability")) epigraph = prose;
-    else if (/(^|\s)Description$/.test(label) && label !== "Description") {
-      notes.push({ title: r.subject || (label === "Enchantment Description" ? enchantment : null), kind: label, text: prose });
-      enchantment = null;
-    } else if (label === "Description" || /^(Memory|Echo|Shadow|Aspect|Flaw) Description$/.test(r.label)) epigraph = prose;
+    if (/(^|\s)Description$/.test(label) && label !== "Description" && !(own && !pending && (x.kind === "attribute" || x.kind === "ability"))) {
+      const title = r.subject || pending;
+      put(notes, { title, kind: label, text: prose }, (n) => title && n.title === title);
+      pending = null;
+    } else if (/(^|\s)Description$/.test(label)) epigraph = prose; // the item's own description
     // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]".
     else if (/^\[[^\]\d][^\]]*\](,\s*\[.+\])*$/.test(r.value.trim().replace(/\.$/, "")) && /s$/.test(label))
-      lists.push({ label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => m[1].trim()) });
-    else facts.push({ label, value });
+      put(lists, { label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => clean(m[1])) }, (l) => l.label === label);
+    else put(facts, { label, value }, (f) => f.label === label);
   }
+  // What the book has said since the last rune sheet ("now a Transcendent Devil").
+  for (const [label, value] of Object.entries(x.facts || {})) put(facts, { label, value }, (f) => f.label === label);
   // Enchantment descriptions the book lists without naming: in the order of the list.
   const ench = lists.find((l) => l.label === "Enchantments");
   const unnamed = notes.filter((n) => n.kind === "Enchantment Description" && !n.title);
@@ -423,10 +477,11 @@ function buildSheet(lines, x) {
         facts.map((f) => h("div", { class: "soulsea__fact" }, h("span", { class: "soulsea__fact-k" }, f.label), h("span", { class: "soulsea__fact-v" }, f.value)))
       )
     );
-  if (epigraph) box.append(h("p", { class: "soulsea__epigraph" }, epigraph));
+  const prose = (text, cls) => text.split(/\n\n+/).map((t) => h("p", { class: cls }, t));
+  if (epigraph) box.append(...prose(epigraph, "soulsea__epigraph"));
   // Under each list ("Enchantments"), every name in the book's order, with its
   // description when the book gives one.
-  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? h("p", { class: "soulsea__note-text" }, n.text) : null);
+  const note = (n) => h("div", { class: "soulsea__note-block" }, n.title ? h("div", { class: "soulsea__note-title" }, n.title) : null, n.text ? prose(n.text, "soulsea__note-text") : null);
   const placed = new Set();
   for (const l of lists) {
     const entries = l.names.map((name) => {
@@ -434,7 +489,11 @@ function buildSheet(lines, x) {
       if (n) placed.add(n);
       return n || { title: name };
     });
-    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note)));
+    // A description the book doesn't name goes at the end of its list.
+    const kind = { Attributes: "Attribute Description", Abilities: "Ability Description", Enchantments: "Enchantment Description" }[l.label];
+    const loose = notes.filter((n) => !n.title && n.kind === kind);
+    loose.forEach((n) => placed.add(n));
+    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note), loose.map(note)));
   }
   for (const n of notes) if (!placed.has(n)) box.append(note(n));
   return box;
@@ -444,10 +503,11 @@ function buildSheet(lines, x) {
 const textCache = new Map();
 function load(e) {
   const [ch] = e.at;
-  const refs = (e.paras || [[e.at[1], e.fp]]).map(([p, fp, from = ch]) => [from, p, fp]);
-  const key = (r) => r.join(":");
-  if (refs.every((r) => textCache.has(key(r)))) return refs.map((r) => textCache.get(key(r))).filter((t) => t != null);
-  return Promise.all(refs.map((r) => paragraph(...r).then((t) => (textCache.set(key(r), t), t)))).then((ts) => ts.filter((t) => t != null));
+  const refs = (e.paras || [[e.at[1], e.fp]]).map(([p, fp, from = ch, cont]) => ({ r: [from, p, fp], cont: !!cont }));
+  const key = ({ r }) => r.join(":");
+  const out = (ts) => refs.map((ref, i) => ({ t: ts[i], cont: ref.cont })).filter((x) => x.t != null);
+  if (refs.every((ref) => textCache.has(key(ref)))) return out(refs.map((ref) => textCache.get(key(ref))));
+  return Promise.all(refs.map((ref) => paragraph(...ref.r).then((t) => (textCache.set(key(ref), t), t)))).then(out);
 }
 
 // Paragraphs come from the reader's own epubs; one that isn't found verbatim in

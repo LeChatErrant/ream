@@ -1,0 +1,721 @@
+{
+  "range": [
+    1231,
+    1592
+  ],
+  "seedNote": "Seed = the 1123 sheet (its Memories list is CUT OFF after Mirror of Truth). Chapters 1124–1230 belong to the previous part: read them to correct this seed to what Sunny actually holds at 1231. Aspect, abilities, flaw: establish and add. — Checked: the 29 Memories listed at 1123:37 are exactly what Sunny holds at 1231 (1582:18–19 enumerates them all, minus the Sin of Solace and Mirror of Truth destroyed earlier, plus Ananke's Mantle and the Crown of Twilight gained in this range). Shadows/Attributes as at 1123:40. Aspect, Legacy, abilities (Shadow Bond is the Innate Ability, see 1592:56) and Flaw added from 1123:40.",
+  "seed": [
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "extraordinary-rock",
+      "kind": "memory",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "dark-wing",
+      "kind": "memory",
+      "name": "Dark Wing"
+    },
+    {
+      "id": "moonlight-shard",
+      "kind": "memory",
+      "name": "Moonlight Shard"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "autumn-leaf",
+      "kind": "memory",
+      "name": "Autumn Leaf"
+    },
+    {
+      "id": "cruel-sight",
+      "kind": "memory",
+      "name": "Cruel Sight"
+    },
+    {
+      "id": "covetous-coffer",
+      "kind": "memory",
+      "name": "Covetous Coffer"
+    },
+    {
+      "id": "heavenly-burden",
+      "kind": "memory",
+      "name": "Heavenly Burden"
+    },
+    {
+      "id": "memory-of-fire",
+      "kind": "memory",
+      "name": "Memory of Fire"
+    },
+    {
+      "id": "memory-of-ice",
+      "kind": "memory",
+      "name": "Memory of Ice"
+    },
+    {
+      "id": "strike-of-thunder",
+      "kind": "memory",
+      "name": "Strike of Thunder"
+    },
+    {
+      "id": "morgans-warbow",
+      "kind": "memory",
+      "name": "Morgan's Warbow"
+    },
+    {
+      "id": "shadow-lantern",
+      "kind": "memory",
+      "name": "Shadow Lantern"
+    },
+    {
+      "id": "bone-singer",
+      "kind": "memory",
+      "name": "Bone Singer"
+    },
+    {
+      "id": "shadow-chair",
+      "kind": "memory",
+      "name": "Shadow Chair"
+    },
+    {
+      "id": "overpriced-saddle",
+      "kind": "memory",
+      "name": "Overpriced Saddle"
+    },
+    {
+      "id": "dying-wish",
+      "kind": "memory",
+      "name": "Dying Wish"
+    },
+    {
+      "id": "sin-of-solace",
+      "kind": "memory",
+      "name": "Sin of Solace"
+    },
+    {
+      "id": "bitter-cusp",
+      "kind": "memory",
+      "name": "Bitter Cusp"
+    },
+    {
+      "id": "stifled-scream",
+      "kind": "memory",
+      "name": "Stifled Scream"
+    },
+    {
+      "id": "weavers-needle",
+      "kind": "memory",
+      "name": "Weaver's Needle"
+    },
+    {
+      "id": "essence-pearl",
+      "kind": "memory",
+      "name": "Essence Pearl"
+    },
+    {
+      "id": "nimble-catch",
+      "kind": "memory",
+      "name": "Nimble Catch"
+    },
+    {
+      "id": "shroud-of-graceless-dusk",
+      "kind": "memory",
+      "name": "Shroud of Graceless Dusk"
+    },
+    {
+      "id": "mirror-of-truth",
+      "kind": "memory",
+      "name": "Mirror of Truth"
+    },
+    {
+      "id": "onyx-saint",
+      "kind": "shadow",
+      "name": "Onyx Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    },
+    {
+      "id": "nightmare",
+      "kind": "shadow",
+      "name": "Nightmare"
+    },
+    {
+      "id": "ravenous-fiend",
+      "kind": "shadow",
+      "name": "Ravenous Fiend"
+    },
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "flame-of-divinity",
+      "kind": "attribute",
+      "name": "Flame of Divinity"
+    },
+    {
+      "id": "master-of-shadows",
+      "kind": "attribute",
+      "name": "Master of Shadows"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "marble-shell",
+      "kind": "attribute",
+      "name": "Marble Shell"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "shadow-manifestation",
+      "kind": "ability",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    }
+  ],
+  "notSunny": [],
+  "checkpointNotes": {
+    "1592:31": {
+      "extra": [
+        "Covetous Coffer"
+      ],
+      "why": "During the four-year gap the modified Covetous Coffer became the Shadow Marvelous Mimic; the book only reveals it in the Shadows list a few paragraphs later (1592:38–39)."
+    }
+  },
+  "entries": {
+    "key-of-the-estuary": {
+      "kind": "memory"
+    },
+    "crown-of-twilight": {
+      "kind": "memory"
+    },
+    "fragment-of-the-shadow-realm": {
+      "kind": "aspect"
+    },
+    "anankes-mantle": {
+      "kind": "memory"
+    },
+    "dawn-shard": {
+      "kind": "memory"
+    },
+    "crown-of-dawn": {
+      "kind": "memory"
+    },
+    "dream-flower": {
+      "kind": "memory"
+    },
+    "jade-flower-charm": {
+      "kind": "memory"
+    },
+    "silver-blade": {
+      "kind": "memory"
+    },
+    "soul-weave": {
+      "kind": "attribute"
+    },
+    "shadow-incarnation": {
+      "kind": "ability"
+    },
+    "onyx-shell": {
+      "kind": "attribute"
+    },
+    "nebulous-mantle": {
+      "kind": "memory"
+    },
+    "handy-bracelet": {
+      "kind": "memory"
+    },
+    "quintessence-pearl": {
+      "kind": "memory"
+    },
+    "shadow-fiend": {
+      "kind": "shadow"
+    },
+    "marvelous-mimic": {
+      "kind": "shadow"
+    },
+    "lord-of-shadows": {
+      "kind": "attribute"
+    },
+    "fateless": {
+      "kind": "attribute"
+    }
+  },
+  "events": [
+    {
+      "at": "1237:12",
+      "gain": "key-of-the-estuary",
+      "name": "Key of the Estuary"
+    },
+    {
+      "at": "1237:12",
+      "runes": "key-of-the-estuary",
+      "to": "1237:49"
+    },
+    {
+      "at": "1247:32",
+      "runes": "stifled-scream"
+    },
+    {
+      "at": "1275:35",
+      "lose": "essence-pearl",
+      "how": "given"
+    },
+    {
+      "at": "1279:45",
+      "source": "crown-of-twilight",
+      "value": "Daeron of the Twilight Sea"
+    },
+    {
+      "at": "1279:46",
+      "gain": "crown-of-twilight",
+      "label": "a Memory"
+    },
+    {
+      "at": "1288:46",
+      "name": "crown-of-twilight",
+      "value": "Crown of Twilight"
+    },
+    {
+      "at": "1288:46",
+      "runes": "crown-of-twilight",
+      "to": "1288:49"
+    },
+    {
+      "at": "1289:6",
+      "runes": "crown-of-twilight",
+      "to": "1289:12"
+    },
+    {
+      "at": "1289:44",
+      "runes": "crown-of-twilight"
+    },
+    {
+      "at": "1290:2",
+      "runes": "crown-of-twilight",
+      "to": "1290:4"
+    },
+    {
+      "at": "1301:51",
+      "runes": "shadow-dance"
+    },
+    {
+      "at": "1301:58",
+      "gain": "fragment-of-the-shadow-realm",
+      "label": "a fragment of Shadow's Domain"
+    },
+    {
+      "at": "1302:34",
+      "name": "fragment-of-the-shadow-realm",
+      "value": "Fragment of the Shadow Realm"
+    },
+    {
+      "at": "1315:46",
+      "runes": "ravenous-fiend",
+      "to": "1315:52"
+    },
+    {
+      "at": "1341:35",
+      "gain": "anankes-mantle",
+      "name": "Ananke's Mantle"
+    },
+    {
+      "at": "1342:8",
+      "runes": "anankes-mantle",
+      "to": "1342:23"
+    },
+    {
+      "at": "1342:14",
+      "source": "anankes-mantle",
+      "value": "Ananke of Weave"
+    },
+    {
+      "at": "1343:17",
+      "source": "dawn-shard",
+      "value": "Nephis"
+    },
+    {
+      "at": "1343:23",
+      "gain": "dawn-shard",
+      "name": "Dawn Shard"
+    },
+    {
+      "at": "1348:33",
+      "become": "dawn-shard",
+      "to": "crown-of-dawn",
+      "name": "Crown of Dawn"
+    },
+    {
+      "at": "1348:47",
+      "runes": "crown-of-dawn",
+      "to": "1348:48"
+    },
+    {
+      "at": "1349:25",
+      "lose": "crown-of-dawn",
+      "how": "given"
+    },
+    {
+      "at": "1367:2",
+      "runes": "nightmare",
+      "to": "1367:28"
+    },
+    {
+      "at": "1464:0",
+      "gain": "essence-pearl",
+      "name": "Essence Pearl"
+    },
+    {
+      "at": "1470:5",
+      "source": "dream-flower",
+      "value": "Wind Flower of the Twilight Sea"
+    },
+    {
+      "at": "1470:8",
+      "gain": "dream-flower",
+      "label": "a Memory"
+    },
+    {
+      "at": "1470:36",
+      "name": "dream-flower",
+      "value": "Dream Flower"
+    },
+    {
+      "at": "1470:36",
+      "runes": "dream-flower",
+      "to": "1470:45"
+    },
+    {
+      "at": "1470:57",
+      "lose": "dream-flower",
+      "how": "destroyed"
+    },
+    {
+      "at": "1471:10",
+      "set": "class",
+      "value": "Terror"
+    },
+    {
+      "at": "1480:34",
+      "set": "core",
+      "value": "six cores"
+    },
+    {
+      "at": "1510:56",
+      "runes": "crown-of-twilight"
+    },
+    {
+      "at": "1541:3",
+      "gain": "jade-flower-charm",
+      "label": "the Transcendent charm he had been working on"
+    },
+    {
+      "at": "1541:19",
+      "lose": "jade-flower-charm",
+      "how": "given"
+    },
+    {
+      "at": "1543:17",
+      "gain": "silver-blade",
+      "label": "The silver blade he was trying to alter"
+    },
+    {
+      "at": "1550:30",
+      "lose": "silver-blade",
+      "how": "given"
+    },
+    {
+      "at": "1555:37",
+      "source": "key-of-the-estuary",
+      "value": "the Mad Prince"
+    },
+    {
+      "at": "1569:28",
+      "lose": "mirror-of-truth",
+      "how": "destroyed"
+    },
+    {
+      "at": "1570:21",
+      "runes": "sin-of-solace"
+    },
+    {
+      "at": "1574:39",
+      "lose": "key-of-the-estuary",
+      "how": "destroyed"
+    },
+    {
+      "at": "1575:47",
+      "runes": "sin-of-solace"
+    },
+    {
+      "at": "1576:25",
+      "lose": "sin-of-solace",
+      "how": "destroyed"
+    },
+    {
+      "at": "1576:61",
+      "runes": "stifled-scream"
+    },
+    {
+      "at": "1580:8",
+      "source": "soul-weave",
+      "value": "the golden fruit from the tree growing above the grave of Oblivion"
+    },
+    {
+      "at": "1580:23",
+      "gain": "soul-weave",
+      "name": "Soul Weave"
+    },
+    {
+      "at": "1580:27",
+      "runes": "soul-weave",
+      "to": "1580:28"
+    },
+    {
+      "at": "1581:38",
+      "lose": "shroud-of-graceless-dusk",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "midnight-shard",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "dark-wing",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "moonlight-shard",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "autumn-leaf",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "cruel-sight",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "heavenly-burden",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "memory-of-fire",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "memory-of-ice",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "strike-of-thunder",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "morgans-warbow",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "bone-singer",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "dying-wish",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "bitter-cusp",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "stifled-scream",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "essence-pearl",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "nimble-catch",
+      "how": "lost"
+    },
+    {
+      "at": "1582:19",
+      "lose": "crown-of-twilight",
+      "how": "lost"
+    },
+    {
+      "at": "1582:39",
+      "gain": "shadow-incarnation",
+      "label": "his Transformation Ability"
+    },
+    {
+      "at": "1583:23",
+      "set": "rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "1583:24",
+      "become": "marble-shell",
+      "to": "onyx-shell",
+      "name": "Onyx Shell"
+    },
+    {
+      "at": "1589:44",
+      "lose": "fated",
+      "how": "stolen"
+    },
+    {
+      "at": "1589:47",
+      "runes": "shadow-bond"
+    },
+    {
+      "at": "1591:6",
+      "become": "anankes-mantle",
+      "to": "nebulous-mantle",
+      "name": "Nebulous Mantle"
+    },
+    {
+      "at": "1592:7",
+      "gain": "handy-bracelet",
+      "label": "the black bracelet"
+    },
+    {
+      "at": "1592:21",
+      "set": "true-name",
+      "value": "—"
+    },
+    {
+      "at": "1592:24",
+      "set": "core",
+      "value": "Shadow Cores: [6/7]"
+    },
+    {
+      "at": "1592:31",
+      "name": "handy-bracelet",
+      "value": "Handy Bracelet"
+    },
+    {
+      "at": "1592:31",
+      "gain": "quintessence-pearl",
+      "name": "Quintessence Pearl"
+    },
+    {
+      "at": "1592:38",
+      "become": "ravenous-fiend",
+      "to": "shadow-fiend",
+      "name": "Shadow Fiend"
+    },
+    {
+      "at": "1592:38",
+      "become": "covetous-coffer",
+      "to": "marvelous-mimic",
+      "name": "Marvelous Mimic"
+    },
+    {
+      "at": "1592:39",
+      "source": "marvelous-mimic",
+      "value": "the Mordant Mimic"
+    },
+    {
+      "at": "1592:46",
+      "become": "master-of-shadows",
+      "to": "lord-of-shadows",
+      "name": "Lord of Shadows"
+    },
+    {
+      "at": "1592:46",
+      "gain": "fateless",
+      "name": "Fateless"
+    },
+    {
+      "at": "1592:48",
+      "runes": "lord-of-shadows"
+    },
+    {
+      "at": "1592:58",
+      "name": "shadow-incarnation",
+      "value": "Shadow Incarnation"
+    }
+  ]
+}

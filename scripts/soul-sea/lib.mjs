@@ -44,7 +44,7 @@ const LABELS = [
 
 // "[Fated] Attribute Description:" / "[Unbroken] Enchantment Description:" carry their subject first.
 const LABEL_RE = new RegExp(
-  `(?:^|(?<=[.\\]…"]\\s{0,2}))(\\[[^\\]]{1,60}\\]\\s+)?(${LABELS.map((l) => l.replace(/ /g, '\\s+')).join('|')})\\s*:\\s*`,
+  `(?:^|(?<=[.\\]…"\\-—]\\s{0,2}))(\\[[^\\]]{1,60}\\]\\s+)?(${LABELS.map((l) => l.replace(/ /g, '\\s+')).join('|')})\\s*:\\s*`,
   'g',
 )
 

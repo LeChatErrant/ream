@@ -1,0 +1,532 @@
+{
+  "range": [
+    551,
+    848
+  ],
+  "seedNote": "Seed = Memories listed at 550:16, Shadows at 549. Attributes, aspect, abilities, flaw, echoes: NOT seeded — establish them and add them.",
+  "seed": [
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "ember-of-divinity",
+      "kind": "attribute",
+      "name": "Ember of Divinity"
+    },
+    {
+      "id": "child-of-shadows",
+      "kind": "attribute",
+      "name": "Child of Shadows"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    },
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "ordinary-rock",
+      "kind": "memory",
+      "name": "Ordinary Rock"
+    },
+    {
+      "id": "prowling-thorn",
+      "kind": "memory",
+      "name": "Prowling Thorn"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "blood-blossom",
+      "kind": "memory",
+      "name": "Blood Blossom"
+    },
+    {
+      "id": "dark-wing",
+      "kind": "memory",
+      "name": "Dark Wing"
+    },
+    {
+      "id": "moonlight-shard",
+      "kind": "memory",
+      "name": "Moonlight Shard"
+    },
+    {
+      "id": "onyx-armor",
+      "kind": "memory",
+      "name": "Mantle of the Underworld"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "broken-oath",
+      "kind": "memory",
+      "name": "Broken Oath"
+    },
+    {
+      "id": "blackhorn-bow",
+      "kind": "memory",
+      "name": "Blackhorn Bow"
+    },
+    {
+      "id": "full-quiver",
+      "kind": "memory",
+      "name": "Full Quiver"
+    },
+    {
+      "id": "autumn-leaf",
+      "kind": "memory",
+      "name": "Autumn Leaf"
+    },
+    {
+      "id": "cruel-sight",
+      "kind": "memory",
+      "name": "Cruel Sight"
+    },
+    {
+      "id": "covetous-coffer",
+      "kind": "memory",
+      "name": "Covetous Coffer"
+    },
+    {
+      "id": "undying-chain",
+      "kind": "memory",
+      "name": "Undying Chain"
+    },
+    {
+      "id": "heavenly-burden",
+      "kind": "memory",
+      "name": "Heavenly Burden"
+    },
+    {
+      "id": "memory-of-fire",
+      "kind": "memory",
+      "name": "Memory of Fire"
+    },
+    {
+      "id": "memory-of-ice",
+      "kind": "memory",
+      "name": "Memory of Ice"
+    },
+    {
+      "id": "strike-of-thunder",
+      "kind": "memory",
+      "name": "Strike of Thunder"
+    },
+    {
+      "id": "patient-avenger",
+      "kind": "memory",
+      "name": "Patient Avenger"
+    },
+    {
+      "id": "morgans-warbow",
+      "kind": "memory",
+      "name": "Morgan's Warbow"
+    },
+    {
+      "id": "drop-of-ichor",
+      "kind": "memory",
+      "name": "Drop of Ichor"
+    },
+    {
+      "id": "marble-saint",
+      "kind": "shadow",
+      "name": "Marble Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    }
+  ],
+  "entries": {
+    "flame-of-divinity": {
+      "kind": "attribute"
+    },
+    "master-of-shadows": {
+      "kind": "attribute"
+    },
+    "shadow-manifestation": {
+      "kind": "ability"
+    },
+    "nightmare": {
+      "kind": "shadow"
+    },
+    "colosseum-memories": {
+      "kind": "memory"
+    },
+    "bone-singer": {
+      "kind": "memory"
+    },
+    "emerald-amulet": {
+      "kind": "memory"
+    },
+    "extraordinary-rock": {
+      "kind": "memory"
+    },
+    "shadow-lantern": {
+      "kind": "memory"
+    },
+    "shadow-chair": {
+      "kind": "memory"
+    },
+    "overpriced-saddle": {
+      "kind": "memory"
+    },
+    "dying-wish": {
+      "kind": "memory"
+    },
+    "evil-eye": {
+      "kind": "memory"
+    }
+  },
+  "events": [
+    {
+      "at": "551:7",
+      "runes": "drop-of-ichor",
+      "to": "551:17"
+    },
+    {
+      "at": "551:61",
+      "lose": "drop-of-ichor",
+      "how": "consumed"
+    },
+    {
+      "at": "552:20",
+      "become": "ember-of-divinity",
+      "to": "flame-of-divinity",
+      "name": "Flame of Divinity"
+    },
+    {
+      "at": "557:49",
+      "lose": "blackhorn-bow",
+      "how": "given"
+    },
+    {
+      "at": "557:49",
+      "lose": "full-quiver",
+      "how": "given"
+    },
+    {
+      "at": "586:40",
+      "runes": "patient-avenger"
+    },
+    {
+      "at": "626:12",
+      "gain": "colosseum-memories",
+      "label": "thirty-nine of them"
+    },
+    {
+      "at": "627:4",
+      "name": "colosseum-memories",
+      "value": "Memories from the Colosseum"
+    },
+    {
+      "at": "627:4",
+      "source": "colosseum-memories",
+      "value": "the Colosseum"
+    },
+    {
+      "at": "644:65",
+      "source": "nightmare",
+      "value": "Nightmare"
+    },
+    {
+      "at": "644:71",
+      "gain": "nightmare",
+      "label": "a Shadow"
+    },
+    {
+      "at": "652:33",
+      "runes": "onyx-armor"
+    },
+    {
+      "at": "652:52",
+      "name": "nightmare",
+      "value": "Nightmare"
+    },
+    {
+      "at": "653:6",
+      "runes": "soul-serpent",
+      "to": "653:9"
+    },
+    {
+      "at": "653:21",
+      "runes": "soul-serpent",
+      "to": "653:25"
+    },
+    {
+      "at": "653:53",
+      "runes": "shadow-dance",
+      "to": "653:57"
+    },
+    {
+      "at": "653:64",
+      "source": "shadow-lantern",
+      "value": "an Aspect Legacy Relic"
+    },
+    {
+      "at": "653:69",
+      "gain": "shadow-lantern",
+      "name": "Shadow Lantern"
+    },
+    {
+      "at": "654:1",
+      "runes": "shadow-lantern",
+      "to": "654:29"
+    },
+    {
+      "at": "655:13",
+      "runes": "nightmare",
+      "to": "655:58"
+    },
+    {
+      "at": "671:44",
+      "runes": "morgans-warbow",
+      "to": "671:45"
+    },
+    {
+      "at": "671:47",
+      "runes": "strike-of-thunder"
+    },
+    {
+      "at": "673:7",
+      "runes": "patient-avenger"
+    },
+    {
+      "at": "695:7",
+      "runes": "silver-bell",
+      "to": "695:13"
+    },
+    {
+      "at": "695:45",
+      "source": "emerald-amulet",
+      "value": "Noctis"
+    },
+    {
+      "at": "695:54",
+      "become": "ordinary-rock",
+      "to": "extraordinary-rock",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "at": "696:11",
+      "gain": "shadow-chair",
+      "label": "[???]"
+    },
+    {
+      "at": "696:15",
+      "gain": "emerald-amulet",
+      "label": "the amulet"
+    },
+    {
+      "at": "696:17",
+      "lose": "emerald-amulet",
+      "how": "destroyed"
+    },
+    {
+      "at": "701:17",
+      "lose": "colosseum-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "701:17",
+      "gain": "bone-singer",
+      "label": "the emerald bone flute"
+    },
+    {
+      "at": "701:17",
+      "source": "bone-singer",
+      "value": "the Red Colosseum"
+    },
+    {
+      "at": "702:61",
+      "set": "class",
+      "value": "Devil"
+    },
+    {
+      "at": "702:62",
+      "set": "core",
+      "value": "Shadow Cores: [4/7]"
+    },
+    {
+      "at": "702:69",
+      "runes": "soul-serpent",
+      "to": "702:80"
+    },
+    {
+      "at": "728:59",
+      "source": "dying-wish",
+      "value": "Solvane"
+    },
+    {
+      "at": "728:61",
+      "gain": "dying-wish",
+      "label": "a Memory"
+    },
+    {
+      "at": "730:55",
+      "name": "dying-wish",
+      "value": "Dying Wish"
+    },
+    {
+      "at": "730:55",
+      "runes": "dying-wish",
+      "to": "730:62"
+    },
+    {
+      "at": "736:53",
+      "runes": "dying-wish",
+      "to": "736:54"
+    },
+    {
+      "at": "744:37",
+      "gain": "shadow-manifestation",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "at": "744:51",
+      "set": "rank",
+      "value": "Ascended"
+    },
+    {
+      "at": "744:62",
+      "become": "child-of-shadows",
+      "to": "master-of-shadows",
+      "name": "Master of Shadows"
+    },
+    {
+      "at": "744:65",
+      "runes": "master-of-shadows"
+    },
+    {
+      "at": "744:71",
+      "runes": "shadow-control"
+    },
+    {
+      "at": "744:77",
+      "runes": "shadow-manifestation",
+      "to": "744:78"
+    },
+    {
+      "at": "759:24",
+      "source": "overpriced-saddle",
+      "value": "an exclusive leatherwork boutique"
+    },
+    {
+      "at": "759:25",
+      "gain": "overpriced-saddle",
+      "label": "the saddle"
+    },
+    {
+      "at": "810:79",
+      "runes": "soul-serpent"
+    },
+    {
+      "at": "844:14",
+      "lose": "patient-avenger",
+      "how": "given"
+    },
+    {
+      "at": "844:14",
+      "lose": "blood-blossom",
+      "how": "given"
+    },
+    {
+      "at": "845:0",
+      "source": "evil-eye",
+      "value": "Defiled Witness"
+    },
+    {
+      "at": "845:2",
+      "gain": "evil-eye",
+      "label": "a Memory"
+    },
+    {
+      "at": "847:12",
+      "runes": "dying-wish"
+    },
+    {
+      "at": "848:30",
+      "name": "bone-singer",
+      "value": "Bone Singer"
+    },
+    {
+      "at": "848:30",
+      "name": "shadow-chair",
+      "value": "Shadow Chair"
+    },
+    {
+      "at": "848:30",
+      "name": "overpriced-saddle",
+      "value": "Overpriced Saddle"
+    },
+    {
+      "at": "848:30",
+      "name": "evil-eye",
+      "value": "Evil Eye"
+    },
+    {
+      "at": "848:31",
+      "source": "shadow-chair",
+      "value": "Noctis"
+    }
+  ]
+}

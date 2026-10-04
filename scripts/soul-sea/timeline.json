@@ -12,6 +12,7 @@
     "true-name": { "kind": "stat", "label": "True Name" },
     "rank": { "kind": "stat", "label": "Rank" },
     "core": { "kind": "stat", "label": "Core" },
+    "class": { "kind": "stat", "label": "Class" },
     "temple-slave": { "kind": "aspect" },
     "shadow-slave": { "kind": "aspect" },
     "shadow-bond": { "kind": "ability" },

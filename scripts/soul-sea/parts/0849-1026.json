@@ -1,0 +1,515 @@
+{
+  "range": [
+    849,
+    1026
+  ],
+  "seedNote": "Seed = the 848 sheet. Its Memories list is CUT OFF after Evil Eye (\"...\") — find any Memories held at 849 that are missing (compare with the 1026 list and the text) and add them. Aspect, abilities, flaw: establish and add.",
+  "seed": [
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "extraordinary-rock",
+      "kind": "memory",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "id": "prowling-thorn",
+      "kind": "memory",
+      "name": "Prowling Thorn"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "dark-wing",
+      "kind": "memory",
+      "name": "Dark Wing"
+    },
+    {
+      "id": "moonlight-shard",
+      "kind": "memory",
+      "name": "Moonlight Shard"
+    },
+    {
+      "id": "onyx-armor",
+      "kind": "memory",
+      "name": "Mantle of the Underworld"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "broken-oath",
+      "kind": "memory",
+      "name": "Broken Oath"
+    },
+    {
+      "id": "autumn-leaf",
+      "kind": "memory",
+      "name": "Autumn Leaf"
+    },
+    {
+      "id": "cruel-sight",
+      "kind": "memory",
+      "name": "Cruel Sight"
+    },
+    {
+      "id": "covetous-coffer",
+      "kind": "memory",
+      "name": "Covetous Coffer"
+    },
+    {
+      "id": "undying-chain",
+      "kind": "memory",
+      "name": "Undying Chain"
+    },
+    {
+      "id": "heavenly-burden",
+      "kind": "memory",
+      "name": "Heavenly Burden"
+    },
+    {
+      "id": "memory-of-fire",
+      "kind": "memory",
+      "name": "Memory of Fire"
+    },
+    {
+      "id": "memory-of-ice",
+      "kind": "memory",
+      "name": "Memory of Ice"
+    },
+    {
+      "id": "strike-of-thunder",
+      "kind": "memory",
+      "name": "Strike of Thunder"
+    },
+    {
+      "id": "morgans-warbow",
+      "kind": "memory",
+      "name": "Morgan's Warbow"
+    },
+    {
+      "id": "shadow-lantern",
+      "kind": "memory",
+      "name": "Shadow Lantern"
+    },
+    {
+      "id": "bone-singer",
+      "kind": "memory",
+      "name": "Bone Singer"
+    },
+    {
+      "id": "shadow-chair",
+      "kind": "memory",
+      "name": "Shadow Chair"
+    },
+    {
+      "id": "overpriced-saddle",
+      "kind": "memory",
+      "name": "Overpriced Saddle"
+    },
+    {
+      "id": "dying-wish",
+      "kind": "memory",
+      "name": "Dying Wish"
+    },
+    {
+      "id": "evil-eye",
+      "kind": "memory",
+      "name": "Evil Eye"
+    },
+    {
+      "id": "marble-saint",
+      "kind": "shadow",
+      "name": "Marble Saint"
+    },
+    {
+      "id": "nightmare",
+      "kind": "shadow",
+      "name": "Nightmare"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    },
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "flame-of-divinity",
+      "kind": "attribute",
+      "name": "Flame of Divinity"
+    },
+    {
+      "id": "master-of-shadows",
+      "kind": "attribute",
+      "name": "Master of Shadows"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "shadow-manifestation",
+      "kind": "ability",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    }
+  ],
+  "entries": {
+    "sin-of-solace": {
+      "kind": "memory"
+    },
+    "bitter-cusp": {
+      "kind": "memory"
+    },
+    "stifled-scream": {
+      "kind": "memory"
+    },
+    "weavers-needle": {
+      "kind": "memory"
+    },
+    "essence-pearl": {
+      "kind": "memory"
+    },
+    "nimble-catch": {
+      "kind": "memory"
+    },
+    "marble-shell": {
+      "kind": "attribute"
+    },
+    "onyx-saint": {
+      "kind": "shadow"
+    },
+    "shroud-of-graceless-dusk": {
+      "kind": "memory"
+    },
+    "siege-souvenir": {
+      "kind": "memory"
+    },
+    "incessant-seeker": {
+      "kind": "memory"
+    }
+  },
+  "events": [
+    {
+      "at": "849:0",
+      "lose": "evil-eye",
+      "how": "given"
+    },
+    {
+      "at": "864:36",
+      "runes": "morgans-warbow",
+      "to": "864:46"
+    },
+    {
+      "at": "867:54",
+      "source": "sin-of-solace",
+      "value": "Remnant of the Jade Queen"
+    },
+    {
+      "at": "868:12",
+      "gain": "sin-of-solace",
+      "label": "a Transcendent Memory of the Fifth Tier"
+    },
+    {
+      "at": "869:2",
+      "name": "sin-of-solace",
+      "value": "Sin of Solace"
+    },
+    {
+      "at": "869:2",
+      "runes": "sin-of-solace",
+      "to": "869:47"
+    },
+    {
+      "at": "870:17",
+      "runes": "onyx-armor"
+    },
+    {
+      "at": "870:21",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "870:25",
+      "runes": "nightmare",
+      "to": "870:29"
+    },
+    {
+      "at": "873:31",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "873:34",
+      "runes": "onyx-armor"
+    },
+    {
+      "at": "919:27",
+      "source": "stifled-scream",
+      "value": "Voiceless Prelate"
+    },
+    {
+      "at": "919:29",
+      "gain": "stifled-scream",
+      "label": "a Memory"
+    },
+    {
+      "at": "922:47",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "922:57",
+      "runes": "onyx-armor"
+    },
+    {
+      "at": "922:65",
+      "gain": "bitter-cusp",
+      "name": "Bitter Cusp"
+    },
+    {
+      "at": "922:66",
+      "name": "stifled-scream",
+      "value": "Stifled Scream"
+    },
+    {
+      "at": "923:2",
+      "source": "bitter-cusp",
+      "value": "the swarm of Black Tongues"
+    },
+    {
+      "at": "923:5",
+      "runes": "bitter-cusp",
+      "to": "923:19"
+    },
+    {
+      "at": "923:28",
+      "runes": "stifled-scream",
+      "to": "923:48"
+    },
+    {
+      "at": "936:28",
+      "source": "weavers-needle",
+      "value": "Weaver's Needle"
+    },
+    {
+      "at": "936:43",
+      "gain": "weavers-needle",
+      "name": "I Am Stuck in an Endless Tunnel Full of True Darkness. How the Hell Do I Get Out? Ask Cassie"
+    },
+    {
+      "at": "936:43",
+      "runes": "weavers-needle",
+      "to": "936:45"
+    },
+    {
+      "at": "944:29",
+      "runes": "marble-saint",
+      "to": "944:34"
+    },
+    {
+      "at": "955:28",
+      "runes": "dying-wish",
+      "to": "955:29"
+    },
+    {
+      "at": "955:48",
+      "lose": "undying-chain",
+      "how": "destroyed"
+    },
+    {
+      "at": "972:8",
+      "runes": "onyx-armor",
+      "to": "972:19"
+    },
+    {
+      "at": "974:0",
+      "source": "essence-pearl",
+      "value": "Naeve"
+    },
+    {
+      "at": "974:0",
+      "source": "nimble-catch",
+      "value": "Naeve"
+    },
+    {
+      "at": "974:3",
+      "gain": "essence-pearl",
+      "name": "Essence Pearl"
+    },
+    {
+      "at": "974:7",
+      "gain": "nimble-catch",
+      "name": "Nimble Catch"
+    },
+    {
+      "at": "974:47",
+      "become": "onyx-armor",
+      "to": "marble-shell",
+      "name": "Marble Shell"
+    },
+    {
+      "at": "974:47",
+      "runes": "marble-shell"
+    },
+    {
+      "at": "975:2",
+      "runes": "marble-shell",
+      "to": "975:14"
+    },
+    {
+      "at": "991:19",
+      "source": "siege-souvenir",
+      "value": "the needle of a Corrupted Devil"
+    },
+    {
+      "at": "1000:5",
+      "become": "marble-saint",
+      "to": "onyx-saint",
+      "name": "Onyx Saint"
+    },
+    {
+      "at": "1000:10",
+      "runes": "onyx-saint",
+      "to": "1000:36"
+    },
+    {
+      "at": "1004:13",
+      "runes": "onyx-saint"
+    },
+    {
+      "at": "1019:58",
+      "runes": "weavers-mask"
+    },
+    {
+      "at": "1021:2",
+      "source": "shroud-of-graceless-dusk",
+      "value": "Sybil of the Fallen Grace"
+    },
+    {
+      "at": "1021:4",
+      "gain": "shroud-of-graceless-dusk",
+      "label": "a Memory"
+    },
+    {
+      "at": "1022:12",
+      "name": "shroud-of-graceless-dusk",
+      "value": "Shroud of Graceless Dusk"
+    },
+    {
+      "at": "1022:12",
+      "runes": "shroud-of-graceless-dusk",
+      "to": "1022:45"
+    },
+    {
+      "at": "1025:26",
+      "gain": "siege-souvenir",
+      "label": "the devil's needle"
+    },
+    {
+      "at": "1026:11",
+      "name": "weavers-needle",
+      "value": "Weaver's Needle"
+    },
+    {
+      "at": "1026:11",
+      "name": "siege-souvenir",
+      "value": "Siege Souvenir"
+    },
+    {
+      "at": "1026:11",
+      "gain": "incessant-seeker",
+      "name": "Incessant Seeker"
+    },
+    {
+      "at": "1026:14",
+      "runes": "onyx-saint",
+      "to": "1026:15"
+    },
+    {
+      "at": "1026:35",
+      "lose": "prowling-thorn",
+      "how": "destroyed"
+    },
+    {
+      "at": "1026:35",
+      "lose": "broken-oath",
+      "how": "destroyed"
+    },
+    {
+      "at": "1026:35",
+      "lose": "incessant-seeker",
+      "how": "destroyed"
+    },
+    {
+      "at": "1026:39",
+      "runes": "onyx-saint"
+    },
+    {
+      "at": "1026:49",
+      "fact": "onyx-saint",
+      "label": "Rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "1026:49",
+      "fact": "onyx-saint",
+      "label": "Class",
+      "value": "Devil"
+    }
+  ]
+}

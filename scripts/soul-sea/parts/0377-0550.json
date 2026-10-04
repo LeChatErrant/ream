@@ -1,0 +1,581 @@
+{
+  "range": [
+    377,
+    550
+  ],
+  "seedNote": "Seed = Memories listed at 376:1 and Shadows listed at 359. Echoes: none (310 sheet). Attributes/aspect/abilities/flaw added: Fated, Spark of Divinity (evolves only at 450), Child of Shadows, Blood Weave (Soul Conduit 341:65 was gone by 351:48); Shadow Slave + Shadow Dance legacy (218:40); Shadow Bond, Shadow Control, Shadow Step (354:33); Clear Conscience.",
+  "seed": [
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "spark-of-divinity",
+      "kind": "attribute",
+      "name": "Spark of Divinity"
+    },
+    {
+      "id": "child-of-shadows",
+      "kind": "attribute",
+      "name": "Child of Shadows"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    },
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "ordinary-rock",
+      "kind": "memory",
+      "name": "Ordinary Rock"
+    },
+    {
+      "id": "prowling-thorn",
+      "kind": "memory",
+      "name": "Prowling Thorn"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "blood-blossom",
+      "kind": "memory",
+      "name": "Blood Blossom"
+    },
+    {
+      "id": "dark-wing",
+      "kind": "memory",
+      "name": "Dark Wing"
+    },
+    {
+      "id": "moonlight-shard",
+      "kind": "memory",
+      "name": "Moonlight Shard"
+    },
+    {
+      "id": "onyx-armor",
+      "kind": "memory",
+      "name": "M… Un…old"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "broken-oath",
+      "kind": "memory",
+      "name": "Broken Oath"
+    },
+    {
+      "id": "marble-saint",
+      "kind": "shadow",
+      "name": "Marble Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    }
+  ],
+  "entries": {
+    "blackhorn-bow": {
+      "kind": "memory"
+    },
+    "full-quiver": {
+      "kind": "memory"
+    },
+    "autumn-leaf": {
+      "kind": "memory"
+    },
+    "chained-isles-memories": {
+      "kind": "memory"
+    },
+    "cruel-sight": {
+      "kind": "memory"
+    },
+    "covetous-coffer": {
+      "kind": "memory"
+    },
+    "ember-of-divinity": {
+      "kind": "attribute"
+    },
+    "bone-weave": {
+      "kind": "attribute"
+    },
+    "auction-memories": {
+      "kind": "memory"
+    },
+    "obsidian-spear": {
+      "kind": "memory"
+    },
+    "gate-battle-memories": {
+      "kind": "memory"
+    },
+    "shadow-blade-kurt": {
+      "kind": "echo"
+    },
+    "heavenly-burden": {
+      "kind": "memory"
+    },
+    "memory-of-fire": {
+      "kind": "memory"
+    },
+    "undying-chain": {
+      "kind": "memory"
+    },
+    "memory-of-ice": {
+      "kind": "memory"
+    },
+    "strike-of-thunder": {
+      "kind": "memory"
+    },
+    "patient-avenger": {
+      "kind": "memory"
+    },
+    "morgans-warbow": {
+      "kind": "memory"
+    },
+    "drop-of-ichor": {
+      "kind": "memory"
+    }
+  },
+  "events": [
+    {
+      "at": "377:24",
+      "name": "onyx-armor",
+      "value": "Mantle of the Underworld"
+    },
+    {
+      "at": "377:24",
+      "runes": "onyx-armor",
+      "to": "377:48"
+    },
+    {
+      "at": "378:29",
+      "runes": "weavers-mask"
+    },
+    {
+      "at": "379:23",
+      "gain": "full-quiver",
+      "label": "menacing black arrows"
+    },
+    {
+      "at": "379:28",
+      "gain": "blackhorn-bow",
+      "label": "a powerful Memory bow"
+    },
+    {
+      "at": "380:13",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "388:17",
+      "gain": "autumn-leaf",
+      "label": "a little Memory that allows me to change the color of my hair at will"
+    },
+    {
+      "at": "392:35",
+      "name": "autumn-leaf",
+      "value": "Autumn Leaf"
+    },
+    {
+      "at": "399:2",
+      "gain": "chained-isles-memories",
+      "label": "three Memories of questionable utility"
+    },
+    {
+      "at": "399:2",
+      "lose": "chained-isles-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "413:41",
+      "source": "cruel-sight",
+      "value": "Mirror Beast"
+    },
+    {
+      "at": "413:45",
+      "gain": "cruel-sight",
+      "label": "a Memory"
+    },
+    {
+      "at": "415:2",
+      "name": "cruel-sight",
+      "value": "Cruel Sight"
+    },
+    {
+      "at": "415:2",
+      "runes": "cruel-sight",
+      "to": "415:47"
+    },
+    {
+      "at": "427:32",
+      "source": "covetous-coffer",
+      "value": "Mordant Mimic"
+    },
+    {
+      "at": "427:34",
+      "gain": "covetous-coffer",
+      "label": "a Memory"
+    },
+    {
+      "at": "428:15",
+      "name": "covetous-coffer",
+      "value": "Covetous Coffer"
+    },
+    {
+      "at": "428:15",
+      "runes": "covetous-coffer",
+      "to": "428:49"
+    },
+    {
+      "at": "450:54",
+      "become": "spark-of-divinity",
+      "to": "ember-of-divinity",
+      "name": "Ember of Divinity"
+    },
+    {
+      "at": "450:54",
+      "runes": "ember-of-divinity",
+      "to": "450:57"
+    },
+    {
+      "at": "450:63",
+      "gain": "bone-weave",
+      "name": "Bone Weave"
+    },
+    {
+      "at": "450:63",
+      "runes": "bone-weave"
+    },
+    {
+      "at": "451:13",
+      "runes": "bone-weave",
+      "to": "451:14"
+    },
+    {
+      "at": "456:17",
+      "runes": "weavers-mask",
+      "to": "456:18"
+    },
+    {
+      "at": "475:25",
+      "gain": "auction-memories",
+      "label": "a couple of cheap lower Rank Memories"
+    },
+    {
+      "at": "475:26",
+      "lose": "auction-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "491:10",
+      "gain": "obsidian-spear",
+      "label": "a Memory"
+    },
+    {
+      "at": "491:22",
+      "runes": "obsidian-spear"
+    },
+    {
+      "at": "492:67",
+      "lose": "obsidian-spear",
+      "how": "destroyed"
+    },
+    {
+      "at": "494:55",
+      "gain": "gate-battle-memories",
+      "label": "several Memories"
+    },
+    {
+      "at": "497:26",
+      "lose": "gate-battle-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "497:27",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "508:63",
+      "source": "shadow-blade-kurt",
+      "value": "Kurt"
+    },
+    {
+      "at": "508:67",
+      "gain": "shadow-blade-kurt",
+      "label": "an Echo"
+    },
+    {
+      "at": "510:7",
+      "name": "shadow-blade-kurt",
+      "value": "Shadow Blade Kurt"
+    },
+    {
+      "at": "510:7",
+      "runes": "shadow-blade-kurt",
+      "to": "510:34"
+    },
+    {
+      "at": "510:78",
+      "lose": "shadow-blade-kurt",
+      "how": "destroyed"
+    },
+    {
+      "at": "510:83",
+      "runes": "marble-saint"
+    },
+    {
+      "at": "511:17",
+      "runes": "marble-saint",
+      "to": "511:37"
+    },
+    {
+      "at": "512:3",
+      "gain": "heavenly-burden",
+      "label": "a long, narrow needle forged out of black steel"
+    },
+    {
+      "at": "512:3",
+      "gain": "memory-of-fire",
+      "label": "the two Memories he had exchanged for the contribution points"
+    },
+    {
+      "at": "512:4",
+      "name": "heavenly-burden",
+      "value": "Heavenly Burden"
+    },
+    {
+      "at": "512:6",
+      "runes": "heavenly-burden",
+      "to": "512:15"
+    },
+    {
+      "at": "512:36",
+      "source": "heavenly-burden",
+      "value": "the government"
+    },
+    {
+      "at": "512:36",
+      "source": "memory-of-fire",
+      "value": "the government"
+    },
+    {
+      "at": "512:38",
+      "name": "memory-of-fire",
+      "value": "Memory of Fire"
+    },
+    {
+      "at": "512:38",
+      "runes": "memory-of-fire",
+      "to": "512:45"
+    },
+    {
+      "at": "521:8",
+      "gain": "undying-chain",
+      "label": "a Memory"
+    },
+    {
+      "at": "521:38",
+      "name": "undying-chain",
+      "value": "Undying Chain"
+    },
+    {
+      "at": "521:38",
+      "runes": "undying-chain",
+      "to": "521:51"
+    },
+    {
+      "at": "521:48",
+      "source": "undying-chain",
+      "value": "Solvane and the parasitic Wormvine"
+    },
+    {
+      "at": "522:5",
+      "runes": "undying-chain",
+      "to": "522:40"
+    },
+    {
+      "at": "526:51",
+      "set": "class",
+      "value": "Demon"
+    },
+    {
+      "at": "526:52",
+      "set": "core",
+      "value": "Shadow Cores: [3/7]"
+    },
+    {
+      "at": "527:36",
+      "runes": "soul-serpent",
+      "to": "527:45"
+    },
+    {
+      "at": "540:32",
+      "gain": "memory-of-ice",
+      "label": "a Memory"
+    },
+    {
+      "at": "540:43",
+      "name": "memory-of-ice",
+      "value": "Memory of Ice"
+    },
+    {
+      "at": "540:43",
+      "runes": "memory-of-ice",
+      "to": "540:51"
+    },
+    {
+      "at": "542:1",
+      "gain": "strike-of-thunder",
+      "label": "an Ascended Memory of the second tier, which was an arrow"
+    },
+    {
+      "at": "542:1",
+      "gain": "patient-avenger",
+      "label": "an Ascended shield of the second tier"
+    },
+    {
+      "at": "547:65",
+      "gain": "morgans-warbow",
+      "label": "a Memory"
+    },
+    {
+      "at": "548:6",
+      "source": "morgans-warbow",
+      "value": "Morgan of Valor"
+    },
+    {
+      "at": "549:3",
+      "runes": "onyx-armor"
+    },
+    {
+      "at": "549:10",
+      "runes": "soul-serpent",
+      "to": "549:42"
+    },
+    {
+      "at": "549:50",
+      "runes": "shadow-dance",
+      "to": "549:54"
+    },
+    {
+      "at": "549:60",
+      "source": "drop-of-ichor",
+      "value": "Aspect Legacy Relic"
+    },
+    {
+      "at": "549:66",
+      "gain": "drop-of-ichor",
+      "name": "Drop of Ichor"
+    },
+    {
+      "at": "549:66",
+      "runes": "drop-of-ichor"
+    },
+    {
+      "at": "550:11",
+      "source": "memory-of-ice",
+      "value": "the Tournament"
+    },
+    {
+      "at": "550:11",
+      "source": "strike-of-thunder",
+      "value": "the Tournament"
+    },
+    {
+      "at": "550:11",
+      "source": "patient-avenger",
+      "value": "the Tournament"
+    },
+    {
+      "at": "550:16",
+      "name": "blackhorn-bow",
+      "value": "Blackhorn Bow"
+    },
+    {
+      "at": "550:16",
+      "name": "full-quiver",
+      "value": "Full Quiver"
+    },
+    {
+      "at": "550:16",
+      "name": "strike-of-thunder",
+      "value": "Strike of Thunder"
+    },
+    {
+      "at": "550:16",
+      "name": "patient-avenger",
+      "value": "Patient Avenger"
+    },
+    {
+      "at": "550:16",
+      "name": "morgans-warbow",
+      "value": "Morgan's Warbow"
+    },
+    {
+      "at": "550:20",
+      "runes": "strike-of-thunder",
+      "to": "550:26"
+    },
+    {
+      "at": "550:31",
+      "runes": "patient-avenger",
+      "to": "550:39"
+    },
+    {
+      "at": "550:48",
+      "runes": "morgans-warbow",
+      "to": "550:73"
+    }
+  ]
+}

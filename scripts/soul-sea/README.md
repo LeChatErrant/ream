@@ -24,7 +24,20 @@ npm run soul-sea    # extract → build → review, then open soul-sea/review.ht
 3. `review.mjs` — `soul-sea/review.html`: pick a chapter, see the Soul Sea as of
    the end of it, the rune sheets, and the passage behind every change.
 
-## timeline.json
+## Lookup tools
+
+- `node scripts/soul-sea/runes-in.mjs <from> <to>` — every rune block and Spell message in a chapter range
+- `node scripts/soul-sea/ctx.mjs 104:20 104:41:2:9 104` — passages with their paragraph indices
+- `node scripts/soul-sea/find.mjs "<regex>" <from> <to>` — search the text
+
+## timeline.json + parts/
+
+`timeline.json` holds chapters 1–204 and the shared settings; `parts/*.json` hold the
+rest, one chapter range each, with a `seed` (what Sunny holds when the part starts).
+`node scripts/soul-sea/build.mjs --part parts/<file>.json` checks one part on its own
+(replayed from its seed, its own checkpoints, nothing written); the plain build merges
+everything and reports any seed that disagrees with the parts before it. Mapped
+through ch 1840 (end of volume 8).
 
 Hand-curated, reviewed through `reviewedThrough`. Holds **no book text** beyond
 item names and short labels, each verified against its cited paragraph — the
@@ -41,6 +54,7 @@ Events, anchored at `"chapter:paragraph"` (paragraph index as in `text.json`):
 | `set` + `value` | a stat (True Name, Rank, Core) |
 | `runes` (+ `to`) | the rune sheet: rune lines in that paragraph range |
 | `source` + `value` | where it came from: the creature slain, the giver (“Obtained from”) |
+| `fact` + `label` + `value` | a Rank / Class / Tier / Type the book states in prose (\"now a Transcendent Devil\"); shown until a newer rune sheet |
 | `history` (+ `to`) | a passage about the item (review page only); `flashback: true` when told out of order |
 
 Order is **reading order**: a flashback (ch 122–168) adds history, it doesn't

@@ -1,0 +1,433 @@
+{
+  "range": [
+    205,
+    376
+  ],
+  "seedNote": "Seed = the reviewed timeline at the end of ch 204 (exact). Lists in range: 310 (full sheet), 331 & 359 (Shadows), 376 (Memories). The Memories list at 353:28 is Nephis's (already in notSunny).",
+  "seed": [
+    {
+      "id": "fated",
+      "kind": "attribute",
+      "name": "Fated"
+    },
+    {
+      "id": "child-of-shadows",
+      "kind": "attribute",
+      "name": "Child of Shadows"
+    },
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    },
+    {
+      "id": "midnight-shard",
+      "kind": "memory",
+      "name": "Midnight Shard"
+    },
+    {
+      "id": "spark-of-divinity",
+      "kind": "attribute",
+      "name": "Spark of Divinity"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "prowling-thorn",
+      "kind": "memory",
+      "name": "Prowling Thorn"
+    },
+    {
+      "id": "ordinary-rock",
+      "kind": "memory",
+      "name": "Ordinary Rock"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "stone-saint",
+      "kind": "shadow",
+      "name": "Stone Saint"
+    },
+    {
+      "id": "onyx-armor",
+      "kind": "memory",
+      "name": "M… Un…old"
+    },
+    {
+      "id": "blood-arrow",
+      "kind": "memory",
+      "name": "Blood Arrow"
+    }
+  ],
+  "entries": {
+    "kai-trade-memories": {
+      "kind": "memory"
+    },
+    "shadow-dance": {
+      "kind": "aspect"
+    },
+    "spider-silk-cloak": {
+      "kind": "memory"
+    },
+    "blood-blossom": {
+      "kind": "memory"
+    },
+    "dark-wing": {
+      "kind": "memory"
+    },
+    "dusk-shard": {
+      "kind": "memory"
+    },
+    "moonlight-shard": {
+      "kind": "memory"
+    },
+    "cohort-memories": {
+      "kind": "memory"
+    },
+    "weavers-mask": {
+      "kind": "memory"
+    },
+    "marble-saint": {
+      "kind": "shadow"
+    },
+    "oath-key": {
+      "kind": "memory"
+    },
+    "soul-conduit": {
+      "kind": "attribute"
+    },
+    "shadow-step": {
+      "kind": "ability"
+    },
+    "broken-oath": {
+      "kind": "memory"
+    },
+    "soul-serpent": {
+      "kind": "shadow"
+    }
+  },
+  "events": [
+    {
+      "at": "209:0",
+      "lose": "blood-arrow",
+      "how": "given"
+    },
+    {
+      "at": "209:0",
+      "source": "kai-trade-memories",
+      "value": "Kai"
+    },
+    {
+      "at": "209:0",
+      "gain": "kai-trade-memories",
+      "label": "three Memories"
+    },
+    {
+      "at": "209:1",
+      "lose": "kai-trade-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "218:40",
+      "gain": "shadow-dance",
+      "name": "Shadow Dance"
+    },
+    {
+      "at": "219:1",
+      "runes": "shadow-slave",
+      "to": "219:4"
+    },
+    {
+      "at": "219:4",
+      "runes": "shadow-dance",
+      "to": "219:12"
+    },
+    {
+      "at": "222:55",
+      "source": "spider-silk-cloak",
+      "value": "Iron Spider"
+    },
+    {
+      "at": "223:25",
+      "gain": "spider-silk-cloak",
+      "label": "a cloak weaved from spider silk"
+    },
+    {
+      "at": "223:26",
+      "lose": "spider-silk-cloak",
+      "how": "destroyed"
+    },
+    {
+      "at": "241:38",
+      "gain": "blood-blossom",
+      "name": "Blood Blossom"
+    },
+    {
+      "at": "241:38",
+      "gain": "dark-wing",
+      "name": "Dark Wing"
+    },
+    {
+      "at": "242:3",
+      "runes": "dark-wing",
+      "to": "242:13"
+    },
+    {
+      "at": "242:32",
+      "source": "dark-wing",
+      "value": "his Shadow"
+    },
+    {
+      "at": "242:37",
+      "runes": "blood-blossom",
+      "to": "242:51"
+    },
+    {
+      "at": "260:22",
+      "source": "dusk-shard",
+      "value": "Cursed Herald"
+    },
+    {
+      "at": "261:2",
+      "gain": "dusk-shard",
+      "name": "Dusk Shard"
+    },
+    {
+      "at": "261:2",
+      "runes": "dusk-shard",
+      "to": "261:8"
+    },
+    {
+      "at": "261:54",
+      "source": "moonlight-shard",
+      "value": "Nephis"
+    },
+    {
+      "at": "261:59",
+      "gain": "moonlight-shard",
+      "name": "Moon Shard"
+    },
+    {
+      "at": "262:2",
+      "runes": "moonlight-shard",
+      "to": "262:8"
+    },
+    {
+      "at": "262:37",
+      "lose": "dusk-shard",
+      "how": "given"
+    },
+    {
+      "at": "263:26",
+      "source": "cohort-memories",
+      "value": "other members of the cohort"
+    },
+    {
+      "at": "263:26",
+      "gain": "cohort-memories",
+      "label": "Memories"
+    },
+    {
+      "at": "263:26",
+      "lose": "cohort-memories",
+      "how": "destroyed"
+    },
+    {
+      "at": "273:48",
+      "runes": "stone-saint",
+      "to": "273:53"
+    },
+    {
+      "at": "277:50",
+      "source": "weavers-mask",
+      "value": "the chained corpse"
+    },
+    {
+      "at": "278:21",
+      "gain": "weavers-mask",
+      "name": "Weaver's Mask"
+    },
+    {
+      "at": "278:21",
+      "runes": "weavers-mask",
+      "to": "278:52"
+    },
+    {
+      "at": "281:27",
+      "name": "moonlight-shard",
+      "value": "Moonlight Shard"
+    },
+    {
+      "at": "310:23",
+      "become": "stone-saint",
+      "to": "marble-saint",
+      "name": "Marble Saint"
+    },
+    {
+      "at": "310:37",
+      "runes": "marble-saint",
+      "to": "310:48"
+    },
+    {
+      "at": "314:36",
+      "gain": "oath-key",
+      "name": "Oath Key"
+    },
+    {
+      "at": "323:32",
+      "source": "oath-key",
+      "value": "Shard Memories"
+    },
+    {
+      "at": "330:35",
+      "lose": "oath-key",
+      "how": "consumed"
+    },
+    {
+      "at": "341:65",
+      "gain": "soul-conduit",
+      "name": "Soul Conduit"
+    },
+    {
+      "at": "341:65",
+      "runes": "soul-conduit"
+    },
+    {
+      "at": "352:4",
+      "lose": "soul-conduit",
+      "how": "lost"
+    },
+    {
+      "at": "352:42",
+      "set": "class",
+      "value": "Monster"
+    },
+    {
+      "at": "352:43",
+      "set": "core",
+      "value": "Shadow Cores: [2/7]"
+    },
+    {
+      "at": "352:58",
+      "runes": "shadow-slave",
+      "to": "352:60"
+    },
+    {
+      "at": "352:62",
+      "runes": "shadow-bond",
+      "to": "352:63"
+    },
+    {
+      "at": "354:33",
+      "gain": "shadow-step",
+      "name": "Shadow Step"
+    },
+    {
+      "at": "354:37",
+      "set": "rank",
+      "value": "Awakened"
+    },
+    {
+      "at": "354:48",
+      "runes": "shadow-step",
+      "to": "354:49"
+    },
+    {
+      "at": "354:60",
+      "gain": "broken-oath",
+      "label": "the new Memory he acquired"
+    },
+    {
+      "at": "358:54",
+      "runes": "shadow-dance",
+      "to": "358:58"
+    },
+    {
+      "at": "358:62",
+      "runes": "shadow-dance"
+    },
+    {
+      "at": "358:64",
+      "source": "soul-serpent",
+      "value": "an Aspect Legacy Relic"
+    },
+    {
+      "at": "358:65",
+      "gain": "soul-serpent",
+      "name": "Soul Serpent"
+    },
+    {
+      "at": "359:43",
+      "runes": "soul-serpent",
+      "to": "359:58"
+    },
+    {
+      "at": "376:1",
+      "name": "broken-oath",
+      "value": "Broken Oath"
+    },
+    {
+      "at": "376:2",
+      "source": "broken-oath",
+      "value": "the Lord"
+    },
+    {
+      "at": "376:15",
+      "runes": "broken-oath",
+      "to": "376:26"
+    },
+    {
+      "at": "376:47",
+      "runes": "marble-saint",
+      "to": "376:52"
+    },
+    {
+      "at": "376:70",
+      "runes": "onyx-armor"
+    }
+  ],
+  "notSunny": [
+    "353:28"
+  ],
+  "checkpointNotes": {
+    "310:19": {
+      "extra": [
+        "Dark Wing",
+        "M… Un…old"
+      ],
+      "why": "The onyx armor is the same Memory, spelled [M… …old] in this list ([M… Un…old] at 182:45 and 376:1). The book also leaves the Dark Wing out of this list, but Sunny still uses it afterwards (323:17, 337:0, 341:41) and it is back in the 376:1 list; nothing in between gains or loses it."
+    }
+  }
+}
