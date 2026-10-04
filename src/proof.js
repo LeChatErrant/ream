@@ -75,6 +75,7 @@ export const proofState = () => ({
   enabled,
   hasFile: !!pkg,
   bookPending,
+  chapterLoaded: chapters.size > 0,
   chapterPending: pendingMarks().length,
   chapterTotal: [...chapters.values()].reduce((n, c) => n + c.findings.length, 0),
   fileDate: pkg?.createdAt || null,

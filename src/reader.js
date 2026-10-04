@@ -1137,6 +1137,9 @@ function renderProofControls() {
   proofRow.classList.toggle("proof-row--offline", s.enabled && !s.hasFile);
   // ✎ n while some are left to review; ✎ ✓ once the chapter is done (the list
   // still shows what was accepted / discarded); a plain ✎ when there are none.
+  // Between chapters (old one unloaded, next not matched yet) keep the pill as
+  // it was, or it flashes the empty "✎" on every chapter change.
+  if (s.enabled && s.hasFile && !s.chapterLoaded && !proofPill.hidden) return;
   const n = s.chapterPending;
   proofPill.hidden = !(s.enabled && s.hasFile);
   proofPill.textContent = n ? `✎ ${n}` : s.chapterTotal ? "✎ ✓" : "✎";
