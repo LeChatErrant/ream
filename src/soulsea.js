@@ -19,7 +19,8 @@ import { books, seriesById } from "./state.js";
 import { displayTitle } from "./reading.js";
 import { parseChapterLabel } from "./lib/text.js";
 import { baseHref } from "./lib/chapters.js";
-import { textKey } from "./lib/proof-key.js";
+import { textKey, textSig, sigSimilarity } from "./lib/proof-key.js";
+import { descText, cap } from "./lib/rune-sheet.js";
 import { armOverlay, closeOverlay } from "./router.js";
 
 const MATCH = /shadow\s*slave/i;
@@ -86,12 +87,27 @@ function parasOf(num) {
   return chapterParas.get(num);
 }
 
-/** The text of one referenced paragraph, only if the reader's copy has exactly it. */
-async function paragraph(ch, p, fp) {
+/**
+ * The text of one referenced paragraph in the reader's copy: the same text, or —
+ * when the copy differs a little (a typo fixed, a proofread epub) — the paragraph
+ * near the same place whose similarity signature (`g`) nearly matches, so a small
+ * edit never hides a rune line. Otherwise nothing: never a different paragraph.
+ */
+const lenOf = (fp) => parseInt(fp.split(".")[1], 36);
+async function paragraph(ch, p, fp, g) {
   const ps = await parasOf(ch);
   if (!ps) return null;
   if (ps[p] != null && textKey(ps[p]) === fp) return ps[p];
-  return ps.find((t) => textKey(t) === fp) ?? null;
+  const same = ps.find((t) => textKey(t) === fp);
+  if (same != null || !g) return same ?? null;
+  let best = null;
+  for (let q = Math.max(0, p - 6); q <= Math.min(ps.length - 1, p + 6); q++) {
+    const len = lenOf(textKey(ps[q]));
+    if (Math.abs(len - lenOf(fp)) > 0.25 * lenOf(fp)) continue;
+    const sim = sigSimilarity(textSig(ps[q]), g);
+    if (sim >= 0.75 && (!best || sim > best.sim || (sim === best.sim && Math.abs(q - p) < Math.abs(best.q - p)))) best = { q, sim };
+  }
+  return best ? ps[best.q] : null;
 }
 
 // ---- replaying the timeline -------------------------------------------------------
@@ -113,7 +129,8 @@ function stateAt(last) {
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
       x.facts = {}; // a newer sheet supersedes facts told in prose
-    } else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
+    } else if (e.type === "told") x.told = e; // how the story describes it (no runes, or none describing it)
+    else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
     else if (e.type === "source") Object.assign(x, { source: e.value, sourceItem: e.item });
   }
   return s;
@@ -296,8 +313,14 @@ function row(x, gone) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
-  else if (x.facts && Object.keys(x.facts).length) detail.append(buildSheet([], x));
-  else detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
+  // The story's own description when the runes give none (or there are no runes).
+  if (x.told && !x.sheet?.sheet.d) detail.append(told(x.told, !x.sheet));
+  if (!x.sheet && !x.told)
+    detail.append(
+      x.facts && Object.keys(x.facts).length
+        ? buildSheet({ at: [0], sheet: { f: [], l: [] } }, new Map(), x)
+        : h("p", { class: "soulsea__none" }, "No runes shown yet")
+    );
   // Where it came from: the creature, the giver, or what it evolved from.
   // Another item of the Soul Sea (what it evolved from, the Legacy whose relic it is) is a link.
   const before = x.from && stateOf(x.from);
@@ -315,253 +338,108 @@ function row(x, gone) {
   return out;
 }
 
-// ---- rune sheets -----------------------------------------------------------------
-// The lines are the book's own; only the layout is ours. "Memory Rank: Awakened."
-// becomes a Rank / Awakened row: the label loses the item-kind word, brackets and
-// the closing full stop, and a list of names becomes a list. The item's description
-// reads as an epigraph; enchantments, attributes and abilities get their name as a
-// heading — the build tells each description what it describes (`s`), since the
-// book often names it on the line before.
-
-// "Memory Rank" → "Rank" — but "Shadow Dance Mastery Level" stays itself.
-const KIND_WORD = /^(Memory|Echo|Shadow|Aspect|Flaw)\s+(?=(Rank|Tier|Type|Class|Description|Attributes|Abilities|Enchantments?|Ability Description|Legacy|Fragments)$)/;
-// A short value loses its full stop ("Awakened."); prose keeps its own, losing
-// only one that closes the brackets ("[…deserts].").
-const unwrap = (v, prose = false) =>
-  v
-    .trim()
-    .replace(prose ? /(?<=[\]"»])\.$/ : /\.$/, "")
-    .replace(/^\[([^[\]]*)\]$/, "$1")
-    .replace(/^"([^"]*)"$/, "$1")
-    .replace(/^«([^«»]*)»$/, "$1")
-    .replace(/^\[(.*)\]$/s, "$1")
-    // a bracket the book opens and never closes (or the reverse)
-    .replace(/^\[(?=[^\]]*$)/s, "")
-    .replace(/^«(?=[^»]*$)/s, "")
-    .replace(/(?<=^[^[]*)\](?=\.?$)/s, "")
-    .trim();
-// The book sometimes starts a description in lower case ("a small memento…").
-const cap = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
-
-/** One rune line → { label, subject?, value }. */
-function parseRune(t) {
-  t = t.trim().replace(/^(…|\.\.\.)\s*/, "");
-  let m = t.match(/^\[([^\]]+)\]\s+(\w+ Descriptions?)\s*:\s*(.*)$/s); // [Fated] Attribute Description: "…"
-  if (m) return { label: m[2].replace(/s$/, "").replace(/Enchantments/, "Enchantment"), subject: m[1], value: m[3] };
-  m = t.match(/^((?:[A-Z][\w']*\s){1,4})(Attribute|Enchantment|Ability) Description\s*:\s*(.*)$/s); // Battle Master Attribute Description: […]
-  if (m && !/^(Memory|Echo|Shadow|Aspect|Flaw|Aspect Ability)$/.test(m[1].trim())) return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
-  m = t.match(/^([A-Z][\w' ]{0,40}?)\s*:\s*(.*)$/s); // Memory Rank: Awakened.
-  if (m) return { label: m[1], value: m[2] };
-  m = t.match(/^\[(.*)\]\.?$/s); // a Spell message: "[Silver Bell: a small memento…]", "[Shadow Fragments: 0/200.]"
-  if (m) {
-    const inner = parseRune(m[1]);
-    // "[Silver Bell: …]" names the item, then describes it.
-    return inner.label && !/^[A-Z][\w' ]*(Fragments|Rank|Tier|Type|Class)$/.test(inner.label)
-      ? { label: "Description", value: inner.value }
-      : inner.label
-        ? inner
-        : { label: "Description", value: m[1] };
-  }
-  return { label: "Description", value: t };
-}
-
-// Lines the epub runs together in one paragraph ("Echoes: -Shadows: [Onyx Saint]…")
-// are split where a new "Label:" starts outside any brackets.
-const LABEL_AT = /^(?:\[[^\]]+\]\s+)?[A-Z][A-Za-z' ]{1,40}:\s/;
-function splitFields(t) {
-  const out = [];
-  let depth = 0;
-  let start = 0;
-  for (let i = 0; i < t.length; i++) {
-    if (depth === 0 && i > start && /[.\]\-—?]/.test(t[i - 1]) && LABEL_AT.test(t.slice(i, i + 80))) {
-      out.push(t.slice(start, i).trim());
-      start = i;
-    }
-    if (t[i] === "[") depth++;
-    else if (t[i] === "]") depth = Math.max(0, depth - 1);
-  }
-  out.push(t.slice(start).trim());
-  return out.filter(Boolean);
-}
-
-/**
- * Paragraphs → rune lines { t, s }. A continuation (`cont`) is the rest of the line
- * before: more paragraphs of a long description, or — right after a line the book
- * cuts short — the full text it prints next, which replaces the cut-off one.
- */
-// A rune paragraph can run on into Sunny's commentary after a line break
-// ("…proficient in all forms of warfare."\nHe was not sure what it meant…): drop it.
-const RUNE_START = /^\s*(["“«[(]|(…|\.\.\.)?\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:)/;
-const runeOnly = (t) => {
-  const ls = t.split("\n");
-  const end = ls.findIndex((l, i) => i > 0 && l.trim() && !RUNE_START.test(l));
-  return end < 0 ? t : ls.slice(0, end).join("\n");
-};
-
-function runeLines(paras) {
-  const lines = [];
-  for (const { t: raw, cont, s } of paras) {
-    const t = cont ? raw : runeOnly(raw);
-    const prev = lines.at(-1);
-    if (cont && prev) {
-      const cut = /(…|\.\.\.)\]?\.?\s*$/.test(prev.t) && /^\s*\[[^:]*\]\.?\s*$/.test(t);
-      // "Attribute Description..." then "[Damnation!]": the label trails off instead of a colon.
-      const colon = prev.t.indexOf(":");
-      prev.t = cut ? (colon >= 0 ? prev.t.slice(0, colon + 1) : prev.t.replace(/\s*(…|\.\.\.)\s*$/, ":")) + " " + t.trim() :/:\s*$/.test(prev.t) ? `${prev.t} ${t.trim()}` : `${prev.t}\n\n${t.trim()}`;
-    } else for (const part of splitFields(t)) lines.push({ t: part, s: /Description/.test(part) ? s : undefined });
-  }
-  return lines;
-}
-
-// Tiers are Roman numerals in the runes; the book once spells one out ("Memory Tier: Seven.").
-const TIER_WORDS = { one: "I", two: "II", three: "III", four: "IV", five: "V", six: "VI", seven: "VII", eight: "VIII", nine: "IX" };
-const romanTier = (v) => TIER_WORDS[v.toLowerCase()] ?? v;
+// ---- rune sheets (read by lib/rune-sheet.js; laid out here) ----------------------
 const ORDINAL = { First: 0, Second: 1, Third: 2, Fourth: 3, Fifth: 4, Sixth: 5, Seventh: 6 };
 
-// A reference to another item of the Soul Sea: tapping it opens that item.
+// A reference to another item of the Soul Sea: tapping it opens that item. Only
+// what is an item of its own is linked — an Aspect's Abilities, a Legacy's Relics —
+// never a Shadow's attribute that happens to share a name with one of Sunny's.
 function itemLink(other, text = nameOf(other)) {
   return h("button", { class: "soulsea__link", type: "button", onclick: (e) => (e.stopPropagation(), focusItem(other)) }, text);
 }
-const itemNamed = (name, self) => Object.values(current).find((o) => o !== self && o.kind !== "stat" && o.name === name);
+const LINKABLE = new Set(["aspect", "legacy", "relic", "ability", "flaw"]);
+const itemNamed = (name, self) => Object.values(current).find((o) => o !== self && LINKABLE.has(o.kind) && o.name === name);
 
-function buildSheet(paras, x) {
-  const lines = runeLines(paras);
-  const facts = [];
-  const lists = [];
-  const notes = []; // named descriptions: enchantments, attributes, abilities
-  let epigraph = null;
-  let pending = null; // a name line ("Enchantment: [Doubtless].", "[Blade of Darkness].") titling the description after it
-  const clean = (n) => n.trim().replace(/(\.+|…)$/, "");
-  // Repeated lines: the later one wins (sheets are in reading order)…
-  // …unless it's cut short ("A pitiful little creature...") and the earlier one is the full text.
-  const cutOf = (nu, old) => {
-    const stem = nu?.replace(/\s*(…|\.\.\.)$/, "");
-    return !!old && stem !== nu && old.startsWith(stem) && old.length > stem.length;
-  };
-  const put = (arr, item, same) => {
-    const i = arr.findIndex(same);
-    if (i >= 0 && cutOf(item.text ?? item.value, arr[i].text ?? arr[i].value)) return;
-    if (i >= 0) arr.splice(i, 1);
-    arr.push(item);
-  };
-  for (const { t, s } of lines) {
-    // A garbled name line the Spell couldn't finish ("[Fragment of the Shadow Realm].??: ????: ??").
-    if (t.startsWith(`[${x.name}]`) && /\?\?/.test(t)) continue;
-    const r = parseRune(t);
-    const label = r.label.replace(KIND_WORD, "");
-    const value = clean(unwrap(r.value));
-    const prose = unwrap(r.value, true);
-    const bareName = /^\s*\[[^:\]]{1,60}\]\.?\s*$/.test(t);
-    if (bareName || label === "Enchantment" || label === "Ability" || label === "Attribute") {
-      const name = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
-      if (name !== x.name) pending = name;
-      continue;
-    }
-    // The line naming the item ("Memory: [Midnight Shard].") repeats the row's title —
-    // or names what it evolved from.
-    if (!r.subject && (value === x.name || /^(Memory|Shadow|Echo|Aspect Legacy)$/.test(r.label))) continue;
-    if (/Description$/.test(label)) {
-      // "Shadow Dance Description", "[Fated] Attribute Description", or a description with no other subject: the item's own.
-      const title = r.subject || s || (label !== "Description" && !/^(Attribute|Ability|Enchantment) Description$/.test(label) ? label.replace(/ Description$/, "") : null) || pending;
-      pending = null;
-      const own = title === x.name || (!title && (label === "Description" || x.kind === "attribute" || x.kind === "ability"));
-      if (own) {
-        if (!cutOf(prose, epigraph)) epigraph = prose;
-      } else put(notes, { title, kind: label, text: prose }, (n) => title && n.title === title);
-    }
-    // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]".
-    else if (/^\[[^\]\d][^\]]*\](,\s*\[.+\])*$/.test(r.value.trim().replace(/\.$/, "")) && /s$/.test(label))
-      put(lists, { label, names: [...r.value.matchAll(/\[([^\]]+)\]?/g)].map((m) => clean(m[1])) }, (l) => l.label === label);
-    else put(facts, { label, value: label === "Tier" ? romanTier(value) : value }, (f) => f.label === label);
-  }
-  // What the book has said since the last rune sheet ("now a Transcendent Devil").
-  for (const [label, value] of Object.entries(x.facts || {})) put(facts, { label, value }, (f) => f.label === label);
-  // A list's "???" the book later reveals ("[Where is my eye?]"): the described name not in the list.
-  for (const l of lists) {
-    const unknown = l.names.indexOf("???");
-    const kind = { Enchantments: "Enchantment Description", Attributes: "Attribute Description", Abilities: "Ability Description" }[l.label];
-    const revealed = notes.filter((n) => n.kind === kind && n.title && !l.names.includes(n.title));
-    if (unknown >= 0 && revealed.length === 1) l.names[unknown] = revealed[0].title;
-  }
-  // Descriptions the book lists without naming: in the order of the list.
-  for (const l of lists) {
-    const kind = { Enchantments: "Enchantment Description", Attributes: "Attribute Description", Abilities: "Ability Description" }[l.label];
-    const unnamed = notes.filter((n) => n.kind === kind && !n.title);
-    const open = l.names.filter((name) => !notes.some((n) => n.title === name));
-    if (unnamed.length && unnamed.length === open.length) unnamed.forEach((n, i) => (n.title = open[i]));
-  }
-
+/**
+ * An item's rune sheet, as the build read it (see build.mjs): facts `f`, the item's
+ * description `d`, lists `l` of names each with its description, leftovers `o`.
+ * A description is a list of paragraph references; `texts` holds what the reader's
+ * copy has for them.
+ */
+function buildSheet(e, texts, x) {
+  const sh = e.sheet;
   const box = h("div", { class: "soulsea__sheet" });
   const relics = data.entries[x.id]?.relics;
+  // What the book has said since the last rune sheet ("now a Transcendent Devil") wins.
+  const facts = sh.f.filter(([k]) => !(x.facts && k in x.facts)).concat(Object.entries(x.facts || {}));
   if (facts.length)
     box.append(
       h(
         "div",
         { class: "soulsea__facts" },
-        facts.map((f) => {
+        facts.map(([label, value]) => {
           // "Second Relic: Claimed" → and which item it was; "Innate Ability: Shadow Bond" → that ability.
           // A relic Sunny holds (or held) is claimed, even if this sheet predates the claim ("[Claim]").
-          const relic = relics && /Relic$/.test(f.label) && current[relics[ORDINAL[f.label.split(" ")[0]]]];
-          const other = relic || itemNamed(f.value, x);
+          const relic = relics && /Relic$/.test(label) && current[relics[ORDINAL[label.split(" ")[0]]]];
+          const other = relic || itemNamed(value, x);
           return h(
             "div",
             { class: "soulsea__fact" },
-            h("span", { class: "soulsea__fact-k" }, f.label),
-            h("span", { class: "soulsea__fact-v" }, relic ? itemLink(relic) : other ? itemLink(other, f.value) : f.value)
+            h("span", { class: "soulsea__fact-k" }, label),
+            h("span", { class: "soulsea__fact-v" }, relic ? itemLink(relic) : other ? itemLink(other, value) : value)
           );
         })
       )
     );
   const prose = (text, cls) => cap(text).split(/\n\n+/).map((t) => h("p", { class: cls }, t));
-  if (epigraph) box.append(...prose(epigraph, "soulsea__epigraph"));
-  else if (paras.length) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
+  // A description the reader's copy doesn't have (another edition, a missing volume) says so.
+  const desc = (d, cls) => {
+    const parts = d.map((r) => ({ ...r, t: texts.get(refKey(e, r)) }));
+    return parts.every((r) => r.t != null) ? prose(descText(parts), cls) : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")];
+  };
+  if (sh.d) box.append(...desc(sh.d, "soulsea__epigraph"));
+  else if ((sh.f.length || sh.l.length) && !x.told) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
   // Under each list ("Enchantments"), every name in the book's order, with its
   // description when the book gives one; a name that is an item of its own (an
   // Aspect's Abilities) links to it instead.
   const note = (n) => {
-    const other = n.title && !n.text && itemNamed(n.title, x);
+    const other = !n.d && itemNamed(n.n, x);
     return h(
       "div",
       { class: "soulsea__note-block" },
-      n.title ? h("div", { class: "soulsea__note-title" }, other ? itemLink(other) : n.title) : null,
-      n.text ? prose(n.text, "soulsea__note-text") : other ? null : h("p", { class: "soulsea__none" }, "No description yet")
+      n.n ? h("div", { class: "soulsea__note-title" }, other ? itemLink(other) : n.n) : null,
+      n.d ? desc(n.d, "soulsea__note-text") : other ? null : h("p", { class: "soulsea__none" }, "No description yet")
     );
   };
-  const placed = new Set();
-  for (const l of lists) {
-    const entries = l.names.map((name) => {
-      const n = notes.find((m) => m.title === name);
-      if (n) placed.add(n);
-      return n || { title: name };
-    });
-    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.label), entries.map(note)));
-  }
-  for (const n of notes) if (!placed.has(n)) box.append(note(n));
+  for (const l of sh.l) box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.k), l.n.map(note)));
+  for (const n of sh.o || []) box.append(note(n));
+  return box;
+}
+
+// No runes in the book: what it holds, as the story names it, and the story's own words.
+function buildTold(e, texts, withNames) {
+  const box = h("div", { class: "soulsea__sheet" });
+  for (const [label, names] of withNames ? Object.entries(e.names || {}) : [])
+    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, label), names.map((n) => h("div", { class: "soulsea__note-block" }, h("div", { class: "soulsea__note-title" }, n)))));
+  const ps = e.paras.map((r) => texts.get(refKey(e, r))).filter((t) => t != null);
+  box.append(h("span", { class: "soulsea__k" }, "In the story"));
+  box.append(...(ps.length ? ps.map((t) => h("p", { class: "soulsea__note-text" }, t)) : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")]));
   return box;
 }
 
 // Resolved paragraphs, so a re-render (expanding another row) draws instantly.
-// A reference is { p, fp, ch?, c?, s? } (see build.mjs).
+// A reference is { p, fp, g, ch? } (see build.mjs); a sheet's are all its descriptions'.
 const textCache = new Map();
+const refKey = (e, r) => `${r.ch ?? e.at[0]}:${r.p}:${r.fp}`;
+const refsOf = (e) =>
+  e.sheet ? [e.sheet.d, ...e.sheet.l.flatMap((l) => l.n.map((n) => n.d)), ...(e.sheet.o || []).map((n) => n.d)].filter(Boolean).flat() : e.paras || [];
 function load(e) {
-  const [ch] = e.at;
-  const refs = (e.paras || [{ p: e.at[1], fp: e.fp }]).map((r) => ({ r: [r.ch ?? ch, r.p, r.fp], cont: !!r.c, s: r.s }));
-  const key = ({ r }) => r.join(":");
-  const out = (ts) => refs.map((ref, i) => ({ t: ts[i], cont: ref.cont, s: ref.s })).filter((x) => x.t != null);
-  if (refs.every((ref) => textCache.has(key(ref)))) return out(refs.map((ref) => textCache.get(key(ref))));
-  return Promise.all(refs.map((ref) => paragraph(...ref.r).then((t) => (textCache.set(key(ref), t), t)))).then(out);
+  const refs = refsOf(e);
+  const out = () => new Map(refs.map((r) => [refKey(e, r), textCache.get(refKey(e, r))]));
+  if (refs.every((r) => textCache.has(refKey(e, r)))) return out();
+  return Promise.all(refs.map((r) => paragraph(r.ch ?? e.at[0], r.p, r.fp, r.g).then((t) => textCache.set(refKey(e, r), t)))).then(out);
 }
 
-// Paragraphs come from the reader's own epubs; one that isn't found verbatim in
-// this copy is left out rather than approximated.
+// Paragraphs come from the reader's own epubs: the same text or, after a small
+// edit, nearly the same — never a stand-in.
 function whenLoaded(e, draw) {
   const box = h("div", { class: "soulsea__loadbox" });
-  const done = (ts) => {
-    box.replaceChildren(ts.length ? draw(ts) : h("p", { class: "soulsea__empty" }, "This chapter isn’t in your library, or differs from the mapped copy."));
+  const done = (texts) => {
+    box.replaceChildren(draw(texts));
     if (focused && box.closest(`.soulsea__row[data-id="${focused}"]`)) scrollToFocused();
   };
   const got = load(e);
-  if (Array.isArray(got)) done(got);
+  if (got instanceof Map) done(got);
   else {
     box.append(h("p", { class: "soulsea__empty" }, "…"));
     got.then(done);
@@ -569,4 +447,5 @@ function whenLoaded(e, draw) {
   return box;
 }
 
-const sheet = (e, x) => whenLoaded(e, (ts) => buildSheet(ts, x));
+const sheet = (e, x) => whenLoaded(e, (texts) => buildSheet(e, texts, x));
+const told = (e, withNames) => whenLoaded(e, (texts) => buildTold(e, texts, withNames));

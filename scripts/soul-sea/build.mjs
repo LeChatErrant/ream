@@ -18,6 +18,8 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { APP_DATA, TIMELINE, WORK, fieldsOf, isMessage, listOf, textKey } from './lib.mjs'
+import { textSig } from '../../src/lib/proof-key.js'
+import { readSheet, descText } from '../../src/lib/rune-sheet.js'
 
 const tl = JSON.parse(await readFile(TIMELINE, 'utf8'))
 const text = JSON.parse(await readFile(path.join(WORK, 'text.json'), 'utf8'))
@@ -76,6 +78,9 @@ const bare = (t) => /^\s*\[[^:]*\]\.?\s*$/.test(t)
 // A line that only names what the next description is about: "Attribute: Soul Companion.",
 // "Enchantment: [Simple Trick].", "[Soul Arrow]."
 const NAME_LINE = /^\s*(?:(?:Memory |Aspect |Shadow )?(?:Enchantment|Attribute|Ability)\s*:\s*\[?([^\]:]{1,60}?)\]?|\[([^\]:]{1,60})\])\.?\s*$/
+// …but a bracketed sentence is a description: "[Shadows recognize you as their ruler.]"
+const SENTENCE = /^\s*\[[^\]]*\S\s+\S+\s+[^\]]*[.!?]\]\.?\s*$/
+const nameLine = (t) => (NAME_LINE.test(t) && !SENTENCE.test(t) ? t.match(NAME_LINE) : null)
 /** What a description line describes, from the line itself or the name line before it in the book. */
 function subjectOf(chap, p) {
   const t = chap[p]
@@ -89,13 +94,14 @@ function subjectOf(chap, p) {
   for (let q = p - 1; q >= Math.max(0, p - 8); q--) {
     const u = chap[q].trim()
     if (/Descriptions?\s*:/.test(u)) return null
-    const n = u.match(NAME_LINE)
-    if (n) return (n[1] ?? n[2]).trim()
+    const n = nameLine(u)
+    // ("[You have acquired a new Attribute.]" is a Spell message, not a name.)
+    if (n && !/^(You|Your)\b|[.!?]$/.test((n[1] ?? n[2]).trim())) return (n[1] ?? n[2]).trim()
     const one = u.match(/^(?:Memory |Shadow |Echo )?(?:Enchantments|Attributes|Abilities)\s*:\s*\[([^\]]+)\]\.?\s*$/)
     if (one) return one[1].trim()
     // Narration naming exactly one thing: "The [Soul Beast] wasn't there before..."
     const named = [...u.matchAll(/\[([^\]:]{1,60})\]/g)]
-    if (named.length === 1 && !/:/.test(u)) return named[0][1].trim()
+    if (named.length === 1 && !/:/.test(u) && !/^(You|Your)\b|[.!?]$/.test(named[0][1].trim())) return named[0][1].trim()
   }
   return null
 }
@@ -107,7 +113,7 @@ const events = []
 for (const e of tl.events) {
   const at = pos(e.at)
   const t = para(at)
-  const id = e.gain ?? e.lose ?? e.runes ?? e.history ?? e.become ?? e.name ?? e.set ?? e.source ?? e.fact
+  const id = e.gain ?? e.lose ?? e.runes ?? e.history ?? e.told ?? e.become ?? e.name ?? e.set ?? e.source ?? e.fact
   if (e.fact && !['Rank', 'Class', 'Tier', 'Type'].includes(e.label)) errors.push(`${e.at}: a fact is a Rank, Class, Tier or Type`)
   if (t == null) { errors.push(`${e.at}: no such paragraph`); continue }
   if (!tl.entries[id]) errors.push(`${e.at}: unknown entry "${id}"`)
@@ -115,7 +121,7 @@ for (const e of tl.events) {
   for (const k of (e.fact ? ['value'] : ['label', 'value']).concat(e.gain || e.become ? ['name'] : []))
     if (typeof e[k] === 'string' && !has(t, e[k])) errors.push(`${e.at}: "${e[k]}" is not in the paragraph`)
   const out = { ...e, at, ref: ref(at) }
-  if (e.runes || e.history) {
+  if (e.runes || e.history || e.told) {
     const end = e.to ? pos(e.to) : at
     if (end[0] !== at[0] || end[1] < at[1]) errors.push(`${e.at}: bad range to ${e.to}`)
     const ps = []
@@ -134,8 +140,10 @@ for (const e of tl.events) {
     let prevCut = false
     for (let p = at[1]; p <= end[1]; p++) {
       const t = chap[p]
-      if (e.history) { ps.push(ref([at[0], p])); continue }
+      if (e.history || e.told) { ps.push(ref([at[0], p])); continue }
       // The corrected line the book prints right after a cut-off one replaces it.
+      // ("Class: Demon..." then "[...Marble Saint is evolving]" is a Spell message, not a correction.)
+      if (prevCut && bare(t) && /^\s*\[(…|\.\.\.)/.test(t)) { prevCut = false; continue }
       if (prevCut && bare(t)) { ps.push({ ...ref([at[0], p]), cont: true }); prevCut = false; continue }
       if (!isRuneLine(t)) continue
       // `about` names a description's subject by hand when only the narration says it.
@@ -146,7 +154,7 @@ for (const e of tl.events) {
       prevCut = cutShort(t)
       const depth = OPEN_DESC.test(t) ? 0 : openBrackets(t)
       if (depth > 0 || OPEN_DESC.test(t)) {
-        const q = OPEN_DESC.test(t) ? (/^\s*["“«\[]/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
+        const q = OPEN_DESC.test(t) ? (/^\s*["“«[]/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
         if (q > 0) {
           for (let c = p + 1; c <= q; c++) ps.push({ ...ref([at[0], c]), cont: true })
           p = q
@@ -156,6 +164,9 @@ for (const e of tl.events) {
     }
     if (!ps.length) errors.push(`${e.at}: no rune lines in range`)
     out.paras = ps
+    // A told passage may name what the item holds: "[Sonorous], [Silenced], and [Sepulcher Song]".
+    for (const n of Object.values(e.names ?? {}).flat())
+      if (!ps.some((r) => has(text[r.ch][r.p], n))) errors.push(`${e.at}: "${n}" is not in the passage`)
   }
   events.push(out)
 }
@@ -187,18 +198,27 @@ for (const e of tl.events) {
     )
   const sheets = {}
   const carried = []
+  // Every name an item goes by, lower case (descriptions are keyed by their subject's name).
+  const namesOf = (id) =>
+    new Set(tl.events.flatMap((e) => (e.gain === id ? [e.name, e.label] : e.become === id || e.to === id ? [e.name] : e.name === id ? [e.value] : [])).filter(Boolean).map((n) => n.toLowerCase()))
   for (const e of events.filter((e) => e.runes || e.become).sort((a, b) => cmp(a.at, b.at))) {
     // An evolution keeps what the book said about the item: an Echo turned Shadow its
     // Attribute descriptions; a Shadow or Memory evolving its description, Attributes,
     // Abilities and Enchantments — but not its Rank / Class / Tier / fragments, which
     // the evolution changes (until the book shows them again). The item-name line goes.
+    // An Attribute evolving keeps its Traits and what they are (Marble Shell → Onyx Shell),
+    // not its own description (Master → Lord of Shadows says something new).
     if (e.become) {
       const from = tl.entries[e.become]?.kind
       const to = tl.entries[e.to]?.kind
-      const keep = from === 'echo' && to === 'shadow' ? (x) => /attribute description/.test(x.key)
+      const subject = (k) => k.match(/^(?:attribute|enchantment|ability)\|(.+?)(#\d+)?$/)?.[1]
+      const keep = from === 'echo' && to === 'shadow' ? (x) => /attribute description/.test(x.key) || x.key.startsWith('attribute|')
         : from === to && (to === 'shadow' || to === 'memory') ? (x) => ![...x.keys].some((k) => /^(memory|shadow|echo)$|rank$|class$|tier$|fragments$/.test(k))
+        : from === to && to === 'attribute' ? (x) => /traits$/.test(x.key) || (subject(x.key) && !namesOf(e.become).has(subject(x.key)))
         : () => false
-      sheets[e.to] = (sheets[e.become] ?? []).filter(keep)
+      // Lines the evolved item already had (anchored earlier) stay; the carried ones join them.
+      const kept = (sheets[e.become] ?? []).filter(keep)
+      sheets[e.to] = [...(sheets[e.to] ?? []).filter((x) => !kept.some((k) => k.key === x.key)), ...kept]
       // So the evolved item shows it even if the book never prints its runes again.
       if (sheets[e.to].length) carried.push({ runes: e.to, at: e.at, ref: e.ref, paras: sheets[e.to].flatMap((x) => x.unit), carried: true })
       continue
@@ -214,7 +234,7 @@ for (const e of tl.events) {
       const r = unit[0]
       const t = text[r.ch][r.p]
       // A bare name line has done its job once the description after it knows its subject.
-      if (NAME_LINE.test(t)) continue
+      if (nameLine(t)) continue
       let key = (label(t) ?? t).toLowerCase().replace(/^\[|\]$/g, '')
       // Descriptions are keyed by what they describe, however the book phrased the line.
       if (r.s) key = (/attribute/.test(key) ? 'attribute' : /ability/.test(key) ? 'ability' : /enchant/.test(key) ? 'enchantment' : key) + '|' + r.s.toLowerCase()
@@ -387,28 +407,75 @@ if (part) process.exit(0)
 // ---- the app's copy: references only, no book text -------------------------------
 // The reader resolves every [chapter, paragraph, fingerprint] against the user's own
 // epub and shows a paragraph only when its fingerprint matches.
-const TYPES = ['gain', 'lose', 'become', 'name', 'set', 'runes', 'history', 'source', 'fact']
+// Each sheet is read here, once (src/lib/rune-sheet.js): its facts, lists and the
+// description of every listed name, with the book's typos paired up. The app gets
+// the result — names and short values, and for every description only the
+// paragraphs to rebuild it from — so what it shows is exactly what the audit checks.
+const sheetErrors = []
+{
+  const all = Object.values(text).flat().map(norm).join('\n')
+  const count = (n) => all.match(new RegExp(`(?<![\\w'])${norm(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w'])`, 'g'))?.length ?? 0
+  // Of two spellings of one name, the book's usual one ("Chiffonnier", not "Chifonnier").
+  const prefer = (a, b) => (count(a) > count(b) ? a : b)
+  const names = {}
+  for (const e of events) {
+    if (e.gain) names[e.gain] = e.name ?? e.label
+    if (e.become) names[e.to] = e.name
+    if (e.name && !e.gain && !e.become) names[e.name] = e.value
+    if (!e.runes) continue
+    const x = { name: names[e.runes] ?? e.runes, kind: tl.entries[e.runes]?.kind }
+    const paras = e.paras.map((r) => ({ t: text[r.ch][r.p], cont: !!r.cont, s: r.s }))
+    const sh = readSheet(paras, x, { prefer })
+    const where = `${e.ref.ch}:${e.ref.p} ${x.name}`
+    // A description, as references the app rebuilds it from — checked here.
+    const refs = (d) => {
+      const rs = d.src.map(({ i, ...how }) => ({ ...e.paras[i], ...how }))
+      const back = descText(rs.map((r) => ({ ...r, t: text[r.ch][r.p] })))
+      if (back !== d.text) sheetErrors.push(`${where}: a description doesn't rebuild from its paragraphs`)
+      return rs.map((r) => {
+        const o = { p: r.p, fp: r.fp, g: textSig(text[r.ch][r.p]) }
+        if (r.ch !== e.at[0]) o.ch = r.ch
+        for (const k of ['seg', 'raw', 'cut']) if (r[k] != null) o[k] = r[k]
+        return o
+      })
+    }
+    // (or in the name line just before a description, which the sheet drops)
+    const inSheet = (v) => e.paras.some((r) => text[r.ch].slice(Math.max(0, r.p - 8), r.p + 1).some((t) => has(t, v)))
+    for (const f of sh.facts) if (!inSheet(f.value) && f.label !== 'Tier') sheetErrors.push(`${where}: "${f.value}" is not in the sheet`)
+    for (const l of sh.lists) for (const n of l.names) if (!inSheet(n.name)) sheetErrors.push(`${where}: "${n.name}" is not in the sheet`)
+    e.sheet = {
+      f: sh.facts.map((f) => [f.label, f.value]),
+      ...(sh.epigraph ? { d: refs(sh.epigraph) } : {}),
+      l: sh.lists.map((l) => ({ k: l.label, n: l.names.map((n) => ({ n: n.name, ...(n.src ? { d: refs(n) } : {}), ...(n.unlisted ? { u: 1 } : {}) })) })),
+      ...(sh.notes.length ? { o: sh.notes.map((n) => ({ n: n.title, k: n.kind, d: refs(n) })) } : {}),
+    }
+  }
+}
+if (sheetErrors.length) {
+  console.error(`\n${sheetErrors.length} sheet error(s):\n  ` + sheetErrors.join('\n  '))
+  process.exit(1)
+}
+
+const TYPES = ['gain', 'lose', 'become', 'name', 'set', 'runes', 'told', 'source', 'fact']
 const app = {
   format: 'ream-soul-sea',
   series: tl.series,
   character: tl.character,
   reviewedThrough: tl.reviewedThrough,
   entries: tl.entries,
-  events: events.map((e) => {
+  // History passages are for the review page only.
+  events: events.filter((e) => !e.history).map((e) => {
     const type = TYPES.find((t) => e[t] != null)
     const o = { type, id: e[type], at: e.at, fp: e.ref.fp }
     for (const k of ['label', 'value', 'how', 'item']) if (e[k] != null) o[k] = e[k]
     if ((type === 'gain' || type === 'become') && e.name) o.name = e.name
     if (type === 'become') o.to = e.to
-    // { p, fp, ch (when not the event's chapter), c: 1 (continues the line before), s: what a description describes }
-    if (e.paras)
-      o.paras = e.paras.map((r) => {
-        const x = { p: r.p, fp: r.fp }
-        if (r.ch !== e.at[0]) x.ch = r.ch
-        if (r.cont) x.c = 1
-        if (r.s) x.s = r.s
-        return x
-      })
+    if (e.sheet) o.sheet = e.sheet
+    // A told passage: whole paragraphs { p, fp, g, ch (when not the event's chapter) }.
+    if (e.told) {
+      if (e.names) o.names = e.names
+      o.paras = e.paras.map((r) => ({ p: r.p, fp: r.fp, g: textSig(text[r.ch][r.p]), ...(r.ch !== e.at[0] ? { ch: r.ch } : {}) }))
+    }
     if (e.flashback) o.flashback = true
     if (e.auto) o.auto = true
     return o

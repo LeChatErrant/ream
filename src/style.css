@@ -2019,6 +2019,7 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .soulsea[hidden] { display: none; }
 @keyframes soulsea-in { from { transform: translateY(12px); opacity: 0; } }
+.soulsea__bar { border-bottom: 1px solid var(--border); }
 .soulsea__body {
   position: relative; /* rows measure their offset from here (focusItem) */
   flex: 1 1 auto;
@@ -2094,10 +2095,18 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__meta { flex: none; font: 400 12px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
 .soulsea__chev { flex: none; display: inline-flex; align-self: center; color: var(--text-dimmest); transition: transform 0.18s ease; }
 .soulsea__row--open .soulsea__chev { transform: rotate(90deg); }
-.soulsea__row--open { background: var(--row-current); }
+/* An opened item stands apart from its neighbours — opened ones too: its own band
+   with a firmer edge, its title row tinted, a gap before the next one. */
+.soulsea__row--open { background: var(--row-current); border-block: 1px solid var(--border-2f); }
+.soulsea__row--open:first-child { border-top-color: transparent; }
+.soulsea__row--open:last-child { border-bottom-color: transparent; }
+.soulsea__row--open + .soulsea__row { border-top-color: transparent; }
+.soulsea__row--open + .soulsea__row--open { margin-top: 10px; border-top-color: var(--border-2f); }
+.soulsea__row--open > .soulsea__row-head { background: var(--pill); }
+.soulsea__row--open > .soulsea__row-head .soulsea__name { font-weight: 600; }
 
 /* The opened item: its rune sheet, laid out (the words stay the book's). */
-.soulsea__detail { padding: 2px 14px 14px; }
+.soulsea__detail { padding: 12px 14px 16px; }
 .soulsea__sheet { display: flex; flex-direction: column; gap: 14px; }
 .soulsea__facts { display: flex; flex-wrap: wrap; gap: 10px 22px; }
 .soulsea__fact { display: flex; flex-direction: column; gap: 3px; }

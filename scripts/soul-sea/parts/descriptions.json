@@ -1,0 +1,309 @@
+{
+  "range": [
+    1,
+    2882
+  ],
+  "events": [
+    {
+      "told": "oath-key",
+      "at": "314:31",
+      "to": "314:32"
+    },
+    {
+      "told": "soul-conduit",
+      "at": "342:4"
+    },
+    {
+      "runes": "marble-shell",
+      "at": "377:43",
+      "to": "377:44"
+    },
+    {
+      "runes": "marble-shell",
+      "at": "377:46"
+    },
+    {
+      "told": "autumn-leaf",
+      "at": "388:17"
+    },
+    {
+      "told": "full-quiver",
+      "at": "438:59"
+    },
+    {
+      "told": "blackhorn-bow",
+      "at": "438:59"
+    },
+    {
+      "told": "flame-of-divinity",
+      "at": "552:20"
+    },
+    {
+      "told": "weavers-needle",
+      "at": "627:18",
+      "to": "627:20"
+    },
+    {
+      "told": "shadow-chair",
+      "at": "696:11",
+      "to": "696:12"
+    },
+    {
+      "told": "overpriced-saddle",
+      "at": "759:24",
+      "to": "759:25"
+    },
+    {
+      "told": "evil-eye",
+      "at": "848:46"
+    },
+    {
+      "told": "bone-singer",
+      "at": "853:20",
+      "to": "853:22",
+      "names": {
+        "Enchantments": [
+          "Sonorous",
+          "Silenced",
+          "Sepulcher Song"
+        ]
+      }
+    },
+    {
+      "told": "essence-pearl",
+      "at": "974:3",
+      "to": "974:4"
+    },
+    {
+      "told": "nimble-catch",
+      "at": "974:6",
+      "to": "974:7"
+    },
+    {
+      "told": "incessant-seeker",
+      "at": "1026:26"
+    },
+    {
+      "told": "siege-souvenir",
+      "at": "1030:32",
+      "to": "1030:33",
+      "names": {
+        "Enchantments": [
+          "Death Dealer"
+        ]
+      }
+    },
+    {
+      "told": "ravenous-fiend-echo",
+      "at": "1047:26",
+      "to": "1047:27"
+    },
+    {
+      "runes": "flame-of-divinity",
+      "at": "1124:29"
+    },
+    {
+      "told": "dire-fang-echo",
+      "at": "1209:17"
+    },
+    {
+      "told": "dawn-shard",
+      "at": "1343:34",
+      "to": "1343:36"
+    },
+    {
+      "told": "crown-of-dawn",
+      "at": "1348:43",
+      "to": "1348:44"
+    },
+    {
+      "told": "crown-of-dawn",
+      "at": "1349:5",
+      "to": "1349:6"
+    },
+    {
+      "told": "shadow-incarnation",
+      "at": "1583:21",
+      "to": "1583:22"
+    },
+    {
+      "told": "onyx-shell",
+      "at": "1583:23",
+      "to": "1583:24"
+    },
+    {
+      "told": "handy-bracelet",
+      "at": "1592:7"
+    },
+    {
+      "told": "quintessence-pearl",
+      "at": "1592:34"
+    },
+    {
+      "told": "marvelous-mimic",
+      "at": "1592:41",
+      "to": "1592:42"
+    },
+    {
+      "told": "fateless",
+      "at": "1593:20",
+      "to": "1593:21"
+    },
+    {
+      "told": "definitely-not-me",
+      "at": "1685:13",
+      "to": "1685:14"
+    },
+    {
+      "told": "bag-of-withholding",
+      "at": "1960:31",
+      "to": "1960:33"
+    },
+    {
+      "told": "green-canteen",
+      "at": "1961:7",
+      "to": "1961:8"
+    },
+    {
+      "told": "in-case-of-emergency",
+      "at": "1961:12",
+      "to": "1961:13"
+    },
+    {
+      "told": "heavy-burden",
+      "at": "1961:18",
+      "to": "1961:19"
+    },
+    {
+      "told": "outskirts-at-noon",
+      "at": "1961:20",
+      "to": "1961:22"
+    },
+    {
+      "told": "dont-cut-yourself",
+      "at": "1961:23",
+      "to": "1961:24"
+    },
+    {
+      "told": "piece-de-resistance",
+      "at": "1961:28"
+    },
+    {
+      "told": "safety-first",
+      "at": "1961:31",
+      "to": "1961:32"
+    },
+    {
+      "runes": "bag-of-withholding",
+      "at": "2038:51",
+      "to": "2038:52"
+    },
+    {
+      "told": "shadow-slayer",
+      "at": "2131:32",
+      "to": "2131:34"
+    },
+    {
+      "told": "jade-shell",
+      "at": "2251:38",
+      "to": "2251:39"
+    },
+    {
+      "told": "shadow-legion",
+      "at": "2265:22",
+      "to": "2265:24"
+    },
+    {
+      "told": "evening-star",
+      "at": "2396:16",
+      "to": "2396:18"
+    },
+    {
+      "told": "flesh-weave",
+      "at": "2411:3"
+    },
+    {
+      "told": "mind-weave",
+      "at": "2553:21"
+    },
+    {
+      "told": "curse-memory",
+      "at": "2573:10",
+      "to": "2573:12"
+    },
+    {
+      "told": "spirit-weave",
+      "at": "2719:1",
+      "to": "2719:2"
+    }
+  ],
+  "knownGaps": {
+    "puppeteers-shroud": [
+      "Enchantments › Enhanced Durability"
+    ],
+    "carapace-scavenger": [
+      "Attributes › Strong",
+      "Attributes › Armored"
+    ],
+    "stone-saint-echo": [
+      "Attributes › Mark of Divinity"
+    ],
+    "stone-saint": [
+      "Attributes › Spark of Divinity"
+    ],
+    "marble-saint": [
+      "Attributes › Spark of Divinity"
+    ],
+    "weavers-mask": [
+      "Enchantments › ???"
+    ],
+    "marble-shell": [
+      "Attribute Traits › Stalwart",
+      "Attribute Traits › Mantle",
+      "Attribute Traits › Shell",
+      "Attribute Traits › Bound"
+    ],
+    "anankes-mantle": [
+      "Enchantments › Enduring",
+      "Enchantments › Conceiling"
+    ],
+    "nebulous-mantle": [
+      "Enchantments › Enduring",
+      "Enchantments › Conceiling"
+    ],
+    "onyx-saint": [
+      "Attributes › Ember of Divinity",
+      "Attributes › Spark of Divinity"
+    ],
+    "jade-saint": [
+      "Attributes › Flame of Divinity"
+    ],
+    "onyx-shell": [
+      "Attribute Traits › Stalwart",
+      "Attribute Traits › Mantle",
+      "Attribute Traits › Shell",
+      "Attribute Traits › Bound"
+    ],
+    "jade-shell": [
+      "Attribute Traits › Stalwart",
+      "Attribute Traits › Mantle",
+      "Attribute Traits › Shell",
+      "Attribute Traits › Bound"
+    ]
+  },
+  "knownGapNotes": {
+    "puppeteers-shroud": "[Enhanced Durability] is never described: the book calls it self-explanatory (83:36) and only prints [Doubtless]'s description (83:34); the only other listing (2038:29) is Rain's copy, also undescribed.",
+    "carapace-scavenger": "[Strong] and [Armored] are only ever listed (47:12); the Echo is destroyed at 67:0, before Sunny can read attribute descriptions, and no other passage describes them.",
+    "stone-saint-echo": "[Mark of Divinity] is described only as Sunny's own Attribute (3:15, 85:39), both before the Echo exists; anchoring that line to the Echo would show it in ch 104–105, before the book reveals the Echo has it (105:12). The Echo's sheet is only on screen in ch 106 anyway.",
+    "stone-saint": "Saint's runes never describe her [Spark of Divinity] (106:36, 182:14, 273:51 only list it; 106:37 is narration). The described [Spark of Divinity] at 85:44 is Sunny's own Attribute (\"within your soul\"), printed before Saint exists — not reused (same call as onyx-saint's Ember in descriptions-c).",
+    "marble-saint": "Same [Spark of Divinity] as the Stone Saint: only listed (310:41, 376:50), never described in her runes.",
+    "weavers-mask": "At 278:43 the book says the second enchantment is [???] and its description empty; it is revealed as [Where is my eye?] at 456:17–18, which the later sheet shows.",
+    "marble-shell": "[Stalwart] here is the Mantle's enchantment upgraded (moderate → high mind/soul protection, 975:15), so the old rune line (377:45) would be wrong; [Mantle], [Shell] and [Bound] are new traits the runes never describe — only narration explains them (975:17–22, 975:41–43, 975:47–48).",
+    "anankes-mantle": "The book prints no rune description for [Enduring] or [Conceiling]: only [Tasteless] gets an Enchantment Description line (1342:23). The other two are explained in Sunny's narration (1342:20), which can't attach to a listed name; no other mention anywhere in the book.",
+    "nebulous-mantle": "Inherited from Ananke's Mantle's sheet (1342:19). The runes never describe [Enduring] or [Conceiling]; only Sunny's narration does (1342:20), which can't be attached to a listed name. No other mention in the book.",
+    "onyx-saint": "Saint's runes never describe her [Ember of Divinity]; only narration at 1000:17. The described [Ember of Divinity] at 450:57 is Sunny's own Attribute (\"within your soul\"), a different bearer, so not reused. Spark of Divinity (listed until the 1000 sheet): only listed in Saint’s runes, like Stone/Marble Saint; never described.",
+    "jade-saint": "Saint's runes (2568:13–34) list [Flame of Divinity] without a description; only narration at 2568:18. The described [Flame of Divinity] (353:44, 1124:29) is Nephis's own Attribute (\"Your soul\"), a different bearer, so not reused.",
+    "onyx-shell": "Carried over from Marble Shell (same traits); see its note.",
+    "jade-shell": "Carried over from Marble Shell (same traits); see its note."
+  }
+}
