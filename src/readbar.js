@@ -75,8 +75,6 @@ export function applyChromeInsets(doc) {
   root.style.setProperty("--ream-chrome-top", top + "px");
   root.style.setProperty("--ream-chrome-bottom", bottom + "px");
 }
-// How much of the bottom of the screen the bar covers right now.
-export const coveredBottom = () => (phone() && chromeShown() ? el.readbar.offsetHeight : 0);
 
 // A tap on the text (not on a link, a correction or the chapter-end card)
 // shows or hides the bars.

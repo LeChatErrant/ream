@@ -2051,6 +2051,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__change { appearance: none; border: 0; cursor: pointer; text-align: left; font: 500 12.5px var(--font-ui); padding: 4px 10px; border-radius: 999px; background: var(--pill); }
 .soulsea__change--gain { color: #9fe0b8; background: rgba(111, 207, 151, 0.12); }
 .soulsea__change--lose { color: var(--danger-hover); background: rgba(217, 112, 102, 0.12); }
+.soulsea__change--evolve { color: #e6c98a; background: rgba(230, 201, 138, 0.12); }
 .soulsea__stats {
   margin-top: 16px;
   background: var(--surface);

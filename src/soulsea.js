@@ -8,9 +8,9 @@
 // (any imported volume of the series) and a paragraph is shown only when its
 // fingerprint matches, so everything on screen is the book's own words.
 //
-// Spoilers: events count only once reached — earlier chapters, plus the part of
-// the current chapter that has been on screen. A scrubber looks back at any
-// earlier chapter, never ahead.
+// Spoilers: what happens in a chapter shows only from the next one on — the
+// panel holds what Sunny had when the chapter on screen began, so opening it
+// mid-chapter never gives away what the chapter is about to bring.
 // =========================================================================
 import ePub from "epubjs";
 import data from "./soul-sea/shadow-slave.json";
@@ -96,23 +96,12 @@ async function paragraph(ch, p, fp) {
 
 // ---- replaying the timeline -------------------------------------------------------
 
-/**
- * A reading point: chapter `num`, plus — for the chapter on screen — the
- * fingerprints of the paragraphs already shown (`seen`) and of all of them (`all`).
- */
-function reached(e, point) {
-  const [ch, p] = e.at;
-  if (ch !== point.num) return ch < point.num;
-  if (!point.seen) return true; // a whole chapter (the scrubber)
-  if (point.all?.has(e.fp)) return point.seen.has(e.fp);
-  return p < point.seenCount;
-}
-
-function stateAt(point) {
+/** Sunny's Soul Sea after every event up to chapter `last`, included. */
+function stateAt(last) {
   const s = {};
   const get = (id) => (s[id] ??= { id, kind: data.entries[id]?.kind, sheet: null });
   for (const e of data.events) {
-    if (!reached(e, point)) continue;
+    if (e.at[0] > last) continue;
     const x = get(e.id);
     if (e.type === "gain") Object.assign(x, { held: true, name: e.name, label: e.label, since: e.at[0], lost: null });
     else if (e.type === "lose") Object.assign(x, { held: false, lost: e.at[0], how: e.how });
@@ -146,12 +135,12 @@ const SECTIONS = [
 const HOW = { destroyed: "Destroyed", given: "Given away", consumed: "Consumed", lost: "Lost", sold: "Sold", stolen: "Stolen", became: "Evolved" };
 
 let root = null;
-let live = null; // where the reader is: { num, seen?, seenCount?, all? }
+let live = null; // the chapter on screen: { num }
 const expanded = new Set();
 
 export const soulSeaOpen = () => !!root && !root.hidden;
 
-/** Open the panel at the reading point { num, seen?, seenCount?, all? }. */
+/** Open the panel for the chapter on screen, { num }. */
 export function openSoulSea(point) {
   chapterMap = null; // the library may have changed since last time
   live = point;
@@ -194,34 +183,28 @@ function render() {
     root.replaceChildren(header(null), h("p", { class: "soulsea__note" }, "Open a chapter first."));
     return;
   }
-  const viewNum = Math.min(live.num, data.reviewedThrough);
-  const st = stateAt(live.num > data.reviewedThrough ? { num: data.reviewedThrough } : live);
+  // Everything before the chapter on screen (and no further than what's mapped).
+  const last = Math.min(live.num - 1, data.reviewedThrough);
+  const st = stateAt(last);
   current = st;
   const items = Object.values(st);
-  const prevSt = stateAt({ num: viewNum - 1 });
+  recentFrom = last - RECENT + 1;
 
   const scroller = root.querySelector(".soulsea__body");
   const keepScroll = scroller?.scrollTop || 0;
   const body = h("div", { class: "soulsea__body" });
 
-  // What changed in this chapter.
-  const changes = items.filter((x) => x.kind !== "stat" && (x.since === viewNum || x.lost === viewNum));
-  if (changes.length) {
-    body.append(
-      h("h3", { class: "soulsea__h" }, "In this chapter"),
-      h(
-        "div",
-        { class: "soulsea__changes" },
-        changes.map((x) =>
-          h(
-            "button",
-            { class: "soulsea__change soulsea__change--" + (x.held ? "gain" : "lose"), onclick: () => focusItem(x) },
-            (x.held ? "+ " : "− ") + nameOf(x)
-          )
-        )
-      )
-    );
-  }
+  // What changed over the last few chapters, latest first.
+  const recent = data.events.filter((e) => e.at[0] >= recentFrom && e.at[0] <= last && st[e.id]?.kind !== "stat").reverse();
+  const chip = (x, mod, text) => h("button", { class: "soulsea__change soulsea__change--" + mod, onclick: () => focusItem(x) }, text);
+  const groups = [
+    // gained and still held (one lost since is under "Recently lost")
+    ["Recently gained", recent.filter((e) => e.type === "gain" && st[e.id].held).map((e) => chip(st[e.id], "gain", "+ " + nameOf(st[e.id])))],
+    ["Recently evolved", recent.filter((e) => e.type === "become").map((e) => chip(st[e.to], "evolve", `${nameOf(st[e.id])} → ${nameOf(st[e.to])}`))],
+    ["Recently lost", recent.filter((e) => e.type === "lose" && !st[e.id].held).map((e) => chip(st[e.id], "lose", "− " + nameOf(st[e.id])))],
+  ];
+  for (const [label, chips] of groups)
+    if (chips.length) body.append(h("h3", { class: "soulsea__h" }, label), h("div", { class: "soulsea__changes" }, chips));
 
   const STAT_ORDER = ["true-name", "rank", "class", "core", "fragments"];
   const stats = items.filter((x) => x.kind === "stat" && x.held).sort((a, b) => STAT_ORDER.indexOf(a.id) - STAT_ORDER.indexOf(b.id));
@@ -244,7 +227,7 @@ function render() {
     if (!held.length) continue; // an empty section would hint at what's to come
     shown += held.length;
     body.append(h("h3", { class: "soulsea__h" }, label, h("span", { class: "soulsea__count" }, String(held.length))));
-    body.append(h("div", { class: "soulsea__list" }, held.map((x) => row(x, false, prevSt))));
+    body.append(h("div", { class: "soulsea__list" }, held.map((x) => row(x, false))));
   }
   if (!shown && !stats.length) body.append(h("p", { class: "soulsea__empty-state" }, "Nothing in Sunny’s Soul Sea yet."));
 
@@ -260,18 +243,18 @@ function render() {
         h("span", { class: "soulsea__count" }, String(gone.length))
       )
     );
-    if (open) body.append(h("div", { class: "soulsea__list" }, gone.map((x) => row(x, true, prevSt))));
+    if (open) body.append(h("div", { class: "soulsea__list" }, gone.map((x) => row(x, true))));
   }
 
   if (live.num > data.reviewedThrough)
     body.append(h("p", { class: "soulsea__note" }, `The Soul Sea is mapped up to chapter ${data.reviewedThrough} so far.`));
 
-  root.replaceChildren(header(`${data.character} · Chapter ${viewNum}`), body);
+  root.replaceChildren(header(`${data.character} · Chapter ${live.num}`), body);
   body.scrollTop = keepScroll;
 }
 
-// "In this chapter" → open that item (inside "No longer held" if it's gone) and bring it into view.
-let focused = null; // the item "In this chapter" asked for, until its sheet has loaded
+// A "Recently …" chip → open that item (inside "No longer held" if it's gone) and bring it into view.
+let focused = null; // the item a chip asked for, until its sheet has loaded
 function focusItem(x) {
   if (!x.held) expanded.add("#gone");
   expanded.add(x.id);
@@ -286,13 +269,17 @@ function scrollToFocused() {
 }
 
 const nameOf = (x) => x.name || `“${x.label}”`;
+// A change stays "recent" for this many chapters, so the last gains still show a
+// few chapters on (changes come every nine chapters or so).
+const RECENT = 15;
+let recentFrom = 0; // the first chapter that counts as recent
 let current = {}; // id → item, in the state being drawn
 const stateOf = (id) => current[id];
 const toggle = (key) => ((focused = null), expanded.has(key) ? expanded.delete(key) : expanded.add(key), render());
 
-function row(x, gone, prevSt) {
+function row(x, gone) {
   const open = expanded.has(x.id);
-  const isNew = !gone && !prevSt[x.id]?.held;
+  const isNew = !gone && x.since >= recentFrom;
   const head = h(
     "button",
     { class: "soulsea__row-head", "aria-expanded": String(open), onclick: () => toggle(x.id) },

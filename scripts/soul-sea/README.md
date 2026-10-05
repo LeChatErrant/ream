@@ -66,6 +66,7 @@ list unnamed ones in `notSunny`. Known checkpoint differences go in
 
 `src/soulsea.js`: on any book whose title or series name is *Shadow Slave*, the
 reader's top bar gets a Soul Sea button. It replays the timeline up to the
-reading position (earlier chapters + the paragraphs of the current one that have
-been on screen) and loads rune sheets / passages from the imported volumes,
+chapter on screen, excluded — a chapter's changes show from the next chapter on,
+so opening the panel mid-chapter spoils nothing — lists the gains, evolutions and
+losses of the last 15 chapters as "Recently …", and loads rune sheets / passages from the imported volumes,
 showing a paragraph only when its fingerprint matches.

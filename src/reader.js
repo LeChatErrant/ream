@@ -22,7 +22,6 @@ import {
   flatten, CHAPTER_DONE_PCT, MIN_SCROLL_PCT,
 } from "./lib/chapters.js";
 import { parseChapterLabel, stripVolume } from "./lib/text.js";
-import { textKey } from "./lib/proof-key.js";
 import {
   chapterProgress, bookPercent, volumeChapterOffset, volumeNumber, nextVolume,
   seriesVolumes, displayTitle, absChapterNum, volumeFirstAbs, volumeLastAbs,
@@ -38,7 +37,7 @@ import {
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
 import {
-  setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap, coveredBottom,
+  setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap,
   noteChapterWords, chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
 
@@ -1005,24 +1004,11 @@ function mountSoulSeaButton(lib) {
   }
   soulSeaBtn.hidden = !soulSeaFor(lib);
 }
-// Where the reader is: the chapter number, and which of its paragraphs have been
-// on screen (by fingerprint, as the Soul Sea data references them).
+// Where the reader is: the chapter number. The Soul Sea shows what came before it.
 function readingPoint() {
   // Until the first chapter has laid out, fall back to the saved position.
   const saved = progressMap[currentBook?.id];
-  const num = parseChapterLabel(chapterLabelFor(currentHref || saved?.href) || saved?.chapterLabel).num ?? 0;
-  if (!currentHref) return { num };
-  const doc = readerContentDoc();
-  const c = rendition?.manager?.container;
-  const frame = c?.querySelector("iframe");
-  if (!doc?.body || !frame) return { num };
-  // What's above the bottom bar has been seen; what's under it hasn't.
-  const bottom = c.getBoundingClientRect().bottom - coveredBottom() - frame.getBoundingClientRect().top;
-  const paras = [...doc.body.querySelectorAll("p")];
-  let seenCount = 0;
-  while (seenCount < paras.length && paras[seenCount].getBoundingClientRect().top < bottom) seenCount++;
-  const keys = paras.map((p) => textKey(p.textContent));
-  return { num, seen: new Set(keys.slice(0, seenCount)), all: new Set(keys), seenCount };
+  return { num: parseChapterLabel(chapterLabelFor(currentHref || saved?.href) || saved?.chapterLabel).num ?? 0 };
 }
 
 // Proofreading mode controls (see proof.js): a switch at the top of the drawer
