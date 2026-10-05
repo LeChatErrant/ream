@@ -24,7 +24,7 @@ function setRouteChrome(route) {
 
 export function renderCurrentRoute() {
   const route = document.getElementById("app").dataset.route;
-  if (route === "info" && currentInfo) renderInfo(currentInfo.kind, currentInfo.id);
+  if (route === "info" && currentInfo) renderInfo(currentInfo.kind, currentInfo.id, { keepScroll: true });
   else if (route === "chapters") return; // the chapters screen manages its own updates
   else renderLibrary();
 }

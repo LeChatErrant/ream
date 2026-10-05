@@ -104,9 +104,12 @@ function continueInfo(m) {
   return { label: `Continue ch. ${absChapterNum(t, p)}`, target: t };
 }
 
-export function renderInfo(kind, id) {
+// `keepScroll` re-renders the page in place (after mark read, an edit, removing
+// a volume) without jumping back to the top; navigating to a page starts at 0.
+export function renderInfo(kind, id, { keepScroll = false } = {}) {
   const m = infoModel(kind, id);
   const root = el.infoScreen;
+  const scrollTop = keepScroll ? root.scrollTop : 0;
   root.innerHTML = "";
   if (!m) {
     go({ route: "library" });
@@ -275,7 +278,7 @@ export function renderInfo(kind, id) {
   cols.append(side, main);
   content.append(top, cols);
   root.append(content);
-  root.scrollTop = 0;
+  root.scrollTop = scrollTop;
 }
 
 function volumeRow(s, book, start, end, selId) {
@@ -464,7 +467,7 @@ async function confirmDeleteVolume(book) {
   if (!ok) return;
   const seriesId = book.seriesId;
   await deleteBook(book.id);
-  if (seriesId && seriesById(seriesId)) renderInfo("series", seriesId);
+  if (seriesId && seriesById(seriesId)) renderInfo("series", seriesId, { keepScroll: true });
   else go({ route: "library" });
 }
 
@@ -604,7 +607,7 @@ function showEditDetails(m) {
       else delete b.overrides.subjects;
       await dbPut("books", b);
     }
-    closeOverlay(() => renderInfo(m.kind, m.id));
+    closeOverlay(() => renderInfo(m.kind, m.id, { keepScroll: true }));
   };
 }
 
@@ -707,7 +710,7 @@ function showSeriesDetails(s) {
       await Promise.all(vols.map((b) => dbPut("books", b)));
     }
     await dbPut("series", s);
-    closeOverlay(() => renderInfo("series", s.id));
+    closeOverlay(() => renderInfo("series", s.id, { keepScroll: true }));
   };
 }
 
