@@ -1029,8 +1029,7 @@ function toast(text) {
 }
 
 function pickPackageFile() {
-  // On a computer that can (Chrome / Edge), the browser's own picker — the file
-  // is then remembered, and exports overwrite it.
+  // On a computer that can (Chrome / Edge), the browser's own picker.
   if (canPickFiles()) {
     pickAndImport()
       .then((message) => {
@@ -1063,7 +1062,7 @@ function pickPackageFile() {
 async function runExport(opts) {
   try {
     const name = await exportProofreading(opts);
-    if (name) toast(linkedFileName() ? `Saved to ${name}` : "Proofreading exported — import it on your other device");
+    if (name) toast(linkedFileName() ? `Saved over ${name} (the file you last exported to)` : "Proofreading exported — import it on your other device");
   } catch (e) {
     toast(e.message);
   }

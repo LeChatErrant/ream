@@ -31,9 +31,9 @@ proofreading…* on any device (computer or phone), review while reading, then
 AirDrop on the phone). Importing always merges: per suggestion the most recent
 decision wins, so importing twice or from several devices is safe.
 The file is always called `ream-proofreading.json`. On a computer with Chrome /
-Edge, the file you import (or first export to) is remembered and every later
-export overwrites it in place (*Export to another file…* picks a new one); on the
-phone, *Save to Files* offers to replace it. Suggestions are
+Edge, the first export asks where to save and every later export overwrites that
+same file (*Export to another file…* picks a new one) — importing never changes
+where exports go. On the phone, *Save to Files* offers to replace it. Suggestions are
 matched by paragraph fingerprints (`src/lib/proof-key.js`), so separate volumes,
 a grouped series or renamed files all work.
 

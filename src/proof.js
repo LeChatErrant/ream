@@ -150,10 +150,14 @@ export async function importProofreading(file) {
 // ---- the linked file ----------------------------------------------------------
 // One fixed name everywhere, so re-exporting replaces the file rather than piling
 // up copies. Where the browser can write to a chosen file (Chrome / Edge on a
-// computer), the file you import from — or first export to — is remembered and
-// every later export overwrites it in place.
+// computer), the first export asks where to save and every later one overwrites
+// that same file; "Export to another file…" changes it. Importing never changes
+// where exports go — with several same-named copies around (the dev tool's, the
+// one you send to the phone) that would silently write to the wrong one.
 export const FILE_NAME = "ream-proofreading.json";
-const HANDLE_KEY = "proof-file-handle"; // kv: FileSystemFileHandle of the linked file
+const HANDLE_KEY = "proof-export-handle"; // kv: FileSystemFileHandle of the export target
+// (The previous key also remembered the *imported* file; it's dropped so the next export asks.)
+kvDelete("proof-file-handle").catch(() => {});
 const FILE_TYPES = [{ description: "Ream proofreading", accept: { "application/json": [".json"] } }];
 const canWriteFiles = () => typeof window.showSaveFilePicker === "function" && !matchMedia("(pointer: coarse)").matches;
 export const canPickFiles = () => typeof window.showOpenFilePicker === "function" && !matchMedia("(pointer: coarse)").matches;
@@ -186,7 +190,7 @@ async function linkFile(handle) {
 }
 export const linkedFileName = () => linkedName;
 
-/** Pick a proofreading file through the browser's file picker and remember it (computer, Chrome / Edge). */
+/** Pick a proofreading file through the browser's file picker (computer, Chrome / Edge). */
 export async function pickAndImport() {
   let handle;
   try {
@@ -195,18 +199,15 @@ export async function pickAndImport() {
     if (e?.name === "AbortError") return null;
     throw e;
   }
-  const message = await importProofreading(await handle.getFile());
-  await linkFile(handle);
-  notify();
-  return message;
+  return importProofreading(await handle.getFile());
 }
 
 /**
  * Export the proofreading file with every decision known here. Overwrites the
- * linked file when the browser allows it (asking where to save the first time,
- * or always with `saveAs`); otherwise the share sheet on a phone, a download
- * elsewhere — both under the same fixed name. Returns the file name, or null
- * when cancelled.
+ * file last exported to when the browser allows it (asking where to save the
+ * first time, or always with `saveAs`); otherwise the share sheet on a phone, a
+ * download elsewhere — both under the same fixed name. Returns the file name, or
+ * null when cancelled.
  */
 export async function exportProofreading({ saveAs = false } = {}) {
   if (!pkg) throw new Error("Nothing to export yet — import a proofreading file first.");
