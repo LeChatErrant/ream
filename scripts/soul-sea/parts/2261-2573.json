@@ -137,12 +137,12 @@
     },
     {
       "id": "shadow-dance",
-      "kind": "aspect",
+      "kind": "legacy",
       "name": "Shadow Dance"
     },
     {
       "id": "fragment-of-the-shadow-realm",
-      "kind": "aspect",
+      "kind": "relic",
       "name": "Fragment of the Shadow Realm"
     },
     {

@@ -134,6 +134,8 @@ function stateAt(point) {
 
 const SECTIONS = [
   ["aspect", "Aspect"],
+  ["legacy", "Aspect Legacy"],
+  ["relic", "Legacy Relics"],
   ["ability", "Abilities"],
   ["flaw", "Flaw"],
   ["attribute", "Attributes"],

@@ -7,7 +7,7 @@
   "checkpointNotes": {
     "204:24": { "extra": ["M… Un…old"], "why": "The onyx armor was summoned into the hidden chamber (182:67) and left there, so it is not among the spheres in his Soul Sea." }
   },
-  "kinds": ["stat", "aspect", "ability", "flaw", "attribute", "memory", "echo", "shadow"],
+  "kinds": ["stat", "aspect", "legacy", "relic", "ability", "flaw", "attribute", "memory", "echo", "shadow"],
   "entries": {
     "true-name": { "kind": "stat", "label": "True Name" },
     "rank": { "kind": "stat", "label": "Rank" },

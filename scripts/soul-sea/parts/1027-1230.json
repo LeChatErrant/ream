@@ -202,7 +202,7 @@
     },
     {
       "id": "shadow-dance",
-      "kind": "aspect",
+      "kind": "legacy",
       "name": "Shadow Dance"
     },
     {

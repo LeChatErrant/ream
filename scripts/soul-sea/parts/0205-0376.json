@@ -93,7 +93,7 @@
   ],
   "entries": {
     "shadow-dance": {
-      "kind": "aspect",
+      "kind": "legacy",
       "relics": [
         "soul-serpent",
         "drop-of-ichor-2",

@@ -137,12 +137,12 @@
     },
     {
       "id": "shadow-dance",
-      "kind": "aspect",
+      "kind": "legacy",
       "name": "Shadow Dance"
     },
     {
       "id": "fragment-of-the-shadow-realm",
-      "kind": "aspect",
+      "kind": "relic",
       "name": "Fragment of the Shadow Realm"
     },
     {
@@ -199,9 +199,6 @@
       "kind": "memory"
     },
     "safety-first": {
-      "kind": "memory"
-    },
-    "fancy-handy-bracelet": {
       "kind": "memory"
     },
     "shadow-slayer": {
@@ -335,16 +332,6 @@
     {
       "at": "1978:49",
       "lose": "in-case-of-emergency",
-      "how": "given"
-    },
-    {
-      "at": "2036:27",
-      "gain": "fancy-handy-bracelet",
-      "label": "a beautiful bracelet forged from black silver"
-    },
-    {
-      "at": "2036:32",
-      "lose": "fancy-handy-bracelet",
       "how": "given"
     },
     {

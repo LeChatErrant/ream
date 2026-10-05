@@ -73,7 +73,7 @@ summary{cursor:pointer;color:var(--muted);font-size:12px}
 <main id="main"></main>
 <script>
 const D = ${payload};
-const KIND_ORDER = [['stat','Status'],['aspect','Aspect'],['ability','Abilities'],['flaw','Flaw'],['attribute','Attributes'],['memory','Memories'],['echo','Echoes'],['shadow','Shadows']];
+const KIND_ORDER = [['stat','Status'],['aspect','Aspect'],['legacy','Aspect Legacy'],['relic','Legacy Relics'],['ability','Abilities'],['flaw','Flaw'],['attribute','Attributes'],['memory','Memories'],['echo','Echoes'],['shadow','Shadows']];
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const P = (r) => D.paras[r.ch + ':' + r.p];
 const link = (r) => '<a class="ref" data-ch="' + r.ch + '">ch ' + r.ch + '</a>';

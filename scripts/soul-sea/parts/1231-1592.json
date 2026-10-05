@@ -207,7 +207,7 @@
     },
     {
       "id": "shadow-dance",
-      "kind": "aspect",
+      "kind": "legacy",
       "name": "Shadow Dance"
     },
     {
@@ -253,7 +253,7 @@
       "kind": "memory"
     },
     "fragment-of-the-shadow-realm": {
-      "kind": "aspect"
+      "kind": "relic"
     },
     "anankes-mantle": {
       "kind": "memory"
@@ -265,12 +265,6 @@
       "kind": "memory"
     },
     "dream-flower": {
-      "kind": "memory"
-    },
-    "jade-flower-charm": {
-      "kind": "memory"
-    },
-    "silver-blade": {
       "kind": "memory"
     },
     "soul-weave": {
@@ -479,26 +473,6 @@
     {
       "at": "1510:56",
       "runes": "crown-of-twilight"
-    },
-    {
-      "at": "1541:3",
-      "gain": "jade-flower-charm",
-      "label": "the Transcendent charm he had been working on"
-    },
-    {
-      "at": "1541:19",
-      "lose": "jade-flower-charm",
-      "how": "given"
-    },
-    {
-      "at": "1543:17",
-      "gain": "silver-blade",
-      "label": "The silver blade he was trying to alter"
-    },
-    {
-      "at": "1550:30",
-      "lose": "silver-blade",
-      "how": "given"
     },
     {
       "at": "1555:37",
