@@ -686,7 +686,11 @@ html { -webkit-tap-highlight-color: transparent; }
 .add-volume__plus { font-size: 17px; font-weight: 300; line-height: 1; }
 
 /* =========================================================================
-   READER — top bar (1c: menu · title · ‹ · ›)
+   READER — the phone's split chrome (src/readbar.js). Top bar: menu · title ·
+   chapter tools (proofreading pill, Soul Sea). Bottom bar: ‹ · scrubber ·
+   time left · ›. Both float over the text in its own colour and slide away
+   while you read (#app.chrome-hidden). Wide screens: one bar, menu · title ·
+   tools · ‹ · › (wide.css).
    ====================================================================== */
 #topbar {
   position: fixed;
@@ -697,11 +701,14 @@ html { -webkit-tap-highlight-color: transparent; }
   gap: 8px;
   padding-left: 8px;
   padding-right: 8px;
-  background: color-mix(in srgb, var(--page) 90%, transparent);
+  background: color-mix(in srgb, #1f2129 92%, transparent);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
   backdrop-filter: saturate(120%) blur(8px);
   border-bottom: 1px solid var(--border);
   z-index: 40;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+#app.chrome-hidden #topbar { transform: translateY(-100%); }
 .title-block {
   flex: 1;
   min-width: 0;
@@ -740,15 +747,129 @@ html { -webkit-tap-highlight-color: transparent; }
    the burger's footprint, its bars near the burger's 2px stroke. */
 .reader-mark { display: block; width: 22px; height: 20px; }
 
+/* ---- Bottom bar ---------------------------------------------------------- */
+:root { --readbar-h: 50px; }
+#app[data-route="reader"] #readbar { display: flex; }
+.readbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: calc(var(--readbar-h) + env(safe-area-inset-bottom));
+  padding: 0 4px env(safe-area-inset-bottom);
+  align-items: center;
+  background: color-mix(in srgb, #1f2129 92%, transparent);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+  backdrop-filter: saturate(120%) blur(8px);
+  border-top: 1px solid var(--border);
+  z-index: 40;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#app.chrome-hidden .readbar { transform: translateY(100%); }
+.readbar__step { flex: none; width: 44px; height: 44px; }
+/* A touch screen keeps :hover on whatever was last tapped — the reading bars
+   would hold a lit button over the text. Only the press itself lights up. */
+@media (hover: none) {
+  #topbar .icon-btn:hover:not(:active),
+  .readbar .icon-btn:hover:not(:active) { background: transparent; color: var(--text-body); }
+}
+/* The scrubber: a hairline track, filled up to where you are, with a small
+   thumb — the whole bar height is the touch target. Dragging grows the thumb
+   and turns the time left into a %. The notch marks where you scrubbed from. */
+.scrub {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.scrub:focus-visible { outline: none; }
+.scrub:focus-visible .scrub__thumb { box-shadow: 0 0 0 2px var(--text-muted); }
+.scrub__track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--track);
+}
+.scrub__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--f, 0) * 100%);
+  border-radius: inherit;
+  background: var(--fill-card);
+  opacity: 0.75;
+}
+.scrub__mark {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--m, 0) * 100%);
+  width: 2px;
+  height: 10px;
+  margin: -5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--text-muted);
+}
+.scrub__mark[hidden] { display: none; }
+.scrub__thumb {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--f, 0) * 100%);
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.15s ease;
+}
+.readbar.is-scrubbing .scrub__thumb { transform: scale(1.45); }
+.readbar__meta {
+  flex: none;
+  min-width: 58px;
+  padding-right: 2px;
+  text-align: right;
+  font: 500 11.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.readbar.is-scrubbing .readbar__meta { color: var(--text-secondary); }
+
+/* The text runs under both bars (the chapter is padded so its first and last
+   lines clear them, see prepareChrome), so the floating chrome lifts what
+   floats at the bottom of the reader while it's shown. */
+#app[data-route="reader"] .resume-chip,
+#app[data-route="reader"] .update-banner {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#app[data-route="reader"]:not(.chrome-hidden) .resume-chip,
+#app[data-route="reader"]:not(.chrome-hidden) .update-banner {
+  bottom: calc(var(--readbar-h) + 12px + env(safe-area-inset-bottom));
+}
+
 /* ---- Reading surface --------------------------------------------------- */
 #viewer-wrap {
   position: absolute;
-  inset: calc(var(--bar-h) + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom) 0;
+  inset: 0;
   justify-content: center;
   overflow: hidden;
   /* Match the in-chapter reading background (not the app page colour) so a
      chapter change or first load never flashes a lighter/white gap. */
   background: #1f2129;
+}
+/* Under a notch / translucent status bar, the text scrolls beneath this strip
+   rather than through the clock while the top bar is away. */
+#viewer-wrap::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: env(safe-area-inset-top);
+  background: #1f2129;
+  z-index: 39;
+  pointer-events: none;
 }
 #viewer { width: 100%; height: 100%; background: #1f2129; }
 #viewer iframe { border: 0 !important; background: #1f2129 !important; }
@@ -1756,7 +1877,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* "See all chapters" — pinned footer of the reader drawer's short list. */
 @media (prefers-reduced-motion: reduce) {
-  .drawer, .scrim, .ch-backpill-wrap { transition: none; }
+  .drawer, .scrim, .ch-backpill-wrap, #topbar, .readbar { transition: none; }
   .sheet-card { animation: none; }
 }
 

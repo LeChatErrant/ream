@@ -91,14 +91,34 @@
           </div>
         </div>
         <div class="topbar-right">
-          <button id="btn-prev" class="icon-btn" aria-label="Previous chapter" title="Previous" disabled>
+          <button id="btn-prev" class="icon-btn wide-only" aria-label="Previous chapter" title="Previous" disabled>
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button id="btn-next" class="icon-btn" aria-label="Next chapter" title="Next" disabled>
+          <button id="btn-next" class="icon-btn wide-only" aria-label="Next chapter" title="Next" disabled>
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </header>
+
+      <!-- Reader bottom bar (phone; src/readbar.js): ‹ · scrubber over the
+           chapter · time left · ›. Floats over the text with the top bar and
+           steps aside with it while you read. Wide screens keep ‹ › up top. -->
+      <nav id="readbar" class="readbar screen narrow-only" aria-label="Chapter">
+        <button id="rb-prev" class="icon-btn readbar__step" aria-label="Previous chapter" title="Previous">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="scrub" class="scrub" role="slider" tabindex="0" aria-label="Position in chapter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="scrub-track" class="scrub__track">
+            <div class="scrub__fill"></div>
+            <div id="scrub-mark" class="scrub__mark" hidden></div>
+            <div class="scrub__thumb"></div>
+          </div>
+        </div>
+        <span id="readbar-meta" class="readbar__meta" aria-live="off"></span>
+        <button id="rb-next" class="icon-btn readbar__step" aria-label="Next chapter" title="Next">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </nav>
 
       <!-- Reader drawer (1c): Home row · current book · CHAPTERS list -->
       <div id="scrim" class="scrim" hidden></div>

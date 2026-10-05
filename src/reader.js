@@ -13,7 +13,7 @@ import ePub from "epubjs";
 // unstyled (dark-on-dark) text online, and permanently dark text offline
 // (that in-iframe request never hit the service-worker precache).
 import readerThemeCss from "./reader-theme.css?raw";
-import { el, h, svg, ICON, coverUrlFor, DESK } from "./dom.js";
+import { el, h, svg, ICON, coverUrlFor, DESK, WIDE } from "./dom.js";
 import {
   progressMap, ui, bookById, seriesById, saveUi, putProgress, stashPendingProgress,
 } from "./state.js";
@@ -37,6 +37,10 @@ import {
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
+import {
+  setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap, coveredBottom,
+  noteChapterWords, chromeChapter, chromeScrolled, isAway,
+} from "./readbar.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -111,6 +115,7 @@ const RESTORE_MAX_MS = 4000; // hard cap on how long we keep correcting
 const RESTORE_STABLE_MS = 400; // layout must hold this long before we let go
 function restoreScrollAfter(shown, scrollTop) {
   restoreActive = true;
+  holdChrome(RESTORE_MAX_MS + 1000); // the settling scrolls aren't the reader's
   Promise.resolve(shown)
     .then(() => {
       const c = rendition?.manager?.container;
@@ -135,6 +140,7 @@ function restoreScrollAfter(shown, scrollTop) {
         // One last persist of where we actually landed, then reopen the gate so
         // ordinary scroll-driven saves resume from the correct position.
         restoreActive = false;
+        releaseChrome();
         try {
           const loc = rendition?.location;
           if (loc?.start) saveReadingLocation(loc);
@@ -191,7 +197,9 @@ function saveReadingLocation(location) {
   // cfi tracks the furthest point (so the per-chapter resume lands where you got
   // to, not where you scrolled back to); done is sticky once the end is reached.
   const chapters = { ...(prev?.chapters || {}) };
-  if (href) {
+  // Just scrubbed somewhere else in the chapter (readbar.js): you're looking,
+  // not reading — keep where you are below, but credit the chapter nothing yet.
+  if (href && !isAway(href)) {
     // Baseline the position each time a fresh chapter appears, then require the
     // reader to have moved MIN_SCROLL_PCT past it before crediting anything — so
     // merely opening a chapter (or a short, one-screen one) never self-completes
@@ -293,6 +301,7 @@ export async function renderReader(lib, startHref = null) {
   document.title = displayTitle(lib);
   applyDock();
   el.topbar.style.setProperty("--chapter-pct", "0%");
+  setChrome(true);
 
   // Populate the drawer (current book + chapters) immediately from stored
   // metadata, so the menu is usable the moment it opens — independent of how
@@ -321,11 +330,12 @@ export async function renderReader(lib, startHref = null) {
   rendition.hooks.content.register(injectReaderTheme);
   // Before the chapter-end card, so it snapshots only the story's paragraphs.
   rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
+  rendition.hooks.content.register(prepareChrome);
   rendition.hooks.content.register(injectChapterNav);
   rendition.hooks.content.register(forwardChapterKeys);
 
-  el.btnPrev.disabled = false;
-  el.btnNext.disabled = false;
+  el.btnPrev.disabled = el.rbPrev.disabled = false;
+  el.btnNext.disabled = el.rbNext.disabled = false;
   mountProofControls();
   mountSoulSeaButton(lib);
 
@@ -384,6 +394,7 @@ export async function renderReader(lib, startHref = null) {
     // Re-render the drawer list so read-state and the highlight track the move.
     renderToc();
     updateChapterTitle(currentHref);
+    updateSteps();
     trackChapterProgress();
     // While a resume is still settling, don't persist the transient positions
     // epub.js reports on the way to the saved spot — they would overwrite the
@@ -606,6 +617,15 @@ export function goChapter(delta) {
   const target = list[(i < 0 ? 0 : i) + delta];
   if (target) displayChapterTop(target.href);
 }
+// ‹ / › can't step past the ends of the current context.
+function updateSteps() {
+  const list = navContextFor(currentHref);
+  const i = list.findIndex((e) => baseHref(e.href) === baseHref(currentHref));
+  const hasPrev = i > 0;
+  const hasNext = (i < 0 ? 0 : i) + 1 < list.length;
+  el.btnPrev.disabled = el.rbPrev.disabled = !hasPrev;
+  el.btnNext.disabled = el.rbNext.disabled = !hasNext;
+}
 // Open a chapter at its top (a deliberate jump from the drawer, the chapter
 // list, or the arrows), then — if that chapter was left part-read — offer the
 // per-chapter resume chip. The book-level "Continue" resume is separate: it
@@ -699,6 +719,21 @@ function injectReaderTheme(contents) {
   style.textContent = RESOLVED_READER_THEME_CSS;
   (doc.head || doc.documentElement).appendChild(style);
 }
+
+// Content hook for the phone's floating bars (readbar.js): pad the chapter so its
+// first and last lines clear them, count its words for the time left (before
+// the chapter-end card goes in), and let a tap on the text show / hide them.
+function prepareChrome(contents) {
+  const doc = contents?.document;
+  if (!doc) return;
+  applyChromeInsets(doc);
+  noteChapterWords(baseHref(spineHref(contents)), doc);
+  doc.addEventListener("click", chromeTap);
+}
+// Crossing between the phone and wide layouts changes those paddings.
+WIDE.addEventListener("change", () => {
+  for (const c of rendition?.getContents?.() || []) applyChromeInsets(c.document);
+});
 
 function injectChapterNav(contents) {
   const doc = contents.document;
@@ -879,6 +914,7 @@ function trackChapterProgress() {
     progressContainer = c;
     c.addEventListener("scroll", paintChapterProgress, { passive: true });
   }
+  chromeChapter(c, baseHref(currentHref));
   paintChapterProgress();
 }
 function paintChapterProgress() {
@@ -888,6 +924,7 @@ function paintChapterProgress() {
   const pct = max > 0 ? Math.min(100, Math.max(0, (c.scrollTop / max) * 100)) : 100;
   el.topbar.style.setProperty("--chapter-pct", pct.toFixed(2) + "%");
   scrollReaderMark(c.scrollTop);
+  chromeScrolled(c);
 }
 
 // -------------------------------------------------------------------------
@@ -979,7 +1016,8 @@ function readingPoint() {
   const c = rendition?.manager?.container;
   const frame = c?.querySelector("iframe");
   if (!doc?.body || !frame) return { num };
-  const bottom = c.getBoundingClientRect().bottom - frame.getBoundingClientRect().top;
+  // What's above the bottom bar has been seen; what's under it hasn't.
+  const bottom = c.getBoundingClientRect().bottom - coveredBottom() - frame.getBoundingClientRect().top;
   const paras = [...doc.body.querySelectorAll("p")];
   let seenCount = 0;
   while (seenCount < paras.length && paras[seenCount].getBoundingClientRect().top < bottom) seenCount++;

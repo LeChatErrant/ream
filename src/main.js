@@ -39,6 +39,7 @@ import { kvGet, kvDelete } from "./db.js";
 import { go, closeOverlay, overlayOpen } from "./router.js";
 import { renderLibrary, setLibFilter, exitSelection, isSelecting, confirmGrouping, confirmDeleteSelection } from "./library.js";
 import { toggleDrawer, closeDrawer, goChapter, flushReadingPosition, handleReaderKey } from "./reader.js";
+import { mountReadbar } from "./readbar.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMarks } from "./brand.js";
 import {
@@ -80,6 +81,7 @@ function wireEvents() {
   });
   el.btnPrev.addEventListener("click", () => goChapter(-1));
   el.btnNext.addEventListener("click", () => goChapter(1));
+  mountReadbar({ onStep: goChapter });
 
   el.selectCancel.addEventListener("click", exitSelection);
   el.selectGroup.addEventListener("click", confirmGrouping);
