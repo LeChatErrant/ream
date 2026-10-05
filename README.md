@@ -13,9 +13,10 @@ Everything runs locally in the browser — no book ever leaves your device.
 - Chapters menu (drawer) — jump to any chapter, current one highlighted
 - One chapter per view, with an end-of-chapter Previous/Next block
 - Phone reading chrome: a permanent top bar (menu · title · chapter tools) and
-  a bottom bar (‹ · chapter scrubber · ›) that hides as you read and returns on
-  scroll-up, a tap, or the chapter's top / end. The scrubber goes to top /
-  bottom and leaves a notch to jump back to; a scrub peek never counts as reading.
+  a bottom bar (‹ Previous · ⤒ top · ⤓ end · Next ›, its top edge filling with
+  the chapter's progress) that hides as you read and returns on scroll-up, a
+  tap, or the chapter's top / end. After a jump, that button offers the way
+  back ("↩ 38 %"); a jump never counts as reading.
 - Resumes the last book and reading position automatically (IndexedDB)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
 - Designed for the phone, with a full tablet / desktop layout (see below)
@@ -118,7 +119,7 @@ one concern:
 - `src/info.js` — info page + editors + volume sheet
 - `src/chapters.js` — chapters screen + shared chapter-preview component
 - `src/reader.js` — reading surface, drawer, resume, chapter-nav injection
-- `src/readbar.js` — the phone's auto-hiding bottom bar + chapter scrubber
+- `src/readbar.js` — the phone's auto-hiding bottom bar (chapter steps, top / end)
 - `src/pwa.js` — install prompt + service-worker update banner
 - `src/lib/` — pure, unit-tested helpers (`text`, `chapters`, `format` math)
 - `src/style.css` — app chrome (top bar, drawer, landing) — the phone design

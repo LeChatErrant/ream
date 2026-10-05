@@ -196,7 +196,7 @@ function saveReadingLocation(location) {
   // cfi tracks the furthest point (so the per-chapter resume lands where you got
   // to, not where you scrolled back to); done is sticky once the end is reached.
   const chapters = { ...(prev?.chapters || {}) };
-  // Just scrubbed somewhere else in the chapter (readbar.js): you're looking,
+  // Just jumped to the chapter's top / end (readbar.js): you're looking,
   // not reading — keep where you are below, but credit the chapter nothing yet.
   if (href && !isAway(href)) {
     // Baseline the position each time a fresh chapter appears, then require the

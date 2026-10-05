@@ -688,7 +688,7 @@ html { -webkit-tap-highlight-color: transparent; }
 /* =========================================================================
    READER — the phone's split chrome (src/readbar.js). Top bar, always there:
    menu · title · chapter tools (proofreading pill, Soul Sea). Bottom bar:
-   ‹ · scrubber · ›, floating over the text in its own colour and sliding
+   ‹ Previous · ⤒ · ⤓ · Next ›, floating over the text in its own colour and sliding
    away while you read (#app.readbar-hidden). Wide screens: one bar, menu ·
    title · tools · ‹ · › (wide.css).
    ====================================================================== */
@@ -745,103 +745,91 @@ html { -webkit-tap-highlight-color: transparent; }
    the burger's footprint, its bars near the burger's 2px stroke. */
 .reader-mark { display: block; width: 22px; height: 20px; }
 
-/* ---- Bottom bar ---------------------------------------------------------- */
-:root { --readbar-h: 50px; }
-#app[data-route="reader"] #readbar { display: flex; }
+/* ---- Bottom bar ----------------------------------------------------------
+   ‹ Previous and Next › the bright main actions at the edges, ⤒ / ⤓ quieter in
+   the middle. The bar's top edge is the chapter's progress: a hairline that
+   fills from the left (--f, set by readbar.js). */
+:root { --readbar-h: 56px; }
+#app[data-route="reader"] #readbar { display: grid; }
 .readbar {
   position: fixed;
   inset: auto 0 0 0;
   height: calc(var(--readbar-h) + env(safe-area-inset-bottom));
-  padding: 0 4px env(safe-area-inset-bottom);
+  padding: 0 6px env(safe-area-inset-bottom);
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  background: color-mix(in srgb, #1f2129 92%, transparent);
+  background: color-mix(in srgb, #1f2129 94%, transparent);
   -webkit-backdrop-filter: saturate(120%) blur(8px);
   backdrop-filter: saturate(120%) blur(8px);
   border-top: 1px solid var(--border);
   z-index: 40;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-#app.readbar-hidden .readbar { transform: translateY(100%); }
-.readbar__step { flex: none; width: 44px; height: 44px; }
-/* A touch screen keeps :hover on whatever was last tapped — the reading bars
-   would hold a lit button over the text. Only the press itself lights up. */
-@media (hover: none) {
-  #topbar .icon-btn:hover:not(:active),
-  .readbar .icon-btn:hover:not(:active) { background: transparent; color: var(--text-body); }
-}
-/* The scrubber: a hairline track, filled up to where you are, with a small
-   thumb — the whole bar height is the touch target. Dragging grows the thumb
-   and raises a % bubble over it. The notch marks where you scrubbed from. */
-.scrub {
-  flex: 1;
-  min-width: 0;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  touch-action: none;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.scrub:focus-visible { outline: none; }
-.scrub:focus-visible .scrub__thumb { box-shadow: 0 0 0 2px var(--text-muted); }
-.scrub__track {
-  position: relative;
-  flex: 1;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--track);
-}
-.scrub__fill {
+.readbar::before {
+  content: "";
   position: absolute;
-  inset: 0 auto 0 0;
+  left: 0;
+  top: -1px;
   width: calc(var(--f, 0) * 100%);
-  border-radius: inherit;
+  height: 2px;
   background: var(--fill-card);
   opacity: 0.75;
+  pointer-events: none;
 }
-.scrub__mark {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--m, 0) * 100%);
-  width: 2px;
-  height: 10px;
-  margin: -5px 0 0 -1px;
-  border-radius: 1px;
-  background: var(--text-muted);
+#app.readbar-hidden .readbar { transform: translateY(100%); }
+.readbar__step,
+.readbar__jump {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-ui);
+  transition: color 0.15s, opacity 0.15s, background 0.15s;
 }
-.scrub__mark[hidden] { display: none; }
-.scrub__thumb {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--f, 0) * 100%);
-  width: 11px;
-  height: 11px;
-  margin: -5.5px 0 0 -5.5px;
-  border-radius: 50%;
-  background: var(--text-secondary);
-  transition: transform 0.15s ease;
+.readbar__step {
+  justify-self: start;
+  gap: 4px;
+  height: 44px;
+  padding: 0 12px 0 8px;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
 }
-.readbar.is-scrubbing .scrub__thumb { transform: scale(1.45); }
-.scrub__tip {
-  position: absolute;
-  bottom: 16px;
-  left: calc(var(--f, 0) * 100%);
-  transform: translate(-50%, 4px);
-  padding: 3px 8px;
-  border: 1px solid var(--border-2f);
-  border-radius: 999px;
+.readbar__step--next { justify-self: end; padding: 0 8px 0 12px; }
+.readbar__step:active { background: var(--surface); }
+.readbar__step:disabled { color: var(--text-dim); opacity: 0.45; cursor: default; background: transparent; }
+.readbar__mid { display: flex; align-items: center; gap: 14px; }
+.readbar__jump {
+  justify-content: center;
+  gap: 5px;
+  min-width: 44px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 20px;
+  color: var(--text-dim);
+}
+.readbar__jump:active { background: var(--surface); color: var(--text-body); }
+.readbar__jump:disabled { opacity: 0.35; cursor: default; background: transparent; }
+/* Carrying the way back after a jump: "↩ 38 %". */
+.readbar__jump--back {
+  height: 32px;
+  padding: 0 12px 0 10px;
   background: var(--row-current);
   color: var(--text-secondary);
-  font: 600 11.5px var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.readbar.is-scrubbing .scrub__tip { opacity: 1; transform: translate(-50%, 0); }
+.readbar__step:focus-visible,
+.readbar__jump:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
+/* A touch screen keeps :hover on whatever was last tapped — the top bar would
+   hold a lit button over the text. Only the press itself lights up. */
+@media (hover: none) {
+  #topbar .icon-btn:hover:not(:active) { background: transparent; color: var(--text-body); }
+}
 
 /* The text runs under the bottom bar (the chapter's end is padded to clear it,
    see prepareChrome), so the bar lifts what floats at the bottom of the
@@ -1871,7 +1859,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* "See all chapters" — pinned footer of the reader drawer's short list. */
 @media (prefers-reduced-motion: reduce) {
-  .drawer, .scrim, .ch-backpill-wrap, .readbar, .scrub__tip { transition: none; }
+  .drawer, .scrim, .ch-backpill-wrap, .readbar { transition: none; }
   .sheet-card { animation: none; }
 }
 
