@@ -7,6 +7,7 @@
 // This module is the only place that talks to IndexedDB; everything above it
 // works through the small get/put/delete helpers exported here.
 // -------------------------------------------------------------------------
+// Pre-rename name, kept on purpose: changing it would orphan existing libraries.
 const DB_NAME = "webnovel-reader";
 const DB_VERSION = 2;
 

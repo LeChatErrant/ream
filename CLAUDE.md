@@ -1,4 +1,4 @@
-# Ream (repo: webnovel-reader)
+# Ream
 
 A private, offline EPUB reader (PWA). Static Vite build; everything runs
 on-device (books, covers, progress live in IndexedDB). See [README.md](README.md)
@@ -8,7 +8,7 @@ for the feature/layout overview.
 
 Deploys happen by pushing to `main`: the
 [Deploy to GitHub Pages workflow](.github/workflows/deploy.yml) builds `dist/`
-and publishes it to <https://lechaterrant.github.io/webnovel-reader/>. The
+and publishes it to <https://lechaterrant.github.io/ream/>. The
 maintainer deploys **only through Claude**.
 
 **Ship by default.** The maintainer is the sole user and wants to iterate fast,
