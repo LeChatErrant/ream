@@ -129,7 +129,8 @@ function stateAt(last) {
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
       x.facts = {}; // a newer sheet supersedes facts told in prose
-    } else if (e.type === "told") x.told = e; // how the story describes it (no runes, or none describing it)
+    } else if (e.type === "told" && e.for) (x.toldFor ??= {})[e.for.toLowerCase()] = e; // what one listed name does
+    else if (e.type === "told") x.told = e; // how the story describes it (no runes, or none describing it)
     else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
     else if (e.type === "source") Object.assign(x, { source: e.value, sourceItem: e.item });
   }
@@ -313,8 +314,9 @@ function row(x, gone) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
-  // The story's own description when the runes give none (or there are no runes).
-  if (x.told && !x.sheet?.sheet.d) detail.append(told(x.told, !x.sheet));
+  // No runes at all: the story's own description (with runes but no description of
+  // the item, the sheet puts it in the description's place).
+  if (x.told && !x.sheet) detail.append(told(x.told, true));
   if (!x.sheet && !x.told)
     detail.append(
       x.facts && Object.keys(x.facts).length
@@ -382,28 +384,46 @@ function buildSheet(e, texts, x) {
       )
     );
   const prose = (text, cls) => cap(text).split(/\n\n+/).map((t) => h("p", { class: cls }, t));
+  const explained = toldFor(x);
+  // What the story says, where the runes say nothing ("In the story").
+  const story = (e) => {
+    const ps = e.paras.map((r) => texts.get(refKey(e, r))).filter((t) => t != null);
+    return ps.length
+      ? [h("span", { class: "soulsea__told-k" }, "In the story"), ...ps.map((t) => h("p", { class: "soulsea__note-text" }, t))]
+      : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")];
+  };
   // A description the reader's copy doesn't have (another edition, a missing volume) says so.
   const desc = (d, cls) => {
     const parts = d.map((r) => ({ ...r, t: texts.get(refKey(e, r)) }));
     return parts.every((r) => r.t != null) ? prose(descText(parts), cls) : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")];
   };
   if (sh.d) box.append(...desc(sh.d, "soulsea__epigraph"));
-  else if ((sh.f.length || sh.l.length) && !x.told) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
+  else if (x.told) box.append(...story(x.told));
+  else if (sh.f.length || sh.l.length) box.append(h("p", { class: "soulsea__none" }, "No description yet"));
   // Under each list ("Enchantments"), every name in the book's order, with its
   // description when the book gives one; a name that is an item of its own (an
   // Aspect's Abilities) links to it instead.
   const note = (n) => {
     const other = !n.d && itemNamed(n.n, x);
+    const tf = !n.d && n.n && explained[n.n.toLowerCase()];
     return h(
       "div",
       { class: "soulsea__note-block" },
       n.n ? h("div", { class: "soulsea__note-title" }, other ? itemLink(other) : n.n) : null,
-      n.d ? desc(n.d, "soulsea__note-text") : other ? null : h("p", { class: "soulsea__none" }, "No description yet")
+      n.d ? desc(n.d, "soulsea__note-text") : other ? null : tf ? story(tf) : h("p", { class: "soulsea__none" }, "No description yet")
     );
   };
   for (const l of sh.l) box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, l.k), l.n.map(note)));
   for (const n of sh.o || []) box.append(note(n));
   return box;
+}
+
+// Passages explaining listed names, the item's own and those of what it evolved from
+// (Onyx Shell's [Mantle] is Marble Shell's), by lower-case name.
+function toldFor(x) {
+  const out = {};
+  for (let y = x, n = 0; y && n < 20; y = y.from && stateOf(y.from), n++) for (const [k, e] of Object.entries(y.toldFor || {})) out[k] ??= e;
+  return out;
 }
 
 // No runes in the book: what it holds, as the story names it, and the story's own words.
@@ -423,22 +443,22 @@ const textCache = new Map();
 const refKey = (e, r) => `${r.ch ?? e.at[0]}:${r.p}:${r.fp}`;
 const refsOf = (e) =>
   e.sheet ? [e.sheet.d, ...e.sheet.l.flatMap((l) => l.n.map((n) => n.d)), ...(e.sheet.o || []).map((n) => n.d)].filter(Boolean).flat() : e.paras || [];
-function load(e) {
-  const refs = refsOf(e);
-  const out = () => new Map(refs.map((r) => [refKey(e, r), textCache.get(refKey(e, r))]));
-  if (refs.every((r) => textCache.has(refKey(e, r)))) return out();
-  return Promise.all(refs.map((r) => paragraph(r.ch ?? e.at[0], r.p, r.fp, r.g).then((t) => textCache.set(refKey(e, r), t)))).then(out);
+function load(evs) {
+  const refs = evs.flatMap((e) => refsOf(e).map((r) => [e, r]));
+  const out = () => new Map(refs.map(([e, r]) => [refKey(e, r), textCache.get(refKey(e, r))]));
+  if (refs.every(([e, r]) => textCache.has(refKey(e, r)))) return out();
+  return Promise.all(refs.map(([e, r]) => paragraph(r.ch ?? e.at[0], r.p, r.fp, r.g).then((t) => textCache.set(refKey(e, r), t)))).then(out);
 }
 
 // Paragraphs come from the reader's own epubs: the same text or, after a small
 // edit, nearly the same — never a stand-in.
-function whenLoaded(e, draw) {
+function whenLoaded(evs, draw) {
   const box = h("div", { class: "soulsea__loadbox" });
   const done = (texts) => {
     box.replaceChildren(draw(texts));
     if (focused && box.closest(`.soulsea__row[data-id="${focused}"]`)) scrollToFocused();
   };
-  const got = load(e);
+  const got = load(evs);
   if (got instanceof Map) done(got);
   else {
     box.append(h("p", { class: "soulsea__empty" }, "…"));
@@ -447,5 +467,5 @@ function whenLoaded(e, draw) {
   return box;
 }
 
-const sheet = (e, x) => whenLoaded(e, (texts) => buildSheet(e, texts, x));
-const told = (e, withNames) => whenLoaded(e, (texts) => buildTold(e, texts, withNames));
+const sheet = (e, x) => whenLoaded([e, ...(x.told ? [x.told] : []), ...Object.values(toldFor(x))], (texts) => buildSheet(e, texts, x));
+const told = (e, withNames) => whenLoaded([e], (texts) => buildTold(e, texts, withNames));

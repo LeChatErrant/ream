@@ -71,6 +71,7 @@ Events, anchored at `"chapter:paragraph"` (paragraph index as in `text.json`):
 | `source` + `value` | where it came from: the creature slain, the giver (“Obtained from”) |
 | `fact` + `label` + `value` | a Rank / Class / Tier / Type the book states in prose (\"now a Transcendent Devil\"); shown until a newer rune sheet |
 | `told` (+ `to`, `names`) | narration describing an item the runes don't (Essence Pearl, Bone Singer): shown when the item has no rune sheet, or one with no description of its own; `names` = `{ "Enchantments": [...] }` it names |
+| `told` + `for` | narration explaining one listed name the runes leave bare (Marble Shell's [Mantle]): shown under that name, in the item's sheet and in those of what it evolves into |
 | `history` (+ `to`) | a passage about the item (review page only); `flashback: true` when told out of order |
 
 Order is **reading order**: a flashback (ch 122–168) adds history, it doesn't

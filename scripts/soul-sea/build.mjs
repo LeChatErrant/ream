@@ -167,6 +167,10 @@ for (const e of tl.events) {
     // A told passage may name what the item holds: "[Sonorous], [Silenced], and [Sepulcher Song]".
     for (const n of Object.values(e.names ?? {}).flat())
       if (!ps.some((r) => has(text[r.ch][r.p], n))) errors.push(`${e.at}: "${n}" is not in the passage`)
+    // …or explain one listed name ("for": "Mantle"): shown under it, in the item's sheet
+    // and in the sheets of what the item evolves into.
+    if (e.for && !ps.some((r) => norm(text[r.ch][r.p]).toLowerCase().includes(norm(e.for).toLowerCase())))
+      errors.push(`${e.at}: "${e.for}" is not in the passage`)
   }
   events.push(out)
 }
@@ -474,6 +478,7 @@ const app = {
     // A told passage: whole paragraphs { p, fp, g, ch (when not the event's chapter) }.
     if (e.told) {
       if (e.names) o.names = e.names
+      if (e.for) o.for = e.for
       o.paras = e.paras.map((r) => ({ p: r.p, fp: r.fp, g: textSig(text[r.ch][r.p]), ...(r.ch !== e.at[0] ? { ch: r.ch } : {}) }))
     }
     if (e.flashback) o.flashback = true

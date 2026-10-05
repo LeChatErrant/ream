@@ -2157,5 +2157,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__note { margin: 24px 0 0; font: 400 12.5px var(--font-ui); color: var(--text-dim); text-align: center; }
 @media (prefers-reduced-motion: reduce) { .soulsea { animation: none; } }
 .soulsea__note-text + .soulsea__note-text { margin-top: 6px; }
+.soulsea__told-k { font: 500 10px var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmest); margin-top: 2px; }
 /* Where the book hasn't described something (yet): a quiet line instead of a gap. */
 .soulsea__none { margin: 0; font: italic 400 13px var(--font-ui); color: var(--text-dimmest); }

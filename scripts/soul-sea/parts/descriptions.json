@@ -80,6 +80,34 @@
       "to": "974:7"
     },
     {
+      "told": "marble-shell",
+      "at": "975:15",
+      "for": "Stalwart"
+    },
+    {
+      "told": "marble-shell",
+      "at": "975:21",
+      "to": "975:22",
+      "for": "Shell"
+    },
+    {
+      "told": "marble-shell",
+      "at": "975:42",
+      "to": "975:43",
+      "for": "Mantle"
+    },
+    {
+      "told": "marble-shell",
+      "at": "975:47",
+      "to": "975:48",
+      "for": "Bound"
+    },
+    {
+      "told": "onyx-saint",
+      "at": "1000:17",
+      "for": "Ember of Divinity"
+    },
+    {
       "told": "incessant-seeker",
       "at": "1026:26"
     },
@@ -105,6 +133,16 @@
     {
       "told": "dire-fang-echo",
       "at": "1209:17"
+    },
+    {
+      "told": "anankes-mantle",
+      "at": "1342:20",
+      "for": "Enduring"
+    },
+    {
+      "told": "anankes-mantle",
+      "at": "1342:20",
+      "for": "Conceiling"
     },
     {
       "told": "dawn-shard",
@@ -227,6 +265,11 @@
       "at": "2553:21"
     },
     {
+      "told": "jade-saint",
+      "at": "2568:18",
+      "for": "Flame of Divinity"
+    },
+    {
       "told": "curse-memory",
       "at": "2573:10",
       "to": "2573:12"
@@ -257,38 +300,8 @@
     "weavers-mask": [
       "Enchantments › ???"
     ],
-    "marble-shell": [
-      "Attribute Traits › Stalwart",
-      "Attribute Traits › Mantle",
-      "Attribute Traits › Shell",
-      "Attribute Traits › Bound"
-    ],
-    "anankes-mantle": [
-      "Enchantments › Enduring",
-      "Enchantments › Conceiling"
-    ],
-    "nebulous-mantle": [
-      "Enchantments › Enduring",
-      "Enchantments › Conceiling"
-    ],
     "onyx-saint": [
-      "Attributes › Ember of Divinity",
       "Attributes › Spark of Divinity"
-    ],
-    "jade-saint": [
-      "Attributes › Flame of Divinity"
-    ],
-    "onyx-shell": [
-      "Attribute Traits › Stalwart",
-      "Attribute Traits › Mantle",
-      "Attribute Traits › Shell",
-      "Attribute Traits › Bound"
-    ],
-    "jade-shell": [
-      "Attribute Traits › Stalwart",
-      "Attribute Traits › Mantle",
-      "Attribute Traits › Shell",
-      "Attribute Traits › Bound"
     ]
   },
   "knownGapNotes": {
@@ -298,12 +311,6 @@
     "stone-saint": "Saint's runes never describe her [Spark of Divinity] (106:36, 182:14, 273:51 only list it; 106:37 is narration). The described [Spark of Divinity] at 85:44 is Sunny's own Attribute (\"within your soul\"), printed before Saint exists — not reused (same call as onyx-saint's Ember in descriptions-c).",
     "marble-saint": "Same [Spark of Divinity] as the Stone Saint: only listed (310:41, 376:50), never described in her runes.",
     "weavers-mask": "At 278:43 the book says the second enchantment is [???] and its description empty; it is revealed as [Where is my eye?] at 456:17–18, which the later sheet shows.",
-    "marble-shell": "[Stalwart] here is the Mantle's enchantment upgraded (moderate → high mind/soul protection, 975:15), so the old rune line (377:45) would be wrong; [Mantle], [Shell] and [Bound] are new traits the runes never describe — only narration explains them (975:17–22, 975:41–43, 975:47–48).",
-    "anankes-mantle": "The book prints no rune description for [Enduring] or [Conceiling]: only [Tasteless] gets an Enchantment Description line (1342:23). The other two are explained in Sunny's narration (1342:20), which can't attach to a listed name; no other mention anywhere in the book.",
-    "nebulous-mantle": "Inherited from Ananke's Mantle's sheet (1342:19). The runes never describe [Enduring] or [Conceiling]; only Sunny's narration does (1342:20), which can't be attached to a listed name. No other mention in the book.",
-    "onyx-saint": "Saint's runes never describe her [Ember of Divinity]; only narration at 1000:17. The described [Ember of Divinity] at 450:57 is Sunny's own Attribute (\"within your soul\"), a different bearer, so not reused. Spark of Divinity (listed until the 1000 sheet): only listed in Saint’s runes, like Stone/Marble Saint; never described.",
-    "jade-saint": "Saint's runes (2568:13–34) list [Flame of Divinity] without a description; only narration at 2568:18. The described [Flame of Divinity] (353:44, 1124:29) is Nephis's own Attribute (\"Your soul\"), a different bearer, so not reused.",
-    "onyx-shell": "Carried over from Marble Shell (same traits); see its note.",
-    "jade-shell": "Carried over from Marble Shell (same traits); see its note."
+    "onyx-saint": "Spark of Divinity (listed until the 1000 sheet): only listed in Saint's runes, like Stone/Marble Saint; never described. Her Ember of Divinity is explained by the story at 1000:17 (told for)."
   }
 }

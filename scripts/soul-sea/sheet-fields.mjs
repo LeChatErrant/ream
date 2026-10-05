@@ -12,9 +12,15 @@ export function itemsOf(data) {
   for (const e of data.events) {
     const x = get(e.id)
     if (e.type === 'gain') Object.assign(x, { name: e.name ?? e.label, since: e.at[0] })
-    else if (e.type === 'become') Object.assign(get(e.to), { name: e.name, since: e.at[0] })
+    else if (e.type === 'become') Object.assign(get(e.to), { name: e.name, since: e.at[0], from: e.id })
     else if (e.type === 'name') x.name = e.value
+    else if (e.type === 'told' && e.for) (x.toldFor ??= []).push(e)
     else if (e.type === 'runes' || e.type === 'told') x.shown.push(e)
+  }
+  // Passages explaining a listed name reach what the item evolves into (as in the app).
+  for (const x of Object.values(items)) {
+    x.explained = []
+    for (let y = x, n = 0; y && n < 20; y = y.from && items[y.from], n++) x.explained.push(...(y.toldFor ?? []))
   }
   return Object.values(items).filter((x) => x.kind !== 'stat')
 }
@@ -25,7 +31,15 @@ const passage = (e, text) => 'In the story: ' + e.paras.map((r) => text[r.ch ?? 
 export function fieldsAt(x, c, text) {
   const sheet = x.shown.filter((e) => e.type === 'runes' && e.at[0] <= c).at(-1)
   const told = x.shown.filter((e) => e.type === 'told' && e.at[0] <= c).at(-1)
-  if (sheet) return fieldsOf(sheet, told, text)
+  if (sheet) {
+    const out = fieldsOf(sheet, told, text)
+    // A bare listed name the story explains (in the app: "In the story", under the name).
+    for (const [k, v] of out) {
+      const e = v === NONE && k.includes(' › ') && x.explained.find((o) => o.at[0] <= c && o.for.toLowerCase() === k.replace(/^.* › /, '').toLowerCase())
+      if (e) out.set(k, passage(e, text))
+    }
+    return out
+  }
   const out = new Map()
   if (!told) return out
   for (const [k, ns] of Object.entries(told.names ?? {})) for (const n of ns) out.set(`${k} › ${n}`, NONE)
