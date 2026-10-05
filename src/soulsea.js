@@ -153,6 +153,9 @@ export function openSoulSea(point) {
   armOverlay(() => {
     root.hidden = true;
     root.replaceChildren();
+    // Each opening starts fresh: everything folded, at the top.
+    expanded.clear();
+    focused = null;
   });
 }
 
