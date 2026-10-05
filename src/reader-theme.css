@@ -133,10 +133,7 @@ body {
   max-width: none !important;
   width: 100% !important;
   margin: 0 !important;
-  /* --ream-chrome-top: the room the phone's floating top bar takes (set by the
-     app per chapter, see prepareChrome; 0 on wide screens). The bottom bar's
-     room goes on .chapter-end — the view is sized without this padding. */
-  padding: calc(12px + var(--ream-chrome-top, 0px)) max(24px, calc((100% - 33em) / 2)) 72px !important;
+  padding: 12px max(24px, calc((100% - 33em) / 2)) 72px !important;
   box-sizing: border-box !important;
   -webkit-font-smoothing: antialiased;
 }
@@ -196,7 +193,7 @@ html { scrollbar-width: none !important; }
 @media (min-width: 768px) {
   body {
     font-size: 20px !important;
-    padding: calc(36px + var(--ream-chrome-top, 0px)) max(40px, calc((100% - 34em) / 2)) 96px !important;
+    padding: 36px max(40px, calc((100% - 34em) / 2)) 96px !important;
   }
   p { margin: 0 0 1.1em !important; }
   h1, h2 { font-size: 30px !important; }
@@ -215,6 +212,8 @@ html { scrollbar-width: none !important; }
    margin here gets clipped and the card sits flush against the screen edge. */
 .chapter-end {
   margin: 3.25em 0 0 !important;
+  /* + the room the phone's floating bottom bar takes (set per chapter by the
+     app, see prepareChrome; 0 on wide screens). */
   padding-bottom: calc(2em + var(--ream-chrome-bottom, 0px)) !important;
 }
 .chapter-end__label {

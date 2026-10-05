@@ -38,7 +38,7 @@ import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
 import {
   setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap,
-  noteChapterWords, chromeChapter, chromeScrolled, isAway,
+  chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
 
 let book = null; // live epub.js Book
@@ -719,17 +719,16 @@ function injectReaderTheme(contents) {
   (doc.head || doc.documentElement).appendChild(style);
 }
 
-// Content hook for the phone's floating bars (readbar.js): pad the chapter so its
-// first and last lines clear them, count its words for the time left (before
-// the chapter-end card goes in), and let a tap on the text show / hide them.
+// Content hook for the phone's floating bottom bar (readbar.js): pad the
+// chapter's end so its last lines clear it, and let a tap on the text show /
+// hide it.
 function prepareChrome(contents) {
   const doc = contents?.document;
   if (!doc) return;
   applyChromeInsets(doc);
-  noteChapterWords(baseHref(spineHref(contents)), doc);
   doc.addEventListener("click", chromeTap);
 }
-// Crossing between the phone and wide layouts changes those paddings.
+// Crossing between the phone and wide layouts changes that padding.
 WIDE.addEventListener("change", () => {
   for (const c of rendition?.getContents?.() || []) applyChromeInsets(c.document);
 });

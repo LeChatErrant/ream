@@ -1,36 +1,32 @@
 // =========================================================================
-// READING CHROME (phone) — the reader's controls split in two, both floating
-// over the text and stepping aside while you read:
+// READING CHROME (phone) — the reader's controls split in two:
 //
-// - Top bar: where you are (menu · book / chapter) and the chapter's tools
-//   (proofreading pill, Soul Sea).
-// - Bottom bar: moving through the chapter — ‹ previous · a scrubber over the
-//   chapter · time left · next ›.
+// - Top bar, always there: where you are (menu · book / chapter — the Ream mark
+//   scrolling with the text) and the chapter's tools (proofreading pill, Soul Sea).
+// - Bottom bar, floating over the text: moving through the chapter —
+//   ‹ previous · a scrubber over the chapter · next ›.
 //
-// Both slide away as you scroll down into the text and come back when you
-// scroll up a little, tap the text, or reach the top or end of the chapter.
-// The scrubber doubles as "go to top / bottom" (drag to either end) and leaves a
-// notch where you were, so a peek elsewhere is one tap away from home — and a
-// peek never counts as reading (see isAway). The time left is the chapter's
-// remaining words at your own measured reading speed.
+// The bottom bar slides away as you scroll down into the text and comes back
+// when you scroll up a little, tap the text, or reach the top or end of the
+// chapter. The scrubber doubles as "go to top / bottom" (drag to either end)
+// and leaves a notch where you were, so a peek elsewhere is one tap away from
+// home — and a peek never counts as reading (see isAway).
 //
 // Wide screens (≥ 640px, wide.css) keep the single top bar: nothing here hides
 // or insets anything there.
 // =========================================================================
 import { el, WIDE } from "./dom.js";
-import { ui } from "./state.js";
 
 const app = () => document.getElementById("app");
 
-const HIDE_AFTER = 14; // px of scrolling down before the bars step aside
-const SHOW_AFTER = 48; // px of scrolling back up before they return (a deliberate move, not a re-read of a line)
-const END_ZONE = 6; // px from the chapter's end that brings them back
+const HIDE_AFTER = 14; // px of scrolling down before the bar steps aside
+const SHOW_AFTER = 48; // px of scrolling back up before it returns (a deliberate move, not a re-read of a line)
+const TOP_ZONE = 24; // px from the chapter's top…
+const END_ZONE = 6; // …or end that bring it back
 const SNAP_PX = 12; // the scrubber's pull towards its ends and the "where you were" notch
-const DEFAULT_WPM = 238; // a typical silent-reading pace, until yours is measured
 
 let container = null; // the epub.js scroller of the chapter on screen
 let chapterKey = null;
-const chapterWords = new Map(); // chapter key → its word count
 let lastY = 0;
 let upRun = 0;
 let downRun = 0;
@@ -43,13 +39,12 @@ let homeY = null;
 // After a scrub jump: you're looking, not reading. Until you've read on a while
 // from the new spot, the jump must not count as progress (see isAway).
 let away = null; // { key, natural: px scrolled down by hand since }
-let speed = null; // reading-pace sample: { key, t, words }
 
 // ---- Visibility -----------------------------------------------------------
 const phone = () => !WIDE.matches;
-export const chromeShown = () => !app().classList.contains("chrome-hidden");
+export const chromeShown = () => !app().classList.contains("readbar-hidden");
 export function setChrome(shown) {
-  app().classList.toggle("chrome-hidden", phone() && !shown);
+  app().classList.toggle("readbar-hidden", phone() && !shown);
 }
 // Ignore scroll events for a while (a scroll we're making, not the reader).
 export function holdChrome(ms) {
@@ -61,23 +56,16 @@ export function releaseChrome() {
   upRun = downRun = 0;
 }
 
-// The room the bars take at the top and bottom of the screen. The chapter
-// document pads by this so its first and last lines clear them; it doesn't
-// change as they hide, so the text never jumps.
-export function chromeInsets() {
-  if (!phone()) return { top: 0, bottom: 0 };
-  return { top: el.topbar.offsetHeight || 52, bottom: el.readbar.offsetHeight || 50 };
-}
+// The room the bottom bar takes. The chapter document pads its end by this so
+// the last lines and the chapter-end card clear it; it doesn't change as the bar
+// hides, so the text never jumps.
+const barRoom = () => (phone() ? el.readbar.offsetHeight || 50 : 0);
 export function applyChromeInsets(doc) {
-  const root = doc?.documentElement;
-  if (!root) return;
-  const { top, bottom } = chromeInsets();
-  root.style.setProperty("--ream-chrome-top", top + "px");
-  root.style.setProperty("--ream-chrome-bottom", bottom + "px");
+  doc?.documentElement?.style.setProperty("--ream-chrome-bottom", barRoom() + "px");
 }
 
 // A tap on the text (not on a link, a correction or the chapter-end card)
-// shows or hides the bars.
+// shows or hides the bottom bar.
 export function chromeTap(e) {
   if (!phone() || e.defaultPrevented) return;
   if (e.target?.closest?.("a, button, input, label, [data-proof], .proof-para, .chapter-end")) return;
@@ -87,13 +75,6 @@ export function chromeTap(e) {
 }
 
 // ---- Chapter --------------------------------------------------------------
-// Counted once per chapter document, before the chapter-end card goes in.
-export function noteChapterWords(key, doc) {
-  if (!key || !doc?.body) return;
-  const m = (doc.body.textContent || "").match(/\S+/g);
-  chapterWords.set(key, m ? m.length : 0);
-}
-
 // A chapter landed on screen.
 export function chromeChapter(c, key) {
   if (key === chapterKey && c === container) return;
@@ -101,7 +82,6 @@ export function chromeChapter(c, key) {
   chapterKey = key;
   homeY = null;
   away = null;
-  speed = null;
   lastY = c?.scrollTop || 0;
   upRun = downRun = 0;
   setChrome(true);
@@ -119,16 +99,12 @@ export function chromeScrolled(c) {
   const y = c.scrollTop;
   const dy = y - lastY;
   lastY = y;
-  const topZone = chromeInsets().top; // read before paint() restyles, so no forced layout
   paint();
   if (!phone() || dragging || performance.now() < holdUntil) return;
-  if (dy > 0) {
-    if (away && (away.natural += dy) > c.clientHeight * 1.5) away = null;
-    sampleSpeed(c);
-  }
+  if (dy > 0 && away && (away.natural += dy) > c.clientHeight * 1.5) away = null;
   if (homeY != null && Math.abs(y - homeY) < 2) homeY = null;
   const max = c.scrollHeight - c.clientHeight;
-  if (y <= topZone || y >= max - END_ZONE) {
+  if (y <= TOP_ZONE || y >= max - END_ZONE) {
     upRun = downRun = 0;
     return setChrome(true);
   }
@@ -141,28 +117,6 @@ export function chromeScrolled(c) {
     downRun = 0;
     if (upRun > SHOW_AFTER) setChrome(true);
   }
-}
-
-// Your reading pace, learned from how fast you move through the text: a sample
-// every ~20 s of steady reading, folded slowly into a running average. Pauses
-// (the phone set down) and skimming are left out.
-function sampleSpeed(c) {
-  const words = chapterWords.get(chapterKey);
-  if (!words || away) return;
-  const max = c.scrollHeight - c.clientHeight;
-  if (max <= 0) return;
-  const now = performance.now();
-  const at = (c.scrollTop / max) * words;
-  if (!speed || speed.key !== chapterKey) return void (speed = { key: chapterKey, t: now, words: at });
-  const minutes = (now - speed.t) / 60000;
-  if (minutes < 1 / 3) return;
-  const read = at - speed.words;
-  speed = { key: chapterKey, t: now, words: at };
-  if (minutes > 1.5 || read <= 0) return;
-  const wpm = read / minutes;
-  if (wpm < 90 || wpm > 900) return;
-  ui.readingWpm = Math.round((ui.readingWpm || DEFAULT_WPM) * 0.85 + wpm * 0.15);
-  // Saved with the next reading-position save (saveUi runs on every relocate).
 }
 
 // ---- Bottom bar -----------------------------------------------------------
@@ -178,16 +132,8 @@ function paint(dragF = null) {
   const markF = homeY != null && max > 0 ? clamp01(homeY / max) : null;
   el.scrubMark.hidden = markF == null;
   if (markF != null) el.scrub.style.setProperty("--m", markF.toFixed(4));
-  const label = dragF != null ? `${Math.round(f * 100)} %` : timeLeft(f);
-  if (el.readbarMeta.textContent !== label) el.readbarMeta.textContent = label;
-}
-
-function timeLeft(f) {
-  const words = chapterWords.get(chapterKey);
-  if (!words) return `${Math.round(f * 100)} %`;
-  if (f >= 0.995) return "End";
-  const min = (words * (1 - f)) / (ui.readingWpm || DEFAULT_WPM);
-  return min < 1 ? "< 1 min" : `${Math.round(min)} min left`;
+  // The % only shows while dragging, in a bubble over the thumb.
+  if (dragF != null) el.scrubTip.textContent = `${Math.round(f * 100)} %`;
 }
 
 // Track position → chapter fraction, pulled onto the ends and the notch when close.
@@ -227,7 +173,6 @@ export function mountReadbar({ onStep }) {
     lastSnap = null;
     if (homeY == null) homeY = container.scrollTop;
     away = { key: chapterKey, natural: 0 };
-    speed = null;
     el.readbar.classList.add("is-scrubbing");
     scrubTo(scrubFraction(e.clientX));
   });
@@ -262,6 +207,6 @@ export function mountReadbar({ onStep }) {
     scrubTo(clamp01(to));
   });
 
-  // Rotating into the wide layout brings back the always-on single bar.
+  // Rotating into the wide layout: no bottom bar to hide there.
   WIDE.addEventListener("change", () => setChrome(true));
 }

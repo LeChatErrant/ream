@@ -686,11 +686,11 @@ html { -webkit-tap-highlight-color: transparent; }
 .add-volume__plus { font-size: 17px; font-weight: 300; line-height: 1; }
 
 /* =========================================================================
-   READER — the phone's split chrome (src/readbar.js). Top bar: menu · title ·
-   chapter tools (proofreading pill, Soul Sea). Bottom bar: ‹ · scrubber ·
-   time left · ›. Both float over the text in its own colour and slide away
-   while you read (#app.chrome-hidden). Wide screens: one bar, menu · title ·
-   tools · ‹ · › (wide.css).
+   READER — the phone's split chrome (src/readbar.js). Top bar, always there:
+   menu · title · chapter tools (proofreading pill, Soul Sea). Bottom bar:
+   ‹ · scrubber · ›, floating over the text in its own colour and sliding
+   away while you read (#app.readbar-hidden). Wide screens: one bar, menu ·
+   title · tools · ‹ · › (wide.css).
    ====================================================================== */
 #topbar {
   position: fixed;
@@ -706,9 +706,7 @@ html { -webkit-tap-highlight-color: transparent; }
   backdrop-filter: saturate(120%) blur(8px);
   border-bottom: 1px solid var(--border);
   z-index: 40;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-#app.chrome-hidden #topbar { transform: translateY(-100%); }
 .title-block {
   flex: 1;
   min-width: 0;
@@ -763,7 +761,7 @@ html { -webkit-tap-highlight-color: transparent; }
   z-index: 40;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-#app.chrome-hidden .readbar { transform: translateY(100%); }
+#app.readbar-hidden .readbar { transform: translateY(100%); }
 .readbar__step { flex: none; width: 44px; height: 44px; }
 /* A touch screen keeps :hover on whatever was last tapped — the reading bars
    would hold a lit button over the text. Only the press itself lights up. */
@@ -773,14 +771,14 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 /* The scrubber: a hairline track, filled up to where you are, with a small
    thumb — the whole bar height is the touch target. Dragging grows the thumb
-   and turns the time left into a %. The notch marks where you scrubbed from. */
+   and raises a % bubble over it. The notch marks where you scrubbed from. */
 .scrub {
   flex: 1;
   min-width: 0;
   align-self: stretch;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 12px;
   touch-action: none;
   cursor: pointer;
   -webkit-user-select: none;
@@ -826,50 +824,46 @@ html { -webkit-tap-highlight-color: transparent; }
   transition: transform 0.15s ease;
 }
 .readbar.is-scrubbing .scrub__thumb { transform: scale(1.45); }
-.readbar__meta {
-  flex: none;
-  min-width: 58px;
-  padding-right: 2px;
-  text-align: right;
-  font: 500 11.5px var(--font-ui);
+.scrub__tip {
+  position: absolute;
+  bottom: 16px;
+  left: calc(var(--f, 0) * 100%);
+  transform: translate(-50%, 4px);
+  padding: 3px 8px;
+  border: 1px solid var(--border-2f);
+  border-radius: 999px;
+  background: var(--row-current);
+  color: var(--text-secondary);
+  font: 600 11.5px var(--font-ui);
   font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.readbar.is-scrubbing .readbar__meta { color: var(--text-secondary); }
+.readbar.is-scrubbing .scrub__tip { opacity: 1; transform: translate(-50%, 0); }
 
-/* The text runs under both bars (the chapter is padded so its first and last
-   lines clear them, see prepareChrome), so the floating chrome lifts what
-   floats at the bottom of the reader while it's shown. */
+/* The text runs under the bottom bar (the chapter's end is padded to clear it,
+   see prepareChrome), so the bar lifts what floats at the bottom of the
+   reader while it's shown. */
 #app[data-route="reader"] .resume-chip,
 #app[data-route="reader"] .update-banner {
   transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-#app[data-route="reader"]:not(.chrome-hidden) .resume-chip,
-#app[data-route="reader"]:not(.chrome-hidden) .update-banner {
+#app[data-route="reader"]:not(.readbar-hidden) .resume-chip,
+#app[data-route="reader"]:not(.readbar-hidden) .update-banner {
   bottom: calc(var(--readbar-h) + 12px + env(safe-area-inset-bottom));
 }
 
 /* ---- Reading surface --------------------------------------------------- */
 #viewer-wrap {
   position: absolute;
-  inset: 0;
+  inset: calc(var(--bar-h) + env(safe-area-inset-top)) 0 0 0;
   justify-content: center;
   overflow: hidden;
   /* Match the in-chapter reading background (not the app page colour) so a
      chapter change or first load never flashes a lighter/white gap. */
   background: #1f2129;
-}
-/* Under a notch / translucent status bar, the text scrolls beneath this strip
-   rather than through the clock while the top bar is away. */
-#viewer-wrap::before {
-  content: "";
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: env(safe-area-inset-top);
-  background: #1f2129;
-  z-index: 39;
-  pointer-events: none;
 }
 #viewer { width: 100%; height: 100%; background: #1f2129; }
 #viewer iframe { border: 0 !important; background: #1f2129 !important; }
@@ -1877,7 +1871,7 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* "See all chapters" — pinned footer of the reader drawer's short list. */
 @media (prefers-reduced-motion: reduce) {
-  .drawer, .scrim, .ch-backpill-wrap, #topbar, .readbar { transition: none; }
+  .drawer, .scrim, .ch-backpill-wrap, .readbar, .scrub__tip { transition: none; }
   .sheet-card { animation: none; }
 }
 

@@ -252,14 +252,12 @@
      READER — the title centres over the text; a hairline under the bar shows
      how far through the chapter you are (reader.js sets --chapter-pct).
      ==================================================================== */
-  /* One bar above the text (no floating, no hiding): ‹ › live up here, the
-     phone's bottom bar (.narrow-only) is gone. */
+  /* One bar above the text: ‹ › live up here, the phone's bottom bar
+     (.narrow-only) is gone. */
   #topbar { padding-inline: 10px; background: color-mix(in srgb, var(--page) 90%, transparent); }
-  #app.chrome-hidden #topbar { transform: none; }
   #viewer-wrap { inset: calc(var(--bar-h) + env(safe-area-inset-top)) 0 env(safe-area-inset-bottom) 0; }
-  #viewer-wrap::before { content: none; }
-  #app[data-route="reader"]:not(.chrome-hidden) .resume-chip { bottom: calc(16px + env(safe-area-inset-bottom)); }
-  #app[data-route="reader"]:not(.chrome-hidden) .update-banner { bottom: calc(14px + env(safe-area-inset-bottom)); }
+  #app[data-route="reader"]:not(.readbar-hidden) .resume-chip { bottom: calc(16px + env(safe-area-inset-bottom)); }
+  #app[data-route="reader"]:not(.readbar-hidden) .update-banner { bottom: calc(14px + env(safe-area-inset-bottom)); }
   .title-block {
     position: absolute;
     top: env(safe-area-inset-top);

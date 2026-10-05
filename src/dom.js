@@ -100,7 +100,7 @@ export function collectRefs() {
     scrub: "scrub",
     scrubTrack: "scrub-track",
     scrubMark: "scrub-mark",
-    readbarMeta: "readbar-meta",
+    scrubTip: "scrub-tip",
     drawer: "drawer",
     drawerHome: "drawer-home",
     drawerBook: "drawer-book",
