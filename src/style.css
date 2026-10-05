@@ -2065,9 +2065,21 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__stat:first-child { border-top: 0; }
 .soulsea__stat-k { color: var(--text-muted); }
 .soulsea__stat-v { color: var(--text-primary); text-align: right; }
-.soulsea__list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.soulsea__list { display: flex; flex-direction: column; }
 .soulsea__list:empty { display: none; }
+/* Each row draws its part of the card, so an opened item can step out of it:
+   a card of its own with the page showing around it, the rows next to it
+   rounding off as the card's new ends. */
+.soulsea__row { background: var(--surface); border: 1px solid var(--border); border-top: 0; overflow: hidden; }
 .soulsea__row + .soulsea__row { border-top: 1px solid var(--border-hair); }
+.soulsea__row:first-child,
+.soulsea__row--open,
+.soulsea__row--open + .soulsea__row { border-top: 1px solid var(--border); border-top-left-radius: 12px; border-top-right-radius: 12px; }
+.soulsea__row:last-child,
+.soulsea__row--open,
+.soulsea__row:has(+ .soulsea__row--open) { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+.soulsea__row--open:not(:first-child),
+.soulsea__row--open + .soulsea__row { margin-top: 10px; }
 .soulsea__row-head {
   appearance: none;
   border: 0;
@@ -2095,13 +2107,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .soulsea__meta { flex: none; font: 400 12px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
 .soulsea__chev { flex: none; display: inline-flex; align-self: center; color: var(--text-dimmest); transition: transform 0.18s ease; }
 .soulsea__row--open .soulsea__chev { transform: rotate(90deg); }
-/* An opened item stands apart from its neighbours — opened ones too: its own band
-   with a firmer edge, its title row tinted, a gap before the next one. */
-.soulsea__row--open { background: var(--row-current); border-block: 1px solid var(--border-2f); }
-.soulsea__row--open:first-child { border-top-color: transparent; }
-.soulsea__row--open:last-child { border-bottom-color: transparent; }
-.soulsea__row--open + .soulsea__row { border-top-color: transparent; }
-.soulsea__row--open + .soulsea__row--open { margin-top: 10px; border-top-color: var(--border-2f); }
+/* An opened item: its own card (see above), a firmer edge, its title row tinted. */
+.soulsea__row--open { background: var(--row-current); border-color: var(--border-2f); }
 .soulsea__row--open > .soulsea__row-head { background: var(--pill); }
 .soulsea__row--open > .soulsea__row-head .soulsea__name { font-weight: 600; }
 
