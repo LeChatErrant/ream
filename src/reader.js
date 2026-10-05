@@ -33,6 +33,7 @@ import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
   importProofreading, exportProofreading, removePackage, pickAndImport, canPickFiles, linkedFileName,
+  prepareExport, exportVia,
 } from "./proof.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
@@ -1062,7 +1063,15 @@ function pickPackageFile() {
 async function runExport(opts) {
   try {
     const name = await exportProofreading(opts);
-    if (name) toast(linkedFileName() ? `Saved over ${name} (the file you last exported to)` : "Proofreading exported — import it on your other device");
+    if (!name) return;
+    const via = exportVia();
+    toast(
+      via === "file"
+        ? `Saved over ${name} (the file you last exported to)`
+        : via === "download"
+          ? `Saved to Downloads as ${name}`
+          : "Proofreading exported — import it on your other device"
+    );
   } catch (e) {
     toast(e.message);
   }
@@ -1070,6 +1079,8 @@ async function runExport(opts) {
 
 function openProofMenu() {
   const s = proofState();
+  // Build the export file now, so tapping Export opens the share sheet at once (iOS).
+  if (s.hasFile) prepareExport();
   const actions = [
     { label: "Import proofreading…", now: true, onClick: pickPackageFile },
     {

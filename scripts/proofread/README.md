@@ -33,7 +33,8 @@ decision wins, so importing twice or from several devices is safe.
 The file is always called `ream-proofreading.json`. On a computer with Chrome /
 Edge, the first export asks where to save and every later export overwrites that
 same file (*Export to another file…* picks a new one) — importing never changes
-where exports go. On the phone, *Save to Files* offers to replace it. Suggestions are
+where exports go. On a phone, Export opens the share sheet; Chrome on Android
+won't share a JSON file ("Permission denied"), so there it lands in Downloads. Suggestions are
 matched by paragraph fingerprints (`src/lib/proof-key.js`), so separate volumes,
 a grouped series or renamed files all work.
 

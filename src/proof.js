@@ -202,19 +202,61 @@ export async function pickAndImport() {
   return importProofreading(await handle.getFile());
 }
 
+// The export file is built ahead of time (when the menu opens): a phone only opens
+// the share sheet while the tap is still being handled, and serialising a few MB
+// of suggestions inside the tap can be slow enough for the browser to refuse.
+let prepared = null; // { file, stamp } — stamp = decision count + exportedAt, to know it's still current
+const exportStamp = () => `${Object.keys(local.decisions).length}|${JSON.stringify(local.decisions).length}|${pkg?.createdAt}`;
+
+function buildExportFile() {
+  const decisions = { ...(pkg.decisions || {}) };
+  for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
+  const data = { ...pkg, createdAt: new Date().toISOString(), decisions };
+  return new File([JSON.stringify(data)], FILE_NAME, { type: "application/json" });
+}
+
+/** Build the export file now so a later Export tap only has to hand it over. */
+export function prepareExport() {
+  if (!pkg) return;
+  const stamp = exportStamp();
+  if (prepared?.stamp !== stamp) prepared = { file: buildExportFile(), stamp };
+}
+function exportFile() {
+  prepareExport();
+  return prepared.file;
+}
+
+/** Record that this device's decisions went out. */
+export async function markExported() {
+  local.exportedAt = new Date().toISOString();
+  await kvSet(LOCAL_KEY, local);
+  notify();
+}
+
+function download(file) {
+  const a = h("a", { href: URL.createObjectURL(file), download: file.name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
+
+/** How the last export went out: "file" (overwrote a file), "share" or "download". */
+let lastExportVia = null;
+export const exportVia = () => lastExportVia;
+
 /**
  * Export the proofreading file with every decision known here. Overwrites the
  * file last exported to when the browser allows it (asking where to save the
  * first time, or always with `saveAs`); otherwise the share sheet on a phone, a
- * download elsewhere — both under the same fixed name. Returns the file name, or
- * null when cancelled.
+ * download elsewhere — both under the same fixed name. A phone that won't share
+ * the file (Chrome on Android only shares images, PDFs, plain text… and answers
+ * "Permission denied" for JSON) gets a download into Downloads instead. Returns
+ * the file name, or null when cancelled.
  */
 export async function exportProofreading({ saveAs = false } = {}) {
   if (!pkg) throw new Error("Nothing to export yet — import a proofreading file first.");
-  const decisions = { ...(pkg.decisions || {}) };
-  for (const [id, d] of Object.entries(local.decisions)) decisions[id] = newer(decisions[id], d);
-  const data = { ...pkg, createdAt: new Date().toISOString(), decisions };
-  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const file = exportFile(); // before any await: keeps the tap's user activation for the share sheet
   let savedAs = FILE_NAME;
   try {
     if (canWriteFiles()) {
@@ -223,29 +265,29 @@ export async function exportProofreading({ saveAs = false } = {}) {
         if ((await handle.requestPermission({ mode: "readwrite" })) !== "granted") handle = null;
       if (!handle) handle = await window.showSaveFilePicker({ suggestedName: linkedName || FILE_NAME, types: FILE_TYPES });
       const w = await handle.createWritable();
-      await w.write(blob);
+      await w.write(file);
       await w.close();
       await linkFile(handle);
       savedAs = handle.name;
-    } else {
-      const file = new File([blob], FILE_NAME, { type: "application/json" });
-      if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
+      lastExportVia = "file";
+    } else if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
+      try {
         await navigator.share({ files: [file], title: "Ream proofreading" });
-      } else {
-        const a = h("a", { href: URL.createObjectURL(file), download: FILE_NAME });
-        document.body.append(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+        lastExportVia = "share";
+      } catch (e) {
+        if (e?.name !== "NotAllowedError") throw e;
+        download(file);
+        lastExportVia = "download";
       }
+    } else {
+      download(file);
+      lastExportVia = "download";
     }
   } catch (e) {
     if (e?.name === "AbortError") return null;
     throw e;
   }
-  local.exportedAt = new Date().toISOString();
-  await kvSet(LOCAL_KEY, local);
-  notify();
+  await markExported();
   return savedAs;
 }
 
