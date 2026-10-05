@@ -173,15 +173,15 @@ function header(context) {
 }
 
 // "Shadow Cores: [5/7]" → Shadow Cores · 5 / 7. The book also says it in words once
-// ("His soul possessed six cores now"): the count is that number, out of the last
-// maximum the runes showed.
-const NUMBER = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7 };
+// ("His soul possessed six cores now", "the seventh, final core"): the count is that
+// number, out of the last maximum the runes showed.
+const NUMBER = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7 };
 function coreStat(x) {
   const runes = [...x.values].reverse().find((v) => /\[\d+\/\d+\]/.test(v));
   const label = (x.value.match(/^\s*([A-Z][\w ]*?):/) || runes?.match(/^\s*([A-Z][\w ]*?):/))?.[1] ?? "Core";
   const n = x.value.match(/\[(\d+)\/(\d+)\]/);
   if (n) return [label, `${n[1]} / ${n[2]}`];
-  const w = x.value.match(/\b(one|two|three|four|five|six|seven)\s+cores?\b/i);
+  const w = x.value.match(/\b(one|two|three|four|five|six|seven|first|second|third|fourth|fifth|sixth|seventh)\b[\w, ]*?\bcores?\b/i);
   const max = runes?.match(/\/(\d+)\]/)?.[1];
   if (w) return [label, `${NUMBER[w[1].toLowerCase()]}${max ? " / " + max : ""}`];
   return [label, x.value.replace(/^\s*[A-Z][\w ]*?:\s*/, "").replace(/\.$/, "")];
@@ -397,13 +397,25 @@ function splitFields(t) {
  * before: more paragraphs of a long description, or — right after a line the book
  * cuts short — the full text it prints next, which replaces the cut-off one.
  */
+// A rune paragraph can run on into Sunny's commentary after a line break
+// ("…proficient in all forms of warfare."\nHe was not sure what it meant…): drop it.
+const RUNE_START = /^\s*(["“«[(]|(…|\.\.\.)?\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:)/;
+const runeOnly = (t) => {
+  const ls = t.split("\n");
+  const end = ls.findIndex((l, i) => i > 0 && l.trim() && !RUNE_START.test(l));
+  return end < 0 ? t : ls.slice(0, end).join("\n");
+};
+
 function runeLines(paras) {
   const lines = [];
-  for (const { t, cont, s } of paras) {
+  for (const { t: raw, cont, s } of paras) {
+    const t = cont ? raw : runeOnly(raw);
     const prev = lines.at(-1);
     if (cont && prev) {
       const cut = /(…|\.\.\.)\]?\.?\s*$/.test(prev.t) && /^\s*\[[^:]*\]\.?\s*$/.test(t);
-      prev.t = cut ? prev.t.slice(0, prev.t.indexOf(":") + 1) + " " + t.trim() : /:\s*$/.test(prev.t) ? `${prev.t} ${t.trim()}` : `${prev.t}\n\n${t.trim()}`;
+      // "Attribute Description..." then "[Damnation!]": the label trails off instead of a colon.
+      const colon = prev.t.indexOf(":");
+      prev.t = cut ? (colon >= 0 ? prev.t.slice(0, colon + 1) : prev.t.replace(/\s*(…|\.\.\.)\s*$/, ":")) + " " + t.trim() :/:\s*$/.test(prev.t) ? `${prev.t} ${t.trim()}` : `${prev.t}\n\n${t.trim()}`;
     } else for (const part of splitFields(t)) lines.push({ t: part, s: /Description/.test(part) ? s : undefined });
   }
   return lines;

@@ -69,7 +69,7 @@ export function fieldsOf(text) {
 
 /** "[Silver Bell], [Puppeteer's Shroud]." → ['Silver Bell', "Puppeteer's Shroud"] (+ truncated flag). */
 export function listOf(value) {
-  const names = [...value.matchAll(/\[([^\]]+)\]?/g)].map((m) => m[1].trim()).filter(Boolean)
+  const names = [...value.matchAll(/[[(]([^[\]()]+)[\])]?/g)].map((m) => m[1].trim().replace(/[,;]+$/, '')).filter(Boolean)
   return { names, truncated: /(\.\.\.|…)\s*$/.test(value.trim()) }
 }
 

@@ -1,19 +1,14 @@
 {
   "range": [
-    1593,
-    1840
+    2574,
+    2882
   ],
-  "seedNote": "Seed = the full 1592 sheet. Aspect, abilities, flaw: established from the same 1592 sheet (Aspect, Innate Ability, Aspect Abilities, Aspect Legacy, Flaw).",
+  "seedNote": "Seed = the full 2573:26–35 sheet (Memories, Echoes, Shadows, Attributes). Aspect, abilities, flaw: carried from ch 1840, plus the Supreme Ability [Shadow Legion] (gained on becoming Supreme, before 2261: explained at 2265:22, named at 2289:8 \"His Supreme Ability, [Shadow Legion]\"). Flaw unchanged (Clear Conscience still in force, e.g. 2639:47).",
   "seed": [
     {
       "id": "silver-bell",
       "kind": "memory",
       "name": "Silver Bell"
-    },
-    {
-      "id": "puppeteers-shroud",
-      "kind": "memory",
-      "name": "Puppeteer's Shroud"
     },
     {
       "id": "extraordinary-rock",
@@ -66,9 +61,14 @@
       "name": "Quintessence Pearl"
     },
     {
-      "id": "onyx-saint",
+      "id": "definitely-not-me",
+      "kind": "memory",
+      "name": "Definitely Not Me"
+    },
+    {
+      "id": "jade-saint",
       "kind": "shadow",
-      "name": "Onyx Saint"
+      "name": "Jade Saint"
     },
     {
       "id": "soul-serpent",
@@ -91,6 +91,11 @@
       "name": "Marvelous Mimic"
     },
     {
+      "id": "shadow-slayer",
+      "kind": "shadow",
+      "name": "Shadow Slayer"
+    },
+    {
       "id": "lord-of-shadows",
       "kind": "attribute",
       "name": "Lord of Shadows"
@@ -111,19 +116,34 @@
       "name": "Bone Weave"
     },
     {
+      "id": "flesh-weave",
+      "kind": "attribute",
+      "name": "Flesh Weave"
+    },
+    {
       "id": "soul-weave",
       "kind": "attribute",
       "name": "Soul Weave"
     },
     {
-      "id": "onyx-shell",
+      "id": "mind-weave",
       "kind": "attribute",
-      "name": "Onyx Shell"
+      "name": "Mind Weave"
+    },
+    {
+      "id": "jade-shell",
+      "kind": "attribute",
+      "name": "Jade Shell"
     },
     {
       "id": "fateless",
       "kind": "attribute",
       "name": "Fateless"
+    },
+    {
+      "id": "curse",
+      "kind": "attribute",
+      "name": "Curse"
     },
     {
       "id": "shadow-slave",
@@ -166,31 +186,43 @@
       "name": "Shadow Incarnation"
     },
     {
+      "id": "shadow-legion",
+      "kind": "ability",
+      "name": "Shadow Legion"
+    },
+    {
       "id": "clear-conscience",
       "kind": "flaw",
       "name": "Clear Conscience"
     }
   ],
   "entries": {
-    "definitely-not-me": {
-      "kind": "memory"
+    "spirit-weave": {
+      "kind": "attribute"
     }
   },
   "events": [
     {
-      "at": "1685:16",
-      "gain": "definitely-not-me",
-      "name": "Definitely Not Me"
+      "at": "2711:15",
+      "fact": "nightmare",
+      "label": "Rank",
+      "value": "Supreme"
     },
     {
-      "at": "1731:21",
-      "runes": "soul-serpent",
-      "to": "1731:64"
+      "at": "2711:15",
+      "fact": "nightmare",
+      "label": "Class",
+      "value": "Terror"
     },
     {
-      "at": "1758:28",
-      "source": "marvelous-mimic",
-      "value": "Mordant Mimic"
+      "at": "2718:37",
+      "source": "spirit-weave",
+      "value": "an ancient silk scroll"
+    },
+    {
+      "at": "2718:82",
+      "gain": "spirit-weave",
+      "name": "Spirit Weave"
     }
   ]
 }

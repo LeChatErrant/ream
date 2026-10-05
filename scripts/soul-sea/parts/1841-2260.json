@@ -1,0 +1,391 @@
+{
+  "range": [
+    1841,
+    2260
+  ],
+  "seedNote": "Seed = Sunny at the end of ch 1840 (the 1593 seed + Definitely Not Me, gained at 1685).",
+  "seed": [
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "puppeteers-shroud",
+      "kind": "memory",
+      "name": "Puppeteer's Shroud"
+    },
+    {
+      "id": "extraordinary-rock",
+      "kind": "memory",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "shadow-lantern",
+      "kind": "memory",
+      "name": "Shadow Lantern"
+    },
+    {
+      "id": "shadow-chair",
+      "kind": "memory",
+      "name": "Shadow Chair"
+    },
+    {
+      "id": "overpriced-saddle",
+      "kind": "memory",
+      "name": "Overpriced Saddle"
+    },
+    {
+      "id": "weavers-needle",
+      "kind": "memory",
+      "name": "Weaver's Needle"
+    },
+    {
+      "id": "nebulous-mantle",
+      "kind": "memory",
+      "name": "Nebulous Mantle"
+    },
+    {
+      "id": "handy-bracelet",
+      "kind": "memory",
+      "name": "Handy Bracelet"
+    },
+    {
+      "id": "quintessence-pearl",
+      "kind": "memory",
+      "name": "Quintessence Pearl"
+    },
+    {
+      "id": "definitely-not-me",
+      "kind": "memory",
+      "name": "Definitely Not Me"
+    },
+    {
+      "id": "onyx-saint",
+      "kind": "shadow",
+      "name": "Onyx Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    },
+    {
+      "id": "nightmare",
+      "kind": "shadow",
+      "name": "Nightmare"
+    },
+    {
+      "id": "shadow-fiend",
+      "kind": "shadow",
+      "name": "Shadow Fiend"
+    },
+    {
+      "id": "marvelous-mimic",
+      "kind": "shadow",
+      "name": "Marvelous Mimic"
+    },
+    {
+      "id": "lord-of-shadows",
+      "kind": "attribute",
+      "name": "Lord of Shadows"
+    },
+    {
+      "id": "flame-of-divinity",
+      "kind": "attribute",
+      "name": "Flame of Divinity"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "soul-weave",
+      "kind": "attribute",
+      "name": "Soul Weave"
+    },
+    {
+      "id": "onyx-shell",
+      "kind": "attribute",
+      "name": "Onyx Shell"
+    },
+    {
+      "id": "fateless",
+      "kind": "attribute",
+      "name": "Fateless"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "fragment-of-the-shadow-realm",
+      "kind": "aspect",
+      "name": "Fragment of the Shadow Realm"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "shadow-manifestation",
+      "kind": "ability",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "id": "shadow-incarnation",
+      "kind": "ability",
+      "name": "Shadow Incarnation"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    }
+  ],
+  "entries": {
+    "bag-of-withholding": {
+      "kind": "memory"
+    },
+    "green-canteen": {
+      "kind": "memory"
+    },
+    "in-case-of-emergency": {
+      "kind": "memory"
+    },
+    "heavy-burden": {
+      "kind": "memory"
+    },
+    "outskirts-at-noon": {
+      "kind": "memory"
+    },
+    "dont-cut-yourself": {
+      "kind": "memory"
+    },
+    "piece-de-resistance": {
+      "kind": "memory"
+    },
+    "safety-first": {
+      "kind": "memory"
+    },
+    "fancy-handy-bracelet": {
+      "kind": "memory"
+    },
+    "shadow-slayer": {
+      "kind": "shadow"
+    },
+    "jade-shell": {
+      "kind": "attribute"
+    }
+  },
+  "notSunny": [
+    "2038:21",
+    "2038:51",
+    "2038:77",
+    "2038:79"
+  ],
+  "events": [
+    {
+      "at": "1845:6",
+      "lose": "puppeteers-shroud",
+      "how": "given"
+    },
+    {
+      "at": "1889:3",
+      "runes": "onyx-saint",
+      "to": "1889:4"
+    },
+    {
+      "at": "1890:18",
+      "runes": "onyx-saint"
+    },
+    {
+      "at": "1951:11",
+      "runes": "shadow-lantern",
+      "to": "1951:12"
+    },
+    {
+      "at": "1958:25",
+      "history": "puppeteers-shroud",
+      "to": "1958:26"
+    },
+    {
+      "at": "1960:55",
+      "gain": "bag-of-withholding",
+      "name": "Bag of Withholding"
+    },
+    {
+      "at": "1961:8",
+      "source": "green-canteen",
+      "value": "the leftover scraps of the Huntsman's axe"
+    },
+    {
+      "at": "1961:10",
+      "gain": "green-canteen",
+      "name": "Green Canteen"
+    },
+    {
+      "at": "1961:12",
+      "gain": "in-case-of-emergency",
+      "name": "In Case of Emergency"
+    },
+    {
+      "at": "1961:17",
+      "gain": "heavy-burden",
+      "name": "Heavy Blow"
+    },
+    {
+      "at": "1961:17",
+      "gain": "outskirts-at-noon",
+      "name": "Outskirts at Noon"
+    },
+    {
+      "at": "1961:17",
+      "gain": "dont-cut-yourself",
+      "name": "Don't Cut Yourself"
+    },
+    {
+      "at": "1961:29",
+      "gain": "piece-de-resistance",
+      "name": "Piece de Resistance"
+    },
+    {
+      "at": "1961:33",
+      "gain": "safety-first",
+      "name": "Safety First"
+    },
+    {
+      "at": "1978:16",
+      "lose": "bag-of-withholding",
+      "how": "given"
+    },
+    {
+      "at": "1978:30",
+      "lose": "green-canteen",
+      "how": "given"
+    },
+    {
+      "at": "1978:32",
+      "name": "heavy-burden",
+      "value": "Heavy Burden"
+    },
+    {
+      "at": "1978:36",
+      "lose": "heavy-burden",
+      "how": "given"
+    },
+    {
+      "at": "1978:36",
+      "lose": "outskirts-at-noon",
+      "how": "given"
+    },
+    {
+      "at": "1978:36",
+      "lose": "dont-cut-yourself",
+      "how": "given"
+    },
+    {
+      "at": "1978:42",
+      "name": "piece-de-resistance",
+      "value": "Pièce de Résistance"
+    },
+    {
+      "at": "1978:46",
+      "lose": "piece-de-resistance",
+      "how": "given"
+    },
+    {
+      "at": "1978:46",
+      "lose": "safety-first",
+      "how": "given"
+    },
+    {
+      "at": "1978:49",
+      "lose": "in-case-of-emergency",
+      "how": "given"
+    },
+    {
+      "at": "2036:27",
+      "gain": "fancy-handy-bracelet",
+      "label": "a beautiful bracelet forged from black silver"
+    },
+    {
+      "at": "2036:32",
+      "lose": "fancy-handy-bracelet",
+      "how": "given"
+    },
+    {
+      "at": "2120:36",
+      "set": "core",
+      "value": "the seventh, final core"
+    },
+    {
+      "at": "2120:44",
+      "set": "class",
+      "value": "Titan"
+    },
+    {
+      "at": "2129:72",
+      "source": "shadow-slayer",
+      "value": "the shadow of the archer"
+    },
+    {
+      "at": "2130:59",
+      "gain": "shadow-slayer",
+      "label": "a Shadow"
+    },
+    {
+      "at": "2132:57",
+      "fact": "soul-serpent",
+      "label": "Class",
+      "value": "Titan"
+    },
+    {
+      "at": "2134:43",
+      "name": "shadow-slayer",
+      "value": "Shadow Slayer"
+    },
+    {
+      "at": "2239:42",
+      "runes": "soul-serpent"
+    },
+    {
+      "at": "2247:49",
+      "set": "rank",
+      "value": "Supreme"
+    }
+  ]
+}

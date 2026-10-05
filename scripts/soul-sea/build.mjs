@@ -61,11 +61,13 @@ const has = (hay, needle) => norm(hay).includes(norm(needle))
 // runes): a known field, a Spell message, or any "Label: value" line ("Death Charge:
 // [0/1000].", "[Unbending] Enchantment Description: …").
 // A bare "Label:" (its text in the paragraphs below) only for a description.
+// "Attribute Description:" (or "Attribute Description...") with the text below it.
+const OPEN_DESC = /^\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}Description(:|\.\.\.|…)\s*$/
 const isRuneLine = (t) =>
   !!fieldsOf(t) ||
   isMessage(t) ||
   /^\s*(…\s*|\.\.\.\s*)?(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}:\s*[[\-—"“«0-9?]/.test(t) ||
-  /^\s*(\[[^\]]+\]\s*)?[A-Z][\w' ]{0,40}Description:\s*$/.test(t) ||
+  OPEN_DESC.test(t) ||
   /Description:\s*\[/.test(t) // a garbled sheet ("[Fragment of the Shadow Realm].??: ????: ??Description: […]")
 // Brackets a line leaves open: a description that carries on over the next paragraphs.
 const openBrackets = (t) => (t.match(/\[/g) || []).length - (t.match(/\]/g) || []).length
@@ -142,9 +144,9 @@ for (const e of tl.events) {
         errors.push(`${at[0]}:${p}: "${subject}" isn't named near that description`)
       ps.push(subject ? { ...ref([at[0], p]), s: subject } : ref([at[0], p]))
       prevCut = cutShort(t)
-      const depth = /Description:\s*$/.test(t) ? 0 : openBrackets(t)
-      if (depth > 0 || /Description:\s*$/.test(t)) {
-        const q = /Description:\s*$/.test(t) ? (/^\s*["“«\[]/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
+      const depth = OPEN_DESC.test(t) ? 0 : openBrackets(t)
+      if (depth > 0 || OPEN_DESC.test(t)) {
+        const q = OPEN_DESC.test(t) ? (/^\s*["“«\[]/.test(chap[p + 1] ?? '') ? closing(p + 1, 0) : -1) : closing(p + 1, depth)
         if (q > 0) {
           for (let c = p + 1; c <= q; c++) ps.push({ ...ref([at[0], c]), cont: true })
           p = q

@@ -37,7 +37,7 @@ rest, one chapter range each, with a `seed` (what Sunny holds when the part star
 `node scripts/soul-sea/build.mjs --part parts/<file>.json` checks one part on its own
 (replayed from its seed, its own checkpoints, nothing written); the plain build merges
 everything and reports any seed that disagrees with the parts before it. Mapped
-through ch 1840 (end of volume 8).
+through ch 2882 (end of volume 11, the latest available).
 
 Hand-curated, reviewed through `reviewedThrough`. Holds **no book text** beyond
 item names and short labels, each verified against its cited paragraph — the

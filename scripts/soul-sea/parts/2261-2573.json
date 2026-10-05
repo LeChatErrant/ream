@@ -1,0 +1,362 @@
+{
+  "range": [
+    2261,
+    2573
+  ],
+  "seedNote": "Seed = Sunny at the start of ch 2261, worked out from the 1840 seed and the 2573:26–35 sheet: Puppeteer's Shroud gone (Rain wears it from 1845); Shadow Slayer already his sixth Shadow (ch 2130–2134); Rank Supreme (2251), Class Titan / seventh core (~2120–2134) — all before 2261. Changes inside this range: Onyx Shell → Jade Shell (first named 2265:12), [Shadow Legion] (first named 2265:22, though used from ~2252), Evening Star (crafted 2392–2395, Saint's by 2574), Flesh Weave (2410–2411), Mind Weave (2550–2553), Onyx Saint → Jade Saint (2567:43), Curse Memory (2572:35) → Curse Attribute (2573:21–22). Aspect, abilities, flaw: unchanged from 1840 apart from [Shadow Legion].",
+  "seed": [
+    {
+      "id": "silver-bell",
+      "kind": "memory",
+      "name": "Silver Bell"
+    },
+    {
+      "id": "extraordinary-rock",
+      "kind": "memory",
+      "name": "Extraordinary Rock"
+    },
+    {
+      "id": "endless-spring",
+      "kind": "memory",
+      "name": "Endless Spring"
+    },
+    {
+      "id": "weavers-mask",
+      "kind": "memory",
+      "name": "Weaver's Mask"
+    },
+    {
+      "id": "shadow-lantern",
+      "kind": "memory",
+      "name": "Shadow Lantern"
+    },
+    {
+      "id": "shadow-chair",
+      "kind": "memory",
+      "name": "Shadow Chair"
+    },
+    {
+      "id": "overpriced-saddle",
+      "kind": "memory",
+      "name": "Overpriced Saddle"
+    },
+    {
+      "id": "weavers-needle",
+      "kind": "memory",
+      "name": "Weaver's Needle"
+    },
+    {
+      "id": "nebulous-mantle",
+      "kind": "memory",
+      "name": "Nebulous Mantle"
+    },
+    {
+      "id": "handy-bracelet",
+      "kind": "memory",
+      "name": "Handy Bracelet"
+    },
+    {
+      "id": "quintessence-pearl",
+      "kind": "memory",
+      "name": "Quintessence Pearl"
+    },
+    {
+      "id": "definitely-not-me",
+      "kind": "memory",
+      "name": "Definitely Not Me"
+    },
+    {
+      "id": "onyx-saint",
+      "kind": "shadow",
+      "name": "Onyx Saint"
+    },
+    {
+      "id": "soul-serpent",
+      "kind": "shadow",
+      "name": "Soul Serpent"
+    },
+    {
+      "id": "nightmare",
+      "kind": "shadow",
+      "name": "Nightmare"
+    },
+    {
+      "id": "shadow-fiend",
+      "kind": "shadow",
+      "name": "Shadow Fiend"
+    },
+    {
+      "id": "marvelous-mimic",
+      "kind": "shadow",
+      "name": "Marvelous Mimic"
+    },
+    {
+      "id": "shadow-slayer",
+      "kind": "shadow",
+      "name": "Shadow Slayer"
+    },
+    {
+      "id": "lord-of-shadows",
+      "kind": "attribute",
+      "name": "Lord of Shadows"
+    },
+    {
+      "id": "flame-of-divinity",
+      "kind": "attribute",
+      "name": "Flame of Divinity"
+    },
+    {
+      "id": "blood-weave",
+      "kind": "attribute",
+      "name": "Blood Weave"
+    },
+    {
+      "id": "bone-weave",
+      "kind": "attribute",
+      "name": "Bone Weave"
+    },
+    {
+      "id": "soul-weave",
+      "kind": "attribute",
+      "name": "Soul Weave"
+    },
+    {
+      "id": "onyx-shell",
+      "kind": "attribute",
+      "name": "Onyx Shell"
+    },
+    {
+      "id": "fateless",
+      "kind": "attribute",
+      "name": "Fateless"
+    },
+    {
+      "id": "shadow-slave",
+      "kind": "aspect",
+      "name": "Shadow Slave"
+    },
+    {
+      "id": "shadow-dance",
+      "kind": "aspect",
+      "name": "Shadow Dance"
+    },
+    {
+      "id": "fragment-of-the-shadow-realm",
+      "kind": "aspect",
+      "name": "Fragment of the Shadow Realm"
+    },
+    {
+      "id": "shadow-bond",
+      "kind": "ability",
+      "name": "Shadow Bond"
+    },
+    {
+      "id": "shadow-control",
+      "kind": "ability",
+      "name": "Shadow Control"
+    },
+    {
+      "id": "shadow-step",
+      "kind": "ability",
+      "name": "Shadow Step"
+    },
+    {
+      "id": "shadow-manifestation",
+      "kind": "ability",
+      "name": "Shadow Manifestation"
+    },
+    {
+      "id": "shadow-incarnation",
+      "kind": "ability",
+      "name": "Shadow Incarnation"
+    },
+    {
+      "id": "clear-conscience",
+      "kind": "flaw",
+      "name": "Clear Conscience"
+    }
+  ],
+  "entries": {
+    "jade-shell": {
+      "kind": "attribute"
+    },
+    "shadow-legion": {
+      "kind": "ability"
+    },
+    "evening-star": {
+      "kind": "memory"
+    },
+    "flesh-weave": {
+      "kind": "attribute"
+    },
+    "mind-weave": {
+      "kind": "attribute"
+    },
+    "jade-saint": {
+      "kind": "shadow"
+    },
+    "curse-memory": {
+      "kind": "memory"
+    },
+    "curse": {
+      "kind": "attribute"
+    }
+  },
+  "events": [
+    {
+      "at": "2265:12",
+      "become": "onyx-shell",
+      "to": "jade-shell",
+      "name": "Jade Shell"
+    },
+    {
+      "at": "2265:22",
+      "gain": "shadow-legion",
+      "name": "Shadow Legion"
+    },
+    {
+      "at": "2392:4",
+      "source": "evening-star",
+      "value": "the golden amber of the Axis Tree"
+    },
+    {
+      "at": "2395:30",
+      "gain": "evening-star",
+      "name": "Evening Star"
+    },
+    {
+      "at": "2403:44",
+      "runes": "onyx-saint"
+    },
+    {
+      "at": "2409:25",
+      "source": "flesh-weave",
+      "value": "the Puppeteer"
+    },
+    {
+      "at": "2410:72",
+      "gain": "flesh-weave",
+      "label": "the fragment of Weaver's legacy"
+    },
+    {
+      "at": "2411:10",
+      "name": "flesh-weave",
+      "value": "Flesh Weave"
+    },
+    {
+      "at": "2550:22",
+      "source": "mind-weave",
+      "value": "a reflection that the Demon of Fate had left in the Great Mirror of the Palace of Imagination"
+    },
+    {
+      "at": "2550:35",
+      "gain": "mind-weave",
+      "label": "the reflection of the Demon of Fate"
+    },
+    {
+      "at": "2553:7",
+      "name": "mind-weave",
+      "value": "Mind Weave"
+    },
+    {
+      "at": "2567:36",
+      "fact": "shadow-slayer",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "2567:43",
+      "become": "onyx-saint",
+      "to": "jade-saint",
+      "name": "Jade Saint"
+    },
+    {
+      "at": "2568:13",
+      "runes": "jade-saint",
+      "to": "2568:34"
+    },
+    {
+      "at": "2571:6",
+      "fact": "soul-serpent",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "2571:6",
+      "fact": "shadow-fiend",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "2571:6",
+      "fact": "marvelous-mimic",
+      "label": "Rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "2572:8",
+      "source": "curse-memory",
+      "value": "the links of the chain with which Hope had been bound"
+    },
+    {
+      "at": "2572:35",
+      "gain": "curse-memory",
+      "name": "Curse"
+    },
+    {
+      "at": "2572:35",
+      "runes": "curse-memory"
+    },
+    {
+      "at": "2573:17",
+      "source": "curse",
+      "value": "the Curse",
+      "item": "curse-memory"
+    },
+    {
+      "at": "2573:21",
+      "lose": "curse-memory",
+      "how": "destroyed"
+    },
+    {
+      "at": "2573:22",
+      "gain": "curse",
+      "label": "an Attribute"
+    },
+    {
+      "at": "2573:27",
+      "set": "true-name",
+      "value": "—"
+    },
+    {
+      "at": "2573:28",
+      "set": "rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "2573:29",
+      "set": "class",
+      "value": "Titan"
+    },
+    {
+      "at": "2573:30",
+      "set": "core",
+      "value": "Shadow Cores: [7/7]"
+    },
+    {
+      "at": "2573:32",
+      "lose": "evening-star",
+      "how": "given"
+    },
+    {
+      "at": "2573:35",
+      "name": "curse",
+      "value": "Curse"
+    },
+    {
+      "at": "2573:37",
+      "runes": "curse",
+      "to": "2573:39"
+    }
+  ]
+}
