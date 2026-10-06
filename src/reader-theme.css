@@ -215,6 +215,9 @@ html { scrollbar-width: none !important; }
   /* + the room the phone's floating bottom bar takes (set per chapter by the
      app, see prepareChrome; 0 on wide screens). */
   padding-bottom: calc(2em + var(--ream-chrome-bottom, 0px)) !important;
+  /* App chrome, not the book's text — keep it out of text selection. */
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 .chapter-end__label {
   display: flex !important;

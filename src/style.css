@@ -706,6 +706,9 @@ html { -webkit-tap-highlight-color: transparent; }
   backdrop-filter: saturate(120%) blur(8px);
   border-bottom: 1px solid var(--border);
   z-index: 40;
+  /* Reader chrome — only the book's own text is selectable. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .title-block {
   flex: 1;
@@ -764,6 +767,8 @@ html { -webkit-tap-highlight-color: transparent; }
   border-top: 1px solid var(--border);
   z-index: 40;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-user-select: none;
+  user-select: none;
 }
 .readbar::before {
   content: "";
@@ -874,6 +879,8 @@ html { -webkit-tap-highlight-color: transparent; }
   z-index: 60;
   display: flex;
   flex-direction: column;
+  -webkit-user-select: none;
+  user-select: none;
   padding-top: calc(16px + env(safe-area-inset-top));
 }
 .drawer.open { transform: translateX(0); }
