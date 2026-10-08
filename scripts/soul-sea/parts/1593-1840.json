@@ -178,9 +178,51 @@
   },
   "events": [
     {
+      "at": "1651:3",
+      "fact": "soul-serpent",
+      "label": "Rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "1651:3",
+      "fact": "soul-serpent",
+      "label": "Class",
+      "value": "Terror"
+    },
+    {
+      "at": "1661:33",
+      "fact": "shadow-fiend",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "1661:37",
+      "fact": "nightmare",
+      "label": "Rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "1661:37",
+      "fact": "nightmare",
+      "label": "Class",
+      "value": "Terror"
+    },
+    {
       "at": "1685:16",
       "gain": "definitely-not-me",
       "name": "Definitely Not Me"
+    },
+    {
+      "at": "1690:50",
+      "fact": "marvelous-mimic",
+      "label": "Rank",
+      "value": "Ascended"
+    },
+    {
+      "at": "1690:50",
+      "fact": "marvelous-mimic",
+      "label": "Class",
+      "value": "Devil"
     },
     {
       "at": "1731:21",

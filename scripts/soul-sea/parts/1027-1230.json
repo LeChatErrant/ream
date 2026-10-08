@@ -262,6 +262,18 @@
       "value": "Ravenous Fiend"
     },
     {
+      "at": "1047:27",
+      "fact": "ravenous-fiend-echo",
+      "label": "Rank",
+      "value": "Transcendent"
+    },
+    {
+      "at": "1047:27",
+      "fact": "ravenous-fiend-echo",
+      "label": "Class",
+      "value": "Devil"
+    },
+    {
       "at": "1079:13",
       "become": "ravenous-fiend-echo",
       "to": "ravenous-fiend",

@@ -215,6 +215,12 @@
       "name": "Shadow Legion"
     },
     {
+      "at": "2287:1",
+      "fact": "shadow-slayer",
+      "label": "Rank",
+      "value": "not quite Supreme, but also not quite Transcendent"
+    },
+    {
       "at": "2392:4",
       "source": "evening-star",
       "value": "the golden amber of the Axis Tree"
@@ -227,6 +233,18 @@
     {
       "at": "2403:44",
       "runes": "onyx-saint"
+    },
+    {
+      "at": "2409:9",
+      "fact": "soul-serpent",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "2409:9",
+      "fact": "soul-serpent",
+      "label": "Class",
+      "value": "Titan"
     },
     {
       "at": "2409:25",

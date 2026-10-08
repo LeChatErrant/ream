@@ -128,7 +128,8 @@ function stateAt(last) {
     else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0], values: [...(x.values || []), e.value] });
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
-      x.facts = {}; // a newer sheet supersedes facts told in prose
+      // a newer sheet supersedes facts told in prose — those it prints itself (`s`), not ones carried from older sheets
+      for (const k of e.sheet.s ?? e.sheet.f.map(([k]) => k)) delete x.facts?.[k];
     } else if (e.type === "told" && e.for) (x.toldFor ??= {})[e.for.toLowerCase()] = e; // what one listed name does
     else if (e.type === "told") x.told = e; // how the story describes it (no runes, or none describing it)
     else if (e.type === "fact") (x.facts ??= {})[e.label] = e.value; // "now a Transcendent Devil"
@@ -314,15 +315,13 @@ function row(x, gone) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
-  // No runes at all: the story's own description (with runes but no description of
-  // the item, the sheet puts it in the description's place).
+  // No runes at all: the Rank / Class the story states ("Mimic had achieved Transcendent
+  // status"), then its own description (with runes but no description of the item, the
+  // sheet puts it in the description's place).
+  const stated = !x.sheet && x.facts && Object.keys(x.facts).length;
+  if (stated) detail.append(buildSheet({ at: [0], sheet: { f: [], l: [] } }, new Map(), { ...x, told: null }));
   if (x.told && !x.sheet) detail.append(told(x.told, true));
-  if (!x.sheet && !x.told)
-    detail.append(
-      x.facts && Object.keys(x.facts).length
-        ? buildSheet({ at: [0], sheet: { f: [], l: [] } }, new Map(), x)
-        : h("p", { class: "soulsea__none" }, "No runes shown yet")
-    );
+  if (!x.sheet && !x.told && !stated) detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
   // Where it came from: the creature, the giver, or what it evolved from.
   // Another item of the Soul Sea (what it evolved from, the Legacy whose relic it is) is a link.
   const before = x.from && stateOf(x.from);
@@ -363,7 +362,12 @@ function buildSheet(e, texts, x) {
   const box = h("div", { class: "soulsea__sheet" });
   const relics = data.entries[x.id]?.relics;
   // What the book has said since the last rune sheet ("now a Transcendent Devil") wins.
-  const facts = sh.f.filter(([k]) => !(x.facts && k in x.facts)).concat(Object.entries(x.facts || {}));
+  // Rank before Class, however the story told them.
+  const stated = x.facts || {};
+  const order = (k) => ["Rank", "Class"].indexOf(k) + 1 || 3;
+  const facts = sh.f
+    .map(([k, v]) => [k, k in stated ? stated[k] : v])
+    .concat(Object.entries(stated).filter(([k]) => !sh.f.some(([j]) => j === k)).sort(([a], [b]) => order(a) - order(b)));
   if (facts.length)
     box.append(
       h(

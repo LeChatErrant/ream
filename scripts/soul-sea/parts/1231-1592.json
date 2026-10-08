@@ -310,6 +310,18 @@
       "to": "1237:49"
     },
     {
+      "at": "1237:35",
+      "fact": "soul-serpent",
+      "label": "Rank",
+      "value": "Ascended"
+    },
+    {
+      "at": "1237:35",
+      "fact": "soul-serpent",
+      "label": "Class",
+      "value": "Tyrant"
+    },
+    {
       "at": "1247:32",
       "runes": "stifled-scream"
     },

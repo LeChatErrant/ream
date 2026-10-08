@@ -228,6 +228,7 @@ for (const e of tl.events) {
       continue
     }
     const cur = [...(sheets[e.runes] ?? [])]
+    e.own = e.paras // the lines this sheet prints itself, before the earlier ones join
     const seen = {}
     let last = -1
     // A line and its continuation paragraphs move together.
@@ -453,6 +454,11 @@ const sheetErrors = []
       l: sh.lists.map((l) => ({ k: l.label, n: l.names.map((n) => ({ n: n.name, ...(n.src ? { d: refs(n) } : {}), ...(n.unlisted ? { u: 1 } : {}) })) })),
       ...(sh.notes.length ? { o: sh.notes.map((n) => ({ n: n.title, k: n.kind, d: refs(n) })) } : {}),
     }
+    // Facts only carried over from earlier sheets don't override what the story has said
+    // since ("Saint remained a Transcendent Devil"): `s` = the ones this sheet prints itself.
+    const own = e.own && e.own !== e.paras ? readSheet(e.own.map((r) => ({ t: text[r.ch][r.p], cont: !!r.cont, s: r.s })), x, { prefer }).facts.map((f) => f.label) : null
+    if (own && e.sheet.f.some(([k]) => !own.includes(k))) e.sheet.s = own
+    if (e.carried) e.sheet.s = []
   }
 }
 if (sheetErrors.length) {

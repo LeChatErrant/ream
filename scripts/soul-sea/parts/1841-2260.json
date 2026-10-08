@@ -221,6 +221,18 @@
       "how": "given"
     },
     {
+      "at": "1874:15",
+      "fact": "shadow-fiend",
+      "label": "Rank",
+      "value": "Supreme"
+    },
+    {
+      "at": "1874:15",
+      "fact": "shadow-fiend",
+      "label": "Class",
+      "value": "Devil"
+    },
+    {
       "at": "1889:3",
       "runes": "onyx-saint",
       "to": "1889:4"
