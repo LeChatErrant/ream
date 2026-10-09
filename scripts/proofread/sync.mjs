@@ -84,7 +84,8 @@ export async function mergeDecisions(incoming) {
       stats.unknown++
       continue
     }
-    if (!d || !['accepted', 'discarded'].includes(d.status)) continue
+    // 'pending' = a decision undone in the reader: kept, so it beats an older accept / discard.
+    if (!d || !['accepted', 'discarded', 'pending'].includes(d.status)) continue
     const mine = current[id]
     if (mine && (mine.at ?? '') >= (d.at ?? '')) {
       stats.older++
@@ -106,7 +107,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await mkdir(dir, { recursive: true })
     const file = path.join(dir, 'ream-proofreading.json')
     await writeFile(file, JSON.stringify(pkg))
-    const pending = pkg.findings.filter((f) => !pkg.decisions[f.id]).length
+    const pending = pkg.findings.filter((f) => (pkg.decisions[f.id]?.status ?? 'pending') === 'pending').length
     console.log(`${path.relative(process.cwd(), file)} — ${pkg.findings.length} findings (${pending} pending)`)
   } else if (cmd === 'merge' && arg) {
     const s = await mergeDecisions(JSON.parse(await readFile(arg, 'utf8')))

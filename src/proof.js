@@ -128,14 +128,14 @@ export async function importProofreading(file) {
     bookPending = null;
     await kvSet(PKG_KEY, pkg);
     setProofEnabled(true);
-    const pending = pkg.findings.filter((f) => !decisionOf(f.id, pkg.decisions)).length;
+    const pending = pkg.findings.filter((f) => !isDecided(decisionOf(f.id, pkg.decisions))).length;
     return `Proofreading imported — ${pending.toLocaleString()} of ${pkg.findings.length.toLocaleString()} to review`;
   }
   // An older decisions-only export: fold it into the file already here.
   if (!pkg) throw new Error("Import a full proofreading file first.");
   let taken = 0;
   for (const [id, d] of Object.entries(incoming)) {
-    if (!d || !["accepted", "discarded"].includes(d.status)) continue;
+    if (!d || !["accepted", "discarded", "pending"].includes(d.status)) continue;
     const mine = decisionOf(id, pkg.decisions);
     if (mine !== d && newer(mine, d) === d) {
       pkg.decisions[id] = d;
@@ -324,14 +324,17 @@ function fits(f, paras, heading) {
 
 /** The suggestion as it should show, with its decision (and any edit / "other copy" choice) folded in. */
 function withDecision(f, d) {
-  const v = { ...f, status: d?.status || "pending" };
+  const v = { ...f, base: f, status: d?.status || "pending" };
   if (d?.replacement !== undefined && f.op !== "delete-paras") v.replacement = d.replacement;
   if (d?.choice === "other" && f.dupOf) Object.assign(v, { para: f.dupOf.para, paraEnd: f.dupOf.paraEnd });
   return v;
 }
 
+// An undone decision is recorded as { status: "pending" } so it still wins over an
+// older accept / discard (from the file or another device) when merging.
 const decisionOf = (id, base) => newer(local.decisions[id], base?.[id]);
-const pendingInBook = (key) => (pkg?.findings || []).filter((f) => f.book === key && !decisionOf(f.id, pkg.decisions)).length;
+const isDecided = (d) => !!d && d.status !== "pending";
+const pendingInBook = (key) => (pkg?.findings || []).filter((f) => f.book === key && !isDecided(decisionOf(f.id, pkg.decisions))).length;
 
 /**
  * Content hook (registered before the chapter-end card is injected): find this
@@ -740,11 +743,13 @@ function openSheet(c, f) {
     const was = f.status;
     if (was === "pending") unmark(c, f);
     else revert(c, f);
+    if (status === "pending") Object.assign(f, withDecision(f.base, null)); // undo: back to the suggestion as made
     if (extra.replacement !== undefined) f.replacement = extra.replacement;
     f.status = status;
     if (status === "accepted") applyFix(c, f);
+    else if (status === "pending") mark(c, f);
     else anchorOriginal(c, f);
-    if (was === "pending" && bookPending != null) bookPending = Math.max(0, bookPending - 1);
+    if (bookPending != null && (was === "pending") !== (status === "pending")) bookPending = Math.max(0, bookPending + (status === "pending" ? 1 : -1));
     closeOverlay();
     notify();
   };
@@ -782,7 +787,9 @@ function openSheet(c, f) {
           }, "Edit")
         : null,
       h("button", { class: "text-btn text-btn--danger", onclick: () => (f.status === "discarded" ? closeOverlay() : decide("discarded")) }, f.status === "discarded" ? "Discarded ✓" : "Discard"),
-      h("button", { class: "text-btn proof-later", onclick: () => closeOverlay() }, "Later")
+      f.status === "pending"
+        ? h("button", { class: "text-btn proof-later", onclick: () => closeOverlay() }, "Later")
+        : h("button", { class: "text-btn proof-later", title: "Put it back to review", onclick: () => decide("pending") }, "Undo")
     )
   );
 
@@ -795,6 +802,7 @@ function openSheet(c, f) {
     const k = e.key.toLowerCase();
     if (k === "a" || k === "enter") decide("accepted");
     else if (k === "d") decide("discarded");
+    else if (k === "u" && f.status !== "pending") decide("pending");
     else if (k === "escape") closeOverlay();
     else return;
     e.preventDefault();
