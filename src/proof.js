@@ -364,7 +364,7 @@ export async function proofChapter(contents, lib, href) {
     bookPending = key ? pendingInBook(key) : null;
   }
 
-  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base };
+  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map() };
   chapters.set(doc, c);
   doc.defaultView.addEventListener("unload", () => {
     chapters.delete(doc);
@@ -411,6 +411,9 @@ function injectStyle(doc) {
     .proof-para:hover, .proof-para.is-active { background: rgba(143, 179, 255, 0.16); }
     .proof-para--del { text-decoration: line-through rgba(217, 112, 102, 0.55); }
     .proof-split { display: block; margin-bottom: 1em; }
+    .proof-joined { display: inline !important; }
+    .proof-joined + .proof-joined::before { content: " "; }
+    .proof-join-head::before { content: ""; display: block; height: var(--proof-gap-top, 0); }
     .proof-flash { animation: proof-flash 1.8s ease-out; border-radius: 3px; }
     @keyframes proof-flash { 0%, 35% { background: rgba(143, 179, 255, 0.34); } 100% { background: transparent; } }
   `;
@@ -521,6 +524,11 @@ function applyFix(c, f) {
     p.replaceChildren(...f.replacement.split("\n\n").map((t) => h("span", { class: "proof-split" }, t)));
     return anchor(p, f);
   }
+  if (isJoin(f)) {
+    c.joins.set(f.para, f.alsoDelete);
+    layoutJoins(c);
+    return anchor(p, f);
+  }
   if (f.alsoDelete != null && c.paras[f.alsoDelete]) {
     hide(c.paras[f.alsoDelete]);
     anchor(c.paras[f.alsoDelete], f);
@@ -533,6 +541,51 @@ function applyFix(c, f) {
   span.dataset.proofRef = f.id;
   span.textContent = f.replacement;
   r.insertNode(span);
+}
+
+// A sentence split across paragraphs is joined by showing the paragraphs inline,
+// one after the other — not by moving the text — so a chain of joins (¶37 ← ¶38
+// ← ¶39…) and the other fixes inside the joined paragraphs all keep working, in
+// any order, and each one can be undone on its own.
+const isJoin = (f) => f.op === "replace" && f.join && f.alsoDelete != null;
+
+/**
+ * Lay out the accepted joins: each run of joined paragraphs reads as one. Inline
+ * paragraphs lose their margins, so the run's spacing is put back around it: on
+ * the element after it, and (if the paragraph before leaves less) on top.
+ */
+function layoutJoins(c) {
+  for (const p of c.paras) {
+    p.classList.remove("proof-joined", "proof-join-head");
+    p.style.removeProperty("--proof-gap-top");
+  }
+  for (const n of c.joinGaps || []) n.style.removeProperty("margin-top");
+  c.joinGaps = [];
+  const win = c.doc.defaultView;
+  const px = (n, prop) => (n ? parseFloat(win.getComputedStyle(n)[prop]) || 0 : 0);
+  const into = new Set(c.joins.values());
+  const runs = [];
+  for (const [head] of c.joins) {
+    if (into.has(head) || !c.paras[head]) continue; // not the start of a run
+    let tail = head;
+    while (c.joins.has(tail) && c.paras[c.joins.get(tail)]) tail = c.joins.get(tail);
+    runs.push({ first: c.paras[head], last: c.paras[tail], top: px(c.paras[head], "marginTop"), bottom: px(c.paras[head], "marginBottom") });
+    for (let k = head; k <= tail; k++) c.paras[k].classList.add("proof-joined");
+  }
+  for (const { first, last, top, bottom } of runs) {
+    first.classList.add("proof-join-head");
+    // Space above: what the element before doesn't already give (an inline run before gives nothing).
+    const prev = first.previousElementSibling;
+    const given = prev && !prev.classList.contains("proof-joined") ? px(prev, "marginBottom") : 0;
+    const before = prev?.classList.contains("proof-joined") ? Math.max(top, bottom) : top;
+    first.style.setProperty("--proof-gap-top", `${Math.max(0, before - given)}px`);
+    // Space below: on the element after (unless it's another run, which spaces itself).
+    const after = last.nextElementSibling;
+    if (after && !after.classList.contains("proof-joined") && px(after, "marginTop") < bottom) {
+      after.style.setProperty("margin-top", `${bottom}px`);
+      c.joinGaps.push(after);
+    }
+  }
 }
 
 /** A discarded finding: the text stays as it was, with an anchor around it. */
@@ -564,6 +617,7 @@ function revert(c, f) {
       if (applied && f.op === "split-para") n.textContent = f.original;
     }
   }
+  if (applied && isJoin(f) && c.joins.delete(f.para)) layoutJoins(c);
   c.doc.body.normalize();
 }
 
@@ -731,7 +785,7 @@ function openSheet(c, f) {
   }
   const editBox = h("textarea", { class: "name-input proof-edit", rows: 3, hidden: true });
   const error = h("p", { class: "proof-error", hidden: true }, "Couldn't save the decision on this device.");
-  const canEdit = f.op === "replace" || f.op === "title";
+  const canEdit = (f.op === "replace" && !isJoin(f)) || f.op === "title";
 
   const decide = async (status, extra = {}) => {
     try {

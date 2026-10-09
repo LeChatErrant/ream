@@ -60,8 +60,9 @@ export function applyToChapter(xhtml, edits) {
     ;(perPara.get(e.para) ?? perPara.set(e.para, []).get(e.para)).push(e)
   }
   // A join pulls in the *corrected* text of the next paragraph, so fixes accepted
-  // inside that paragraph survive being merged.
-  for (const e of edits.filter((e) => e.join)) {
+  // inside that paragraph survive being merged. Last first: in a chain (¶37 ← ¶38
+  // ← ¶39…) the next paragraph's own join must already hold everything after it.
+  for (const e of edits.filter((e) => e.join).sort((a, b) => b.para - a.para)) {
     const n = ps[e.alsoDelete]
     if (!n) continue
     let t = n.text
