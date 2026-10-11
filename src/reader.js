@@ -926,8 +926,8 @@ function paintChapterProgress() {
 }
 
 // -------------------------------------------------------------------------
-// Keyboard reading (computers). ← / → step chapters; Space / Shift+Space,
-// PageUp / PageDown, ↑ / ↓ and Home / End scroll the chapter. Bound on the app
+// Keyboard reading (computers). Space / Shift+Space, PageUp / PageDown, ↑ / ↓
+// and Home / End scroll the chapter (← / → do nothing: no chapter keys). Bound on the app
 // document by main.js; once you click into the text, focus sits inside the
 // chapter iframe, so each chapter document forwards its keys here too.
 // -------------------------------------------------------------------------
@@ -937,8 +937,6 @@ export function handleReaderKey(e) {
   const t = e.target;
   const tag = t?.tagName || "";
   if (t?.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-  if (e.key === "ArrowRight") return goChapter(1);
-  if (e.key === "ArrowLeft") return goChapter(-1);
   // Space/Enter on a focused button presses it — leave those alone.
   if (e.key === " " && (tag === "BUTTON" || tag === "A")) return;
   const c = rendition.manager?.container;

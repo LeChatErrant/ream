@@ -37,9 +37,8 @@ the same pieces (`src/wide.css`, two tiers: ≥ 640 px tablet, ≥ 1024 px deskt
   volumes + chapters on the left and details on the right.
 - **Reader** — the menu button docks the chapter list beside the text (remembered);
   a hairline under the top bar shows progress through the chapter.
-  Keys: `←` / `→` previous / next chapter · `Space` / `Shift+Space`,
-  `PageUp` / `PageDown`, `↑` / `↓`, `Home` / `End` scroll — also with focus in
-  the text.
+  Keys: `Space` / `Shift+Space`, `PageUp` / `PageDown`, `↑` / `↓`, `Home` /
+  `End` scroll — also with focus in the text.
 - Sheets become centred dialogs, the `⋯` menu a popover, editors a modal.
 
 ## Run (development)
