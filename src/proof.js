@@ -316,6 +316,33 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+// Text outside paragraphs (the title repeated as an <h3>, ads, watermarks in
+// made-up tags, story text that lost its <p>): found by the fingerprint of its text.
+const isBlockOp = (f) => f.op === "delete-block" || f.op === "wrap-text";
+function locateBlock(doc, f, taken) {
+  if (f.op === "delete-block") {
+    for (const el of doc.body.getElementsByTagName(f.block.tag)) {
+      if (taken.has(el) || el.closest("p, .chapter-title-wrap")) continue;
+      if (textKey(el.textContent) === f.block.key) return el;
+    }
+    return null;
+  }
+  const w = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    if (taken.has(n) || n.parentElement?.closest("p, h1, h2, h3, h4, h5, h6, li, a, script, style")) continue;
+    if (textKey(n.data) === f.block.key) return n;
+  }
+  return null;
+}
+/** The block a finding addresses — remembered, or found again after its text node was swapped. */
+function blockNode(c, f) {
+  const known = c.blocks.get(f.id);
+  if (known?.isConnected) return known;
+  const n = locateBlock(c.doc, f, new Set());
+  c.blocks.set(f.id, n);
+  return n;
+}
+
 /** Does this suggestion belong to the text on screen? (fingerprints of every paragraph it touches) */
 function fits(f, paras, heading) {
   if (f.op === "title") return !!heading && textKey(heading.textContent) === f.titleKey;
@@ -357,14 +384,23 @@ export async function proofChapter(contents, lib, href) {
   const base = pkg.decisions || {};
 
   // Match first, change after: applying a fix alters the paragraph's fingerprint.
-  const matched = candidates.filter((f) => fits(f, paras, heading));
+  const blocks = new Map();
+  const taken = new Set();
+  const matched = candidates.filter((f) => {
+    if (!isBlockOp(f)) return fits(f, paras, heading);
+    const n = locateBlock(doc, f, taken);
+    if (!n) return false;
+    taken.add(n);
+    blocks.set(f.id, n);
+    return true;
+  });
   if (lib) {
     if (matched[0]) bookOfLib.set(lib.id, matched[0].book);
     const key = bookOfLib.get(lib.id) || (pkg.books && slugify(lib.fileName) in pkg.books ? slugify(lib.fileName) : null);
     bookPending = key ? pendingInBook(key) : null;
   }
 
-  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map() };
+  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map(), blocks };
   chapters.set(doc, c);
   doc.defaultView.addEventListener("unload", () => {
     chapters.delete(doc);
@@ -459,6 +495,16 @@ const parasOf = (c, f) => {
 };
 
 function mark(c, f) {
+  if (f.op === "delete-block") return tag(blockNode(c, f), f, "proof-para proof-para--del");
+  if (f.op === "wrap-text") {
+    const n = blockNode(c, f);
+    const span = c.doc.createElement("span");
+    span.className = "proof-mark";
+    span.dataset.proof = f.id;
+    n.replaceWith(span);
+    span.append(n);
+    return;
+  }
   if (f.op === "title") {
     if (c.heading) tag(c.heading, f, "proof-mark");
     return;
@@ -508,6 +554,25 @@ const anchor = (node, f) => node && (node.dataset.proofRef = f.id);
 
 /** Show the corrected text in the rendered chapter. */
 function applyFix(c, f) {
+  if (f.op === "delete-block") {
+    const el = blockNode(c, f);
+    hide(el);
+    return anchor(el, f);
+  }
+  if (f.op === "wrap-text") {
+    // Shown as a paragraph of its own (spaced like the story's), corrected.
+    const n = blockNode(c, f);
+    const ref = c.paras.find((p) => p.isConnected);
+    const gap = ref ? c.doc.defaultView.getComputedStyle(ref).marginBottom : "1em";
+    const span = c.doc.createElement("span");
+    span.className = "proof-done";
+    span.dataset.proofRef = f.id;
+    span.textContent = f.replacement;
+    span.style.cssText = `display: block; margin: ${gap} 0`;
+    if (!f.replacement.trim()) hide(span);
+    n.replaceWith(span);
+    return;
+  }
   if (f.op === "title") {
     if (c.heading) c.heading.textContent = f.replacement;
     return anchor(c.heading, f);
@@ -590,6 +655,16 @@ function layoutJoins(c) {
 
 /** A discarded finding: the text stays as it was, with an anchor around it. */
 function anchorOriginal(c, f) {
+  if (f.op === "delete-block") return anchor(blockNode(c, f), f);
+  if (f.op === "wrap-text") {
+    const n = blockNode(c, f);
+    const span = c.doc.createElement("span");
+    span.className = "proof-done";
+    span.dataset.proofRef = f.id;
+    n.replaceWith(span);
+    span.append(n);
+    return;
+  }
   if (f.op === "title") return anchor(c.heading, f);
   if (f.op !== "replace") return parasOf(c, f).forEach((p) => anchor(p, f));
   const p = c.paras[f.para];
@@ -672,7 +747,7 @@ export function nextSuggestion(container) {
 export function openCorrections(container) {
   const rows = [];
   for (const c of chapters.values())
-    for (const f of c.findings) rows.push({ c, f, order: f.op === "title" ? -1 : (f.para ?? 0) });
+    for (const f of c.findings) rows.push({ c, f, order: f.op === "title" ? -1 : (f.para ?? f.pos ?? 0) });
   rows.sort((a, b) => a.order - b.order);
   const n = (st) => rows.filter((r) => r.f.status === st).length;
   const root = sheetEl();
@@ -705,7 +780,8 @@ export function openCorrections(container) {
 /** One line describing a finding's change. */
 function summaryOf(f) {
   const short = (t, n = 70) => (t.length > n ? t.slice(0, n) + "…" : t);
-  if (f.op === "delete-paras") return `Remove: ${short(f.original.replace(/\s+/g, " "))}`;
+  if (f.op === "delete-paras" || f.op === "delete-block") return `Remove: ${short(f.original.replace(/\s+/g, " ")) || "(empty paragraph)"}`;
+  if (f.op === "wrap-text" && f.replacement === f.original) return `Make a paragraph: ${short(f.original)}`;
   if (f.op === "split-para") return "Split into separate paragraphs";
   if (f.op === "title") return short(f.replacement);
   return `${short(f.original.trim(), 40) || "∅"} → ${short(f.replacement.trim(), 40) || "∅"}`;
@@ -775,8 +851,12 @@ function openSheet(c, f) {
   marks.forEach((m) => m.classList.add("is-active"));
 
   let body;
-  if (f.op === "delete-paras") {
-    const text = parasOf(c, f).map((p) => p.textContent).join(" ");
+  if (f.op === "delete-block") {
+    body = h("p", { class: "proof-diff" }, h("del", null, f.original));
+  } else if (f.op === "wrap-text") {
+    body = f.replacement === f.original ? h("p", { class: "proof-diff" }, f.original) : diffView(f.original, f.replacement);
+  } else if (f.op === "delete-paras") {
+    const text = parasOf(c, f).map((p) => p.textContent).join(" ") || "(empty paragraph)";
     body = h("p", { class: "proof-diff" }, h("del", null, text.length > 600 ? text.slice(0, 600) + "…" : text));
   } else if (f.op === "split-para") {
     body = h("div", { class: "proof-diff" }, ...f.replacement.split("\n\n").map((t) => h("p", null, t)));
@@ -785,7 +865,7 @@ function openSheet(c, f) {
   }
   const editBox = h("textarea", { class: "name-input proof-edit", rows: 3, hidden: true });
   const error = h("p", { class: "proof-error", hidden: true }, "Couldn't save the decision on this device.");
-  const canEdit = (f.op === "replace" && !isJoin(f)) || f.op === "title";
+  const canEdit = (f.op === "replace" && !isJoin(f)) || f.op === "title" || f.op === "wrap-text";
 
   const decide = async (status, extra = {}) => {
     try {

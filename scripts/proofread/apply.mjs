@@ -8,7 +8,8 @@
 // Edits are made on the raw XHTML (no re-serialisation), so untouched markup stays byte-identical.
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { WORK, decode, encode, listEpubs, openEpub, paragraphs } from './lib.mjs'
+import { textKey } from '../../src/lib/proof-key.js'
+import { WORK, decode, encode, listEpubs, looseBlocks, openEpub, paragraphs } from './lib.mjs'
 
 export async function loadFindings() {
   const out = []
@@ -45,13 +46,42 @@ export function resolve(f, d = {}) {
 const titleRe = (t) => new RegExp(`(>\\s*)${t.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s*<)`, 'g')
 
 /** Apply edits to one chapter's XHTML. Returns { xhtml, failed: [{ edit, reason }] }. */
+// Text outside paragraphs (loose.mjs): found by the fingerprint of its text, not
+// by position, and applied after the paragraph edits (wrapping text in a new <p>
+// would shift every paragraph index after it).
+export const isBlockOp = (e) => e.op === 'delete-block' || e.op === 'wrap-text'
+
+/** Apply delete-block / wrap-text edits to a chapter's XHTML. Returns { xhtml, failed }. */
+export function applyBlocks(xhtml, edits) {
+  const failed = []
+  const blocks = looseBlocks(xhtml)
+  const used = new Set()
+  const hits = []
+  for (const e of edits) {
+    const b = blocks.find(
+      (b) => !used.has(b) && textKey(b.text) === e.block.key && (e.op === 'wrap-text' ? b.type === 'text' : b.type === 'element' && b.tag === e.block.tag),
+    )
+    if (!b) {
+      failed.push({ edit: e, reason: 'block not found' })
+      continue
+    }
+    used.add(b)
+    hits.push({ b, e })
+  }
+  for (const { b, e } of hits.sort((x, y) => y.b.start - x.b.start)) {
+    const html = e.op === 'wrap-text' && e.replacement.trim() ? `<p>${encode(e.replacement.trim())}</p>` : ''
+    xhtml = xhtml.slice(0, b.start) + html + xhtml.slice(b.end)
+  }
+  return { xhtml, failed }
+}
+
 export function applyToChapter(xhtml, edits) {
   const failed = []
   const ps = paragraphs(xhtml)
   const perPara = new Map()
   const deleted = new Set()
   for (const e of edits) {
-    if (e.op === 'title') continue
+    if (e.op === 'title' || isBlockOp(e)) continue
     if (e.op === 'delete-paras') {
       for (let i = e.para; i <= e.paraEnd; i++) deleted.add(i)
       continue
@@ -143,6 +173,12 @@ export async function applyBook(epub, edits) {
     const original = await zip.file(href).async('string')
     const res = applyToChapter(original, list)
     failed.push(...res.failed)
+    const blockEdits = list.filter(isBlockOp)
+    if (blockEdits.length) {
+      const b = applyBlocks(res.xhtml, blockEdits)
+      failed.push(...b.failed)
+      res.xhtml = b.xhtml
+    }
     const files = new Map([[href, res.xhtml], ...navFiles])
     for (const t of list.filter((e) => e.op === 'title')) {
       if (!applyTitle(files, t)) failed.push({ edit: t, reason: 'title not found' })
@@ -177,6 +213,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         if (f.op === 'title') continue
         const x = await zip.file(f.href)?.async('string')
         if (!x) failed.push({ edit: f, reason: 'no such chapter' })
+        else if (isBlockOp(f)) failed.push(...applyBlocks(x, [f]).failed)
         else {
           // A Claude fix may only match once the automatic fixes of its paragraph are in.
           const before = f.afterAuto ? mine.filter((a) => a.source === 'auto' && a.href === f.href && a.para === f.para && a.op === 'replace') : []

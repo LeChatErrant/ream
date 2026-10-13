@@ -30,7 +30,7 @@ export function quoteEdits(text) {
       if (prev !== undefined && /[\p{L}\p{N}]/u.test(prev)) to = ' "'
     } else {
       // "Text »" → "Text"" and "needs!»Sunny" → "needs!" Sunny".
-      if (/[  ]/.test(prev ?? '') && (next === undefined || /[\s.,;:!?…)]/.test(next))) s--
+      if (/[ \u00a0]/.test(prev ?? '') && (next === undefined || /[\s.,;:!?…)]/.test(next))) s--
       if (next !== undefined && /[\p{L}\p{N}]/u.test(next)) to = '" '
     }
     edits.push({ s, e, to })

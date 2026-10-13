@@ -52,7 +52,7 @@ export async function readerFinding(f) {
     check,
   }
   if (f.op === 'title') out.titleKey = textKey(c.title)
-  for (const k of ['confidence', 'para', 'paraEnd', 'alsoDelete', 'join', 'dupOf']) if (f[k] != null && f[k] !== false) out[k] = f[k]
+  for (const k of ['confidence', 'para', 'paraEnd', 'alsoDelete', 'join', 'dupOf', 'block', 'pos']) if (f[k] != null && f[k] !== false) out[k] = f[k]
   return out
 }
 

@@ -12,6 +12,7 @@ node scripts/proofread/chunk.mjs     # 3a. ~28k-word chunks for the Claude pass 
 #   3b. Claude agents proofread each chunk with prompt.md → proofread/findings/claude/<chunk>.json
 node scripts/proofread/ingest.mjs    # 3c. normalise + validate Claude findings (idempotent)
 node scripts/proofread/quotes.mjs    # 3d. «French quotes» → "straight quotes" → proofread/findings/quotes/
+node scripts/proofread/loose.mjs     # 3e. text outside <p> (title copies, orphan text, ads) + empty ¶s → proofread/findings/loose/
 node scripts/proofread/review.mjs    # 4. review UI at http://localhost:5180 → proofread/decisions.json
 node scripts/proofread/apply.mjs     # 5. accepted fixes → proofread/out/<same name>.epub
 node scripts/proofread/apply.mjs --check   # verify every finding still locates its text
@@ -52,6 +53,14 @@ quotes and fixes the spacing (`needs!»Sunny` → `needs!" Sunny`). It leaves an
 quote that another suggestion already rewrites to that suggestion, and gives
 undecided suggestions the same straight quotes. Bulk-accept them in the review
 UI with the *quotes* kind filter.
+
+**Text outside paragraphs** (`loose.mjs`): every other step only reads `<p>`.
+Volumes 8–10 also carry the chapter title repeated as an `<h3>`/`<h1>`/list item,
+ad links and watermarks in made-up tags (→ *delete-block*), story text that lost
+its `<p>` or was split with `<br>` (→ *wrap-text*: made a paragraph, with fixes from
+`proofread/loose-fixes.json`, a Claude pass over `proofread/chunks/loose.txt`), and
+empty paragraphs (→ *delete-paras*). Blocks are found by text fingerprint; ids hash
+the chapter + text, so re-running keeps decisions attached.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.

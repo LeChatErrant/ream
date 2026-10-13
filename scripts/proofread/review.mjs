@@ -45,6 +45,7 @@ async function data() {
       }
       if (f.dupOf) x.dupParas = c.paras.slice(f.dupOf.para, f.dupOf.paraEnd + 1)
     }
+    if (!x.paras) x.paras = [f.original] // text outside paragraphs: show the block itself
     out.push(x)
   }
   const vol = (s) => +s.match(/(\d+)$/)[1]

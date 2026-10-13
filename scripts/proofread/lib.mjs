@@ -80,3 +80,80 @@ export async function readChapters(file) {
   }
   return chapters
 }
+
+// ---- text outside paragraphs -------------------------------------------------
+// Some chapters (Shadow Slave vol 8–10) carry text that isn't in a <p>: the title
+// repeated as an <h3> or a list item, a paragraph that lost its <p> tags, lines
+// separated by <br>, ads and watermarks in made-up tags. paragraphs() never sees
+// them, so they get their own pass (loose.mjs).
+
+const KNOWN_TAGS = new Set(
+  'a abbr b bdi bdo blockquote br caption cite code col colgroup dd del details dfn div dl dt em figcaption figure font footer h1 h2 h3 h4 h5 h6 header hr i img ins kbd label li main mark nav ol p pre q rp rt ruby s samp section small span strong sub summary sup table tbody td tfoot th thead time tr u ul var wbr'.split(' '),
+)
+const INLINE = new Set('b i em strong span u s small sub sup font mark abbr cite q code'.split(' '))
+
+/**
+ * Blocks of text in a chapter body that sit outside every <p>:
+ *   { type: 'element', tag, start, end, text }  an element holding text (heading,
+ *     list, link, made-up tag) — `start`/`end` span the whole element;
+ *   { type: 'text', start, end, text }  a run of bare text (with inline markup)
+ *     between block boundaries — `end` includes a following <br>, if any.
+ * Offsets index the raw XHTML, so edits can be made in place.
+ */
+export function looseBlocks(xhtml) {
+  const at = xhtml.indexOf('chapter-ugc')
+  if (at < 0) return []
+  const from = xhtml.indexOf('>', at) + 1
+  const to = xhtml.lastIndexOf('</body>')
+  const out = []
+  let run = null // current bare-text run
+  const flush = (end) => {
+    if (run && /\p{L}/u.test(textOf(xhtml.slice(run.start, run.end)))) {
+      let e = run.end
+      const br = xhtml.slice(e, end).match(/^\s*<br\s*\/?>/)
+      if (br) e += br[0].length
+      out.push({ type: 'text', start: run.start, end: e, text: textOf(xhtml.slice(run.start, run.end)).replace(/\s+/g, ' ').trim() })
+    }
+    run = null
+  }
+  const re = /<!--[\s\S]*?-->|<(script|style)\b[\s\S]*?<\/\1>|<p(?:\s[^>]*)?>[\s\S]*?<\/p>|<\/?([a-zA-Z][\w-]*)\b[^>]*?\/?>|[^<]+/g
+  re.lastIndex = from
+  let m
+  while ((m = re.exec(xhtml)) && m.index < to) {
+    const tok = m[0]
+    if (tok.startsWith('<!--') || m[1] || /^<p[\s>]/i.test(tok)) {
+      flush(m.index)
+      continue
+    }
+    if (m[2]) {
+      const name = m[2].toLowerCase()
+      const closing = tok.startsWith('</')
+      if (INLINE.has(name)) {
+        if (run) run.end = m.index + tok.length
+        continue
+      }
+      flush(m.index)
+      if (closing || tok.endsWith('/>') || name === 'br' || name === 'div' || name === 'img' || name === 'hr') continue
+      // An element that can hold text on its own: take it whole, if it does.
+      const close = new RegExp(`</${name}\\s*>`, 'ig')
+      close.lastIndex = m.index + tok.length
+      const c = close.exec(xhtml)
+      if (!c) continue
+      const end = c.index + c[0].length
+      const inner = xhtml.slice(m.index + tok.length, c.index)
+      // A container of paragraphs (an <article>, a <section>…): look inside it instead.
+      if (/<(p|div|article|section|blockquote|ul|ol|table|h[1-6])[\s>/]/i.test(inner) && !/^(ol|ul)$/.test(name)) continue
+      const text = textOf(inner).replace(/\s+/g, ' ').trim()
+      if (/\p{L}/u.test(text)) out.push({ type: 'element', tag: name, known: KNOWN_TAGS.has(name), start: m.index, end, text })
+      re.lastIndex = end
+      continue
+    }
+    // bare text
+    if (!run) {
+      if (!tok.trim()) continue
+      run = { start: m.index, end: m.index + tok.length }
+    } else run.end = m.index + tok.length
+  }
+  flush(to)
+  return out
+}
