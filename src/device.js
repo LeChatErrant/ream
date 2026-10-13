@@ -3,9 +3,8 @@
 //
 //   • Persistent storage — the whole library (books, progress, proofreading)
 //     lives in IndexedDB, which the browser may evict under storage pressure
-//     unless the origin is marked persistent. We ask once at boot (a no-op
-//     when already granted) and show the outcome + usage in the Library
-//     footer, so a "may be cleared" state is visible rather than discovered.
+//     unless the origin is marked persistent. We ask once at boot, silently
+//     (a no-op when already granted).
 //
 //   • Screen wake lock — while you are actively reading, the phone shouldn't
 //     dim halfway through a chapter. Reading activity (scrolls, taps) holds a
@@ -14,8 +13,6 @@
 //     doesn't burn the battery. The browser drops the lock whenever the page
 //     is hidden; the next activity simply takes it again.
 // =========================================================================
-import { el } from "./dom.js";
-import { formatBytes } from "./lib/format.js";
 
 // Longer than any page takes to read, short enough that a forgotten phone
 // still goes to sleep.
@@ -61,18 +58,9 @@ export function releaseWakeLock() {
   l?.release().catch(() => {});
 }
 
-/** Ask for persistent storage and report the result in the Library footer. */
+/** Ask the browser to never evict the library's storage. */
 export async function ensurePersistentStorage() {
   const s = navigator.storage;
-  if (!s?.persisted) return;
-  let kept = await s.persisted().catch(() => false);
-  if (!kept && s.persist) kept = await s.persist().catch(() => false);
-  let used = "";
-  if (s.estimate) {
-    const { usage } = await s.estimate().catch(() => ({}));
-    if (usage) used = ` · ${formatBytes(usage)} used`;
-  }
-  if (!el.storageNote) return;
-  el.storageNote.textContent = kept ? `Storage: kept on this device${used}` : `Storage: may be cleared by the browser${used}`;
-  el.storageNote.classList.toggle("is-err", !kept);
+  if (!s?.persisted || !s.persist) return;
+  if (!(await s.persisted().catch(() => false))) await s.persist().catch(() => {});
 }

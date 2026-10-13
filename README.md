@@ -19,9 +19,8 @@ Everything runs locally in the browser — no book ever leaves your device.
   back ("↩ 38 %"); a jump never counts as reading.
 - Resumes the last book and reading position automatically (IndexedDB)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
-- Asks the browser to keep the library's storage persistent (shown in the
-  Library footer with the space used), and keeps the screen awake while you
-  read — released after 5 minutes without a scroll or tap
+- Asks the browser to keep the library's storage persistent, and keeps the
+  screen awake while you read — released after 5 minutes without a scroll or tap
 - Designed for the phone, with a full tablet / desktop layout (see below)
 - **Soul Sea** (Shadow Slave only) — Sunny's Memories, Echoes, Shadows, Attributes
   and Aspect as of where you are, in the book's own words (`scripts/soul-sea/`)
