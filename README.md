@@ -19,6 +19,9 @@ Everything runs locally in the browser — no book ever leaves your device.
   back ("↩ 38 %"); a jump never counts as reading.
 - Resumes the last book and reading position automatically (IndexedDB)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
+- Asks the browser to keep the library's storage persistent (shown in the
+  Library footer with the space used), and keeps the screen awake while you
+  read — released after 5 minutes without a scroll or tap
 - Designed for the phone, with a full tablet / desktop layout (see below)
 - **Soul Sea** (Shadow Slave only) — Sunny's Memories, Echoes, Shadows, Attributes
   and Aspect as of where you are, in the book's own words (`scripts/soul-sea/`)
@@ -120,6 +123,7 @@ one concern:
 - `src/reader.js` — reading surface, drawer, resume, chapter-nav injection
 - `src/readbar.js` — the phone's auto-hiding bottom bar (chapter steps, top / end)
 - `src/pwa.js` — install prompt + service-worker update banner
+- `src/device.js` — persistent-storage request + reading wake lock
 - `src/lib/` — pure, unit-tested helpers (`text`, `chapters`, `format` math)
 - `src/style.css` — app chrome (top bar, drawer, landing) — the phone design
 - `src/wide.css` — tablet / desktop layer on top of it (min-width queries only)
@@ -135,6 +139,9 @@ npm test          # Vitest unit tests over the pure logic in src/lib
 npm run lint      # ESLint (flat config)
 npm run format    # Prettier (pure-logic modules, tests, config)
 ```
+
+The deploy workflow runs `npm test` and `npm run lint` before building, so a
+failing check blocks the release.
 
 ## Dev seeding
 

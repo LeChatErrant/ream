@@ -7,7 +7,8 @@ import prettier from "eslint-config-prettier";
 // errors we deliberately swallow), and empty catch blocks are how several
 // best-effort paths signal "ignore".
 export default [
-  { ignores: ["dist/**", "dev-dist/**", "node_modules/**"] },
+  // design_handoff*/ are untracked local design archives, not app code.
+  { ignores: ["dist/**", "dev-dist/**", "node_modules/**", "design_handoff*/**"] },
   js.configs.recommended,
   {
     files: ["src/**/*.js"],

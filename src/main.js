@@ -28,6 +28,7 @@
 //   chapters     chapters screen + shared chapter-preview component
 //   reader       reading surface, drawer, resume, chapter-nav injection
 //   pwa          install prompt + service-worker update banner
+//   device       persistent-storage request + reading wake lock
 // =========================================================================
 import "./style.css";
 // Tablet / desktop layer — every rule in it sits behind a min-width query, so
@@ -42,6 +43,7 @@ import { toggleDrawer, closeDrawer, goChapter, flushReadingPosition, handleReade
 import { mountReadbar } from "./readbar.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMarks } from "./brand.js";
+import { ensurePersistentStorage } from "./device.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
   applyUpdate, hideUpdateBanner,
@@ -202,4 +204,5 @@ async function migrateLegacy() {
   }
   go({ route: "library" }, false);
   refreshInstallNote();
+  ensurePersistentStorage();
 })();

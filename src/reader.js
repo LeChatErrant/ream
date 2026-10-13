@@ -40,6 +40,7 @@ import {
   setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap,
   chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
+import { keepAwake, releaseWakeLock } from "./device.js";
 
 let book = null; // live epub.js Book
 let rendition = null;
@@ -72,6 +73,7 @@ let restoreActive = false;
 export const setCurrentBook = (b) => { currentBook = b; };
 export const hasRendition = () => !!rendition;
 export function destroyRendition() {
+  releaseWakeLock();
   if (rendition) {
     rendition.destroy();
     rendition = null;
@@ -727,6 +729,7 @@ function prepareChrome(contents) {
   if (!doc) return;
   applyChromeInsets(doc);
   doc.addEventListener("click", chromeTap);
+  doc.addEventListener("click", keepAwake);
 }
 // Crossing between the phone and wide layouts changes that padding.
 WIDE.addEventListener("change", () => {
@@ -923,6 +926,8 @@ function paintChapterProgress() {
   el.topbar.style.setProperty("--chapter-pct", pct.toFixed(2) + "%");
   scrollReaderMark(c.scrollTop);
   chromeScrolled(c);
+  // Every scroll (and every chapter landing) is reading: keep the screen on.
+  keepAwake();
 }
 
 // -------------------------------------------------------------------------

@@ -149,6 +149,7 @@ export function collectRefs() {
     appVersion: "app-version",
     checkUpdate: "check-update",
     updateStatus: "update-status",
+    storageNote: "storage-note",
     updateBanner: "update-banner",
     updateText: "update-banner-text",
     updateReload: "update-reload",

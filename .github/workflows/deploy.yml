@@ -32,6 +32,12 @@ jobs:
 
       - run: npm ci
 
+      # Every push to main ships, so a red test or lint stops the deploy here,
+      # before anything is built or published.
+      - run: npm test
+
+      - run: npm run lint
+
       - run: npm run build
 
       # Pages is already enabled on the repo (build type = GitHub Actions),
