@@ -13,6 +13,7 @@ node scripts/proofread/chunk.mjs     # 3a. ~28k-word chunks for the Claude pass 
 node scripts/proofread/ingest.mjs    # 3c. normalise + validate Claude findings (idempotent)
 node scripts/proofread/quotes.mjs    # 3d. «French quotes» → "straight quotes" → proofread/findings/quotes/
 node scripts/proofread/loose.mjs     # 3e. text outside <p> (title copies, orphan text, ads) + empty ¶s → proofread/findings/loose/
+node scripts/proofread/rewrites.mjs  # 3f. chapters replaced whole: proofread/rewrites/<n>.txt → proofread/findings/rewrite/
 node scripts/proofread/review.mjs    # 4. review UI at http://localhost:5180 → proofread/decisions.json
 node scripts/proofread/apply.mjs     # 5. accepted fixes → proofread/out/<same name>.epub
 node scripts/proofread/apply.mjs --check   # verify every finding still locates its text
@@ -61,6 +62,17 @@ its `<p>` or was split with `<br>` (→ *wrap-text*: made a paragraph, with fixe
 `proofread/loose-fixes.json`, a Claude pass over `proofread/chunks/loose.txt`), and
 empty paragraphs (→ *delete-paras*). Blocks are found by text fingerprint; ids hash
 the chapter + text, so re-running keeps decisions attached.
+
+**Rewritten chapters** (`rewrites.mjs`): some pirate-site copies are AI
+rewrites planted as bait for scrapers — the same story, every sentence reworded,
+invented sentences slipped in (Shadow Slave 1905–1906 in vol 9; novelbin and
+ranobes carried several rounds of them in late 2024). Only the real text fixes
+those: put it in `proofread/rewrites/<chapter number>.txt` (paragraphs separated by
+blank lines; lines cut mid-sentence are joined back) and run the step. Each chapter
+becomes one *replace-chapter* suggestion over every paragraph of the fake copy; the
+other suggestions made for that copy are dropped. In Ream the copy is hidden and the
+real chapter shown after it (Undo brings the copy back); *Write corrected epubs*
+swaps the paragraphs in the file.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.

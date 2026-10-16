@@ -388,7 +388,9 @@
           body = `<div class="text">${ctx(f.prev)}${f.paras.map((p) => `<p class="${other ? 'dup' : 'gone'}">${vis(p)}</p>`).join('')}${ctx(f.next)}</div>`
           if (f.dupParas)
             body += `<div class="label">Other copy — ¶${f.dupOf.para}${f.dupOf.paraEnd !== f.dupOf.para ? '–' + f.dupOf.paraEnd : ''}</div><div class="text">${f.dupParas.map((p) => `<p class="${other ? 'gone' : 'dup'}">${vis(p)}</p>`).join('')}</div>`
-        } else if (f.op === 'split-para') body = `<div class="text">${ctx(f.prev)}${f.replacement.split('\n\n').map((p) => `<p class="dup">${vis(p)}</p>`).join('')}${ctx(f.next)}</div>`
+        } else if (f.op === 'replace-chapter')
+          body = `<div class="label">Real chapter</div><div class="text">${f.replacement.split('\n\n').map((p) => `<p class="dup">${vis(p)}</p>`).join('')}</div><div class="label">Rewritten copy</div><div class="text">${f.paras.map((p) => `<p class="gone">${vis(p)}</p>`).join('')}</div>`
+        else if (f.op === 'split-para') body = `<div class="text">${ctx(f.prev)}${f.replacement.split('\n\n').map((p) => `<p class="dup">${vis(p)}</p>`).join('')}${ctx(f.next)}</div>`
         else {
           const p = f.paras[0]
           const at = p.indexOf(f.original)
@@ -445,7 +447,7 @@
 
       function openEdit() {
         const f = list[pos]
-        if (!f || f.op === 'delete-paras' || f.op === 'split-para') return
+        if (!f || f.op === 'delete-paras' || f.op === 'split-para' || f.op === 'replace-chapter') return
         $('#edit-box').classList.add('open')
         const t = $('#edit-text')
         t.value = replacementOf(f)

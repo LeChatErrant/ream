@@ -23,8 +23,11 @@ export async function loadFindings() {
   await walk(path.join(WORK, 'findings'))
   // A Claude title fix supersedes the automatic clean-up of the same title.
   const overridden = new Set(out.filter((f) => f.overrides && !f.invalid).map((f) => f.overrides))
+  // A chapter replaced whole (rewrites.mjs) drops the paragraph fixes made for its fake text.
+  const replaced = new Set(out.filter((f) => f.op === 'replace-chapter').map((f) => `${f.book}|${f.href}`))
+  const stale = (f) => f.op !== 'replace-chapter' && f.op !== 'title' && f.op !== 'delete-block' && replaced.has(`${f.book}|${f.href}`)
   // Findings without an id/book haven't been through ingest.mjs yet.
-  return out.filter((f) => f.id && f.book && !f.invalid && !overridden.has(f.id))
+  return out.filter((f) => f.id && f.book && !f.invalid && !overridden.has(f.id) && !stale(f))
 }
 
 export async function loadDecisions() {
@@ -86,6 +89,8 @@ export function applyToChapter(xhtml, edits) {
       for (let i = e.para; i <= e.paraEnd; i++) deleted.add(i)
       continue
     }
+    // The whole chapter's text: the first paragraph becomes all the new ones, the rest go.
+    if (e.op === 'replace-chapter') for (let i = e.para + 1; i <= e.paraEnd; i++) deleted.add(i)
     if (e.alsoDelete != null) deleted.add(e.alsoDelete) // sentence split across paragraphs, joined back
     ;(perPara.get(e.para) ?? perPara.set(e.para, []).get(e.para)).push(e)
   }
@@ -108,7 +113,9 @@ export function applyToChapter(xhtml, edits) {
       continue
     }
     let html
+    const whole = (perPara.get(i) ?? []).find((e) => e.op === 'replace-chapter')
     if (deleted.has(i)) html = ''
+    else if (whole) html = whole.replacement.split('\n\n').map((t) => `${p.open}${encode(t)}</p>`).join('\n')
     else {
       let inner = p.inner
       // Made-up tags (<azfd6c>…</azfd6c>) are a scraper's watermark wrapper, not

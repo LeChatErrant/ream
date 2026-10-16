@@ -34,7 +34,7 @@ export async function readerFinding(f) {
     if (i != null && c.paras[i] !== undefined) check[i] = textKey(c.paras[i])
   }
   if (f.para != null) {
-    const end = f.op === 'delete-paras' ? f.paraEnd : f.para
+    const end = f.op === 'delete-paras' || f.op === 'replace-chapter' ? f.paraEnd : f.para
     for (let i = f.para; i <= end; i++) add(i)
   }
   add(f.alsoDelete)

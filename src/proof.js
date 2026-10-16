@@ -490,7 +490,7 @@ function findRange(p, needle) {
 
 const parasOf = (c, f) => {
   if (f.op === "title") return [];
-  const last = f.op === "delete-paras" ? f.paraEnd : f.para;
+  const last = f.op === "delete-paras" || f.op === "replace-chapter" ? f.paraEnd : f.para;
   return c.paras.slice(f.para, last + 1);
 };
 
@@ -510,6 +510,7 @@ function mark(c, f) {
     return;
   }
   if (f.op === "delete-paras") return parasOf(c, f).forEach((p) => tag(p, f, "proof-para proof-para--del"));
+  if (f.op === "replace-chapter") return parasOf(c, f).forEach((p) => tag(p, f, "proof-para"));
   if (f.op === "split-para") return tag(c.paras[f.para], f, "proof-para");
   // replace (optionally joining the next paragraph back in)
   const p = c.paras[f.para];
@@ -577,10 +578,19 @@ function applyFix(c, f) {
     if (c.heading) c.heading.textContent = f.replacement;
     return anchor(c.heading, f);
   }
-  if (f.op === "delete-paras") {
+  if (f.op === "delete-paras" || f.op === "replace-chapter") {
     for (const p of parasOf(c, f)) {
       hide(p);
       anchor(p, f);
+    }
+    if (f.op === "replace-chapter") {
+      // The real chapter, after the hidden copy (so reading spots before it stay put).
+      const box = c.doc.createElement("div");
+      box.className = "proof-done proof-chapter";
+      box.dataset.proofRef = f.id;
+      const cls = c.paras[f.para].getAttribute("class") || null; // styled like the book's paragraphs
+      for (const t of f.replacement.split("\n\n")) box.append(h("p", { class: cls }, t));
+      c.paras[f.paraEnd].after(box);
     }
     return;
   }
@@ -682,7 +692,9 @@ function revert(c, f) {
   const applied = f.status === "accepted";
   for (const n of [...c.doc.querySelectorAll(`[data-proof-ref="${CSS.escape(f.id)}"]`)]) {
     delete n.dataset.proofRef;
-    if (n.classList.contains("proof-done")) {
+    if (n.classList.contains("proof-chapter")) {
+      n.remove();
+    } else if (n.classList.contains("proof-done")) {
       if (applied) n.replaceWith(c.doc.createTextNode(f.original));
       else n.replaceWith(...n.childNodes);
     } else if (n === c.heading) {
@@ -783,6 +795,7 @@ function summaryOf(f) {
   if (f.op === "delete-paras" || f.op === "delete-block") return `Remove: ${short(f.original.replace(/\s+/g, " ")) || "(empty paragraph)"}`;
   if (f.op === "wrap-text" && f.replacement === f.original) return `Make a paragraph: ${short(f.original)}`;
   if (f.op === "split-para") return "Split into separate paragraphs";
+  if (f.op === "replace-chapter") return `Replace with the real chapter (${f.replacement.split("\n\n").length} paragraphs)`;
   if (f.op === "title") return short(f.replacement);
   return `${short(f.original.trim(), 40) || "∅"} → ${short(f.replacement.trim(), 40) || "∅"}`;
 }
@@ -802,6 +815,8 @@ function sheetEl() {
   return sheet;
 }
 
+const SOURCE_LABEL = { auto: "automatic", claude: "claude", manual: "real text" };
+
 const STATUS_LABEL = { pending: "To review", accepted: "Accepted", discarded: "Discarded" };
 
 const KIND_LABEL = {
@@ -820,6 +835,7 @@ const KIND_LABEL = {
   format: "Paragraphs",
   title: "Chapter title",
   name: "Name",
+  rewrite: "Rewritten chapter",
 };
 
 /** original/replacement with only the changed middle highlighted. */
@@ -860,6 +876,14 @@ function openSheet(c, f) {
     body = h("p", { class: "proof-diff" }, h("del", null, text.length > 600 ? text.slice(0, 600) + "…" : text));
   } else if (f.op === "split-para") {
     body = h("div", { class: "proof-diff" }, ...f.replacement.split("\n\n").map((t) => h("p", null, t)));
+  } else if (f.op === "replace-chapter") {
+    const ps = f.replacement.split("\n\n");
+    body = h(
+      "div",
+      { class: "proof-diff" },
+      ...ps.slice(0, 2).map((t) => h("p", null, h("ins", null, t))),
+      ps.length > 2 ? h("p", null, `…and ${ps.length - 2} more paragraphs.`) : null
+    );
   } else {
     body = diffView(f.original, f.replacement);
   }
@@ -894,7 +918,7 @@ function openSheet(c, f) {
       { class: "proof-head" },
       h("span", { class: "proof-kind" }, KIND_LABEL[f.kind] || f.kind),
       f.confidence ? h("span", { class: "proof-conf" }, `${f.confidence} confidence`) : null,
-      h("span", { class: "proof-src" }, f.source === "auto" ? "automatic" : "claude"),
+      h("span", { class: "proof-src" }, SOURCE_LABEL[f.source] || "claude"),
       h("span", { class: `proof-status proof-status--${f.status}` }, STATUS_LABEL[f.status])
     ),
     h("p", { class: "proof-note" }, f.note),
