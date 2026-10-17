@@ -75,9 +75,9 @@ export const proofState = () => ({
   enabled,
   hasFile: !!pkg,
   bookPending,
-  chapterLoaded: chapters.size > 0,
+  chapterLoaded: onScreen().length > 0,
   chapterPending: pendingMarks().length,
-  chapterTotal: [...chapters.values()].reduce((n, c) => n + c.findings.length, 0),
+  chapterTotal: onScreen().reduce((n, c) => n + c.findings.length, 0),
   fileDate: pkg?.createdAt || null,
   toExport: unexported(),
 });
@@ -90,7 +90,7 @@ export function setProofEnabled(on) {
   } catch (_) {
     /* best effort */
   }
-  if (!on) for (const c of chapters.values()) unmarkChapter(c);
+  if (!on) for (const c of onScreen()) unmarkChapter(c);
   notify();
 }
 
@@ -301,13 +301,25 @@ export async function removePackage() {
   await kvDelete(PKG_KEY);
   await kvDelete(LOCAL_KEY);
   await linkFile(null);
-  for (const c of chapters.values()) unmarkChapter(c);
+  for (const c of onScreen()) unmarkChapter(c);
   notify();
 }
 
 // ---- the chapters currently on screen --------------------------------------
 // doc → { doc, paras, heading, findings }
 const chapters = new Map();
+
+/**
+ * The chapters still on screen. A chapter left behind is dropped here too, not
+ * only on its frame's pagehide / unload: Chrome no longer reliably fires those
+ * when epub.js removes the iframe, and a stale chapter would keep its
+ * corrections in the list (repeated on every visit). A removed frame's
+ * document has no window.
+ */
+function onScreen() {
+  for (const doc of chapters.keys()) if (!doc.defaultView) chapters.delete(doc);
+  return [...chapters.values()];
+}
 
 const slugify = (s) =>
   String(s || "")
@@ -402,10 +414,9 @@ export async function proofChapter(contents, lib, href) {
 
   const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map(), blocks };
   chapters.set(doc, c);
-  doc.defaultView.addEventListener("unload", () => {
-    chapters.delete(doc);
-    notify();
-  });
+  const gone = () => chapters.delete(doc) && notify();
+  doc.defaultView.addEventListener("pagehide", gone);
+  doc.defaultView.addEventListener("unload", gone);
   injectStyle(doc);
   for (const f of matched) {
     const v = withDecision(f, decisionOf(f.id, base));
@@ -710,7 +721,7 @@ function revert(c, f) {
 
 const pendingMarks = () => {
   const out = [];
-  for (const c of chapters.values())
+  for (const c of onScreen())
     for (const f of c.findings) if (f.status === "pending") out.push({ c, f });
   return out;
 };
@@ -758,7 +769,7 @@ export function nextSuggestion(container) {
 /** The chapter's corrections — to review, accepted and discarded — as a list sheet. */
 export function openCorrections(container) {
   const rows = [];
-  for (const c of chapters.values())
+  for (const c of onScreen())
     for (const f of c.findings) rows.push({ c, f, order: f.op === "title" ? -1 : (f.para ?? f.pos ?? 0) });
   rows.sort((a, b) => a.order - b.order);
   const n = (st) => rows.filter((r) => r.f.status === st).length;
