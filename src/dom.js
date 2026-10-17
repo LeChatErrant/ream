@@ -142,7 +142,6 @@ export function collectRefs() {
     installNoteText: "install-note-text",
     installLead: "install-lead",
     installStepsPhone: "install-steps-phone",
-    installStepsAndroid: "install-steps-android",
     installStepsComputer: "install-steps-computer",
     installSheet: "install-sheet",
     installScrim: "install-scrim",
