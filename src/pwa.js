@@ -17,6 +17,7 @@ const isStandalone = () =>
 // iPhone / iPad (iPadOS Safari reports itself as a Mac, but with touch points).
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isAndroid = () => /Android/i.test(navigator.userAgent);
 // A computer with a mouse/trackpad installs from the browser's address bar or
 // menu, not a Home Screen — so it gets its own wording and help steps.
 const isComputer = () => !isIOS() && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -35,11 +36,15 @@ export async function handleInstallClick() {
     return;
   }
   const computer = isComputer();
-  el.installStepsPhone.hidden = computer;
+  const android = !computer && isAndroid();
+  el.installStepsPhone.hidden = computer || android;
+  el.installStepsAndroid.hidden = !android;
   el.installStepsComputer.hidden = !computer;
   el.installLead.textContent = computer
     ? "Install it as an app to open it from your dock or start menu — it then works fully offline."
-    : "Add it to your Home Screen to open it like a normal app — it then works fully offline.";
+    : android
+      ? "Install it as an app so it sits in your app drawer like any other — it then works fully offline."
+      : "Add it to your Home Screen to open it like a normal app — it then works fully offline.";
   el.installSheet.hidden = false;
   armOverlay(() => { el.installSheet.hidden = true; });
 }

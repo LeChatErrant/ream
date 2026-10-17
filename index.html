@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- Install-help sheet (shown on iOS, where the OS has no install prompt). -->
+      <!-- Install-help sheet (shown when the browser gives no install prompt). -->
       <div id="install-sheet" class="sheet" hidden>
         <div class="sheet-scrim" id="install-scrim"></div>
         <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="install-title">
@@ -237,6 +237,14 @@
               in the browser toolbar.</li>
             <li>Choose <strong>Add to Home Screen</strong>.</li>
             <li>Tap <strong>Add</strong>, then launch it from your Home Screen.</li>
+          </ol>
+          <!-- Android without Chrome's own prompt. "Add to home screen" can make a
+               plain shortcut, which never shows in the app drawer or app search —
+               so steer to a real install. -->
+          <ol id="install-steps-android" class="sheet-steps" hidden>
+            <li>In <strong>Chrome</strong>, open the <strong>⋮</strong> menu (top right).</li>
+            <li>Tap <strong>Install app</strong>. If you only see <strong>Add to home screen</strong>, tap it and pick <strong>Install</strong> — not <strong>Create shortcut</strong>.</li>
+            <li>Ream then shows in your app drawer and app search. A Home Screen icon with a small Chrome badge is only a shortcut — remove it and install again.</li>
           </ol>
           <!-- Computers without the browser's own install prompt (pwa.js picks the list). -->
           <ol id="install-steps-computer" class="sheet-steps" hidden>
