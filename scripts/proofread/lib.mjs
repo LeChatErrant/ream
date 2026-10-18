@@ -31,6 +31,13 @@ export const decode = (s) =>
     return ENTITIES[e.toLowerCase()] ?? m
   })
 
+/**
+ * The books' house style is straight quotes — ' and " (vols 1–4 and 6 have no
+ * other kind). The curly ‘ ’ “ ” in vols 5 and 8–11 are leftovers from the
+ * sources, like the «» of vols 7–9, so a fix never writes one.
+ */
+export const straightQuotes = (s) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+
 export const encode = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /** Plain text of a fragment of chapter markup. */

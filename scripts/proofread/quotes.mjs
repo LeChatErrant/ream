@@ -8,7 +8,7 @@
 // straight quotes here (only while it's still undecided).
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { WORK } from './lib.mjs'
+import { WORK, straightQuotes } from './lib.mjs'
 import { loadDecisions, loadFindings } from './apply.mjs'
 
 const GUILLEMET = /[«»]/g
@@ -83,7 +83,7 @@ export async function quoteFindings(book, others) {
         while (p.indexOf(p.slice(s, e)) !== s && s > 0 && !inBusy(s - 1, s)) s--
         if (p.indexOf(p.slice(s, e)) !== s) continue
         const original = p.slice(s, e)
-        const replacement = applyEdits(original, g.map((x) => ({ ...x, s: x.s - s, e: x.e - s })))
+        const replacement = straightQuotes(applyEdits(original, g.map((x) => ({ ...x, s: x.s - s, e: x.e - s }))))
         if (replacement === original) continue
         out.push({
           id: `quotes-${book.slug}-${++seq}`,

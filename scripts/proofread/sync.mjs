@@ -14,7 +14,7 @@
 import { readFile, rename, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { textKey } from '../../src/lib/proof-key.js'
-import { WORK } from './lib.mjs'
+import { WORK, straightQuotes } from './lib.mjs'
 import { loadDecisions, loadFindings } from './apply.mjs'
 
 export const PACKAGE_FORMAT = 'ream-proofreading'
@@ -94,9 +94,26 @@ export async function mergeDecisions(incoming) {
     current[id] = { ...d, from: d.from ?? 'phone' }
     stats[mine ? 'updated' : 'added']++
   }
+  // An edited replacement keeps whatever quotes the suggestion had when it was edited.
+  stats.requoted = requoteDecisions(current)
   await writeFile(file + '.tmp', JSON.stringify(current, null, 1))
   await rename(file + '.tmp', file)
   return stats
+}
+
+/**
+ * Give edited replacements the books' straight quotes, stamped newer so the
+ * fixed copy beats the device's own when the package is imported again.
+ */
+export function requoteDecisions(decisions) {
+  let n = 0
+  for (const d of Object.values(decisions)) {
+    if (typeof d?.replacement !== 'string' || straightQuotes(d.replacement) === d.replacement) continue
+    d.replacement = straightQuotes(d.replacement)
+    d.at = new Date(Math.max((Date.parse(d.at) || 0) + 1, Date.now())).toISOString()
+    n++
+  }
+  return n
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -111,7 +128,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${path.relative(process.cwd(), file)} — ${pkg.findings.length} findings (${pending} pending)`)
   } else if (cmd === 'merge' && arg) {
     const s = await mergeDecisions(JSON.parse(await readFile(arg, 'utf8')))
-    console.log(`Merged: ${s.added} new, ${s.updated} updated, ${s.older} kept (newer here), ${s.unknown} unknown`)
+    console.log(`Merged: ${s.added} new, ${s.updated} updated, ${s.older} kept (newer here), ${s.unknown} unknown${s.requoted ? `, ${s.requoted} edited replacements switched to straight quotes` : ''}`)
   } else {
     console.log('usage: sync.mjs package | sync.mjs merge <ream-proofreading….json>')
     process.exitCode = 1

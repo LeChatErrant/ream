@@ -22,6 +22,8 @@ report any that remain.
    then/than, your/you're, to/too, "will helped" → "helped", wrong tense from a slip.
 3. **Missing / extra / doubled words** — "he went the door", "the the", "to to".
 4. **Broken punctuation** — missing or unmatched closing quote, doubled punctuation (",."),
+   a curly quote where the book uses straight ones (the house style is straight `'` and `"`
+   everywhere — "didn‘t" → "didn't", "mistake.‘" → "mistake.'"),
    a space before punctuation, a missing space after a sentence end ("door.He").
 5. **Doubled or misplaced text** — a sentence/fragment/block that appears twice in a row
    or is pasted in the wrong place (e.g. a phrase from later in the chapter repeated
@@ -67,6 +69,8 @@ Each item:
   include a few neighbouring words so the reviewer sees the context (≤ 100 characters,
   except for doubled/misplaced text where it is the whole repeated passage).
 - `replacement` is the corrected version of exactly that span (may be "" to delete text).
+  Write quotes and apostrophes **straight** (`'` `"`), never ‘ ’ “ ”, even when the
+  original has curly ones.
 - To delete whole paragraphs (a duplicated paragraph, a note, junk): `"op": "delete-paras"`,
   `"para"`: first index, `"paraEnd"`: last index (inclusive), `"original"`: the full text of
   those paragraphs, `"replacement": ""`.

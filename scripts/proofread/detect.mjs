@@ -7,7 +7,7 @@
 // They also emit hints (repeated sentences) for the Claude pass: proofread/hints/<slug>.json.
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { WORK } from './lib.mjs'
+import { WORK, straightQuotes } from './lib.mjs'
 
 // --- character folding -------------------------------------------------------
 
@@ -304,7 +304,7 @@ export async function detect(book, books) {
       void mojibake
       for (const m of p.matchAll(/[^ \t\n]*?[\u00c2-\u00f4][\u0080-\u00bf]+[^ \t\n]*/g))
         if (unmojibake(m[0]))
-          add({ ...at, para: pi, op: 'replace', original: m[0], replacement: unmojibake(m[0]), kind: 'encoding', note: 'Broken character encoding' })
+          add({ ...at, para: pi, op: 'replace', original: m[0], replacement: straightQuotes(unmojibake(m[0])), kind: 'encoding', note: 'Broken character encoding' })
       // Look-alike letters inside real words.
       for (const h of homoglyphs)
         add({ ...at, para: pi, op: 'replace', original: h.t, replacement: fold(h.t), kind: 'homoglyph', note: 'Look-alike (non-Latin) letters inside a word' })
@@ -333,7 +333,7 @@ export async function detect(book, books) {
       }
       // Left quote used as an apostrophe ("didn‘t", "Sunny‘s").
       for (const m of p.matchAll(/\S*\p{L}‘\p{L}\S*/gu))
-        add({ ...at, para: pi, op: 'replace', original: m[0], replacement: m[0].replace(/(\p{L})‘(?=\p{L})/gu, '$1’'), kind: 'punctuation', note: 'Opening quote used as an apostrophe' })
+        add({ ...at, para: pi, op: 'replace', original: m[0], replacement: straightQuotes(m[0]), kind: 'punctuation', note: 'Opening quote used as an apostrophe' })
       // A sentence cut in two by a paragraph break: no closing punctuation here,
       // and the next paragraph carries on in lowercase.
       const next = c.paras[pi + 1]

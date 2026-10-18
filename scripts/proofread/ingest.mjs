@@ -1,10 +1,11 @@
 // Step 3b — normalise the Claude pass output in proofread/findings/claude/*.json:
 // give every finding an id/book/chapter, snap `original` onto the exact paragraph text
-// (agents sometimes swap curly/straight quotes or spaces), and flag what can't be located
+// (agents sometimes swap curly/straight quotes or spaces), write fixes in the books'
+// straight quotes (lib.mjs straightQuotes), and flag what can't be located
 // or duplicates an automatic finding. Idempotent — safe to re-run as chunks come in.
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { WORK } from './lib.mjs'
+import { WORK, straightQuotes } from './lib.mjs'
 
 const dir = path.join(WORK, 'findings', 'claude')
 const books = new Map()
@@ -93,11 +94,8 @@ for (const file of (await readdir(dir)).filter((f) => f.endsWith('.json')).sort(
       else return { ...g, invalid: 'text not found in paragraph' }
       found = locate(cleaned, g.original)
     }
-    if (found !== g.original) {
-      // Carry the agent's intended change over onto the exact characters.
-      g.replacement = g.replacement.replace(/[‘’]/g, "'").replace(/[“”]/g, '"') === g.replacement && /[‘’“”]/.test(found) ? requote(found, g.original, g.replacement) : g.replacement
-      g.original = found
-    }
+    g.original = found
+    g.replacement = straightQuotes(g.replacement)
     if (g.original === g.replacement) return { ...g, invalid: 'no change' }
     for (const a of auto.values())
       if (a.book === slug && a.href === g.href && a.para === g.para && (a.original.includes(g.original) || g.original.includes(a.original.trim())))
@@ -112,7 +110,8 @@ for (const file of (await readdir(dir)).filter((f) => f.endsWith('.json')).sort(
     const rep = out.find((r) => !r.invalid && r.op === 'replace' && r.href === del.href && r.para === del.para - 1 && head && r.replacement.includes(head))
     if (!rep) continue
     rep.alsoDelete = del.para
-    rep.note = `${rep.note} (joins ¶${del.para} into this paragraph)`
+    const joins = ` (joins ¶${del.para} into this paragraph)`
+    rep.note = `${rep.note.split(joins)[0]}${joins}`
     del.invalid = `merged into ${rep.id}`
   }
   await writeFile(path.join(dir, file), JSON.stringify(out, null, 1))
@@ -122,10 +121,3 @@ for (const file of (await readdir(dir)).filter((f) => f.endsWith('.json')).sort(
   if (n) console.log(`${file}: ${out.length} findings, ${n} set aside (${[...new Set(out.filter((f) => f.invalid).map((f) => f.invalid.replace(/ by .*/, '')))].join(', ')})`)
 }
 console.log(`${total} Claude findings, ${total - bad} usable, ${bad} set aside`)
-
-/** The agent wrote straight quotes where the book has curly ones: keep the book's style in the fix. */
-function requote(found, orig, rep) {
-  const curlyFor = new Map()
-  for (let i = 0; i < Math.min(found.length, orig.length); i++) if (found[i] !== orig[i]) curlyFor.set(orig[i], found[i])
-  return [...rep].map((ch) => curlyFor.get(ch) ?? ch).join('')
-}

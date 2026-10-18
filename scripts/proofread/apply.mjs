@@ -9,7 +9,7 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { textKey } from '../../src/lib/proof-key.js'
-import { WORK, decode, encode, listEpubs, looseBlocks, openEpub, paragraphs } from './lib.mjs'
+import { WORK, decode, encode, listEpubs, looseBlocks, openEpub, paragraphs, straightQuotes } from './lib.mjs'
 
 export async function loadFindings() {
   const out = []
@@ -41,7 +41,7 @@ export async function loadDecisions() {
 /** The edit a decision resolves to (the reviewer may have edited the replacement or picked the other copy). */
 export function resolve(f, d = {}) {
   const r = { ...f }
-  if (d.replacement !== undefined && f.op !== 'delete-paras') r.replacement = d.replacement
+  if (d.replacement !== undefined && f.op !== 'delete-paras') r.replacement = straightQuotes(d.replacement)
   if (d.choice === 'other' && f.dupOf) Object.assign(r, { para: f.dupOf.para, paraEnd: f.dupOf.paraEnd })
   return r
 }
