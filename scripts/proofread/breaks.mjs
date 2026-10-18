@@ -60,7 +60,7 @@ for (const name of (await readdir(path.join(WORK, 'books'))).filter((f) => f.end
       if (tk.first) continue // already starts a paragraph
       const p = c.paras[tk.i]
       let at = tk.at
-      while (at > 0 && /["“‘'(\[…—.]/.test(p[at - 1])) at-- // keep an opening quote / ellipsis with its paragraph
+      while (at > 0 && /["“‘'([…—.]/.test(p[at - 1])) at-- // keep an opening quote / ellipsis with its paragraph
       if (!ENDS.test(p.slice(0, at).trimEnd())) continue // the epub must end a sentence there
       ;(cuts.get(tk.i) ?? cuts.set(tk.i, []).get(tk.i)).push(at)
     }
