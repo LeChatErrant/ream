@@ -125,9 +125,11 @@ export function applyToChapter(xhtml, edits) {
       const plain = !/</.test(inner)
       let text = plain ? decode(inner) : null
       let split = false
+      let breaks = null
       for (const e of perPara.get(i)) {
         if (e.op === 'split-para') {
           split = true
+          breaks = e.breaks ?? null
           continue
         }
         if (plain) {
@@ -141,7 +143,24 @@ export function applyToChapter(xhtml, edits) {
         }
       }
       if (plain) inner = encode(text)
-      if (split)
+      if (breaks) {
+        // Run-together paragraphs (breaks.mjs): cut before each new paragraph's opening words.
+        const at = []
+        for (const b of breaks) {
+          const from = at.at(-1) ?? 0
+          let k = inner.indexOf(encode(b), from + 1)
+          if (k < 0) k = inner.indexOf(encode(b.slice(0, 12)), from + 1)
+          if (k < 0) failed.push({ edit: perPara.get(i).find((e) => e.op === 'split-para'), reason: `break not found: ${b}` })
+          else at.push(k)
+        }
+        const bounds = [0, ...at, inner.length]
+        html = bounds
+          .slice(0, -1)
+          .map((b, k) => inner.slice(b, bounds[k + 1]).replace(/^[\s\u00a0]+|[\s\u00a0]+$/g, ''))
+          .filter(Boolean)
+          .map((s) => `${p.open}${s}</p>`)
+          .join('')
+      } else if (split)
         html = inner
           .split(/<br\s*\/?>|\n/)
           .map((s) => s.replace(/^[\s\u00a0]+|[\s\u00a0]+$/g, ''))

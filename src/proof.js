@@ -606,6 +606,22 @@ function applyFix(c, f) {
     return;
   }
   const p = c.paras[f.para];
+  if (f.op === "split-para" && f.breaks) {
+    // Paragraphs run together: a break before each new paragraph's opening words,
+    // leaving the text (and any fix inside it) as it is.
+    const gap = c.doc.defaultView.getComputedStyle(p).marginBottom || "1em";
+    for (const b of f.breaks) {
+      const r = findRange(p, b) || findRange(p, b.slice(0, 12));
+      if (!r) continue;
+      r.collapse(true);
+      const br = c.doc.createElement("span");
+      br.className = "proof-break";
+      br.dataset.proofRef = f.id;
+      br.style.cssText = `display: block; height: ${gap}`;
+      r.insertNode(br);
+    }
+    return anchor(p, f);
+  }
   if (f.op === "split-para") {
     p.replaceChildren(...f.replacement.split("\n\n").map((t) => h("span", { class: "proof-split" }, t)));
     return anchor(p, f);
@@ -703,7 +719,7 @@ function revert(c, f) {
   const applied = f.status === "accepted";
   for (const n of [...c.doc.querySelectorAll(`[data-proof-ref="${CSS.escape(f.id)}"]`)]) {
     delete n.dataset.proofRef;
-    if (n.classList.contains("proof-chapter")) {
+    if (n.classList.contains("proof-chapter") || n.classList.contains("proof-break")) {
       n.remove();
     } else if (n.classList.contains("proof-done")) {
       if (applied) n.replaceWith(c.doc.createTextNode(f.original));
@@ -712,7 +728,7 @@ function revert(c, f) {
       if (applied) n.textContent = c.headingText;
     } else {
       n.style.removeProperty("display");
-      if (applied && f.op === "split-para") n.textContent = f.original;
+      if (applied && f.op === "split-para" && !f.breaks) n.textContent = f.original;
     }
   }
   if (applied && isJoin(f) && c.joins.delete(f.para)) layoutJoins(c);

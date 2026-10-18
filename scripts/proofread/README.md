@@ -14,6 +14,7 @@ node scripts/proofread/ingest.mjs    # 3c. normalise + validate Claude findings 
 node scripts/proofread/quotes.mjs    # 3d. «French quotes» → "straight quotes" → proofread/findings/quotes/
 node scripts/proofread/loose.mjs     # 3e. text outside <p> (title copies, orphan text, ads) + empty ¶s → proofread/findings/loose/
 node scripts/proofread/rewrites.mjs  # 3f. chapters replaced whole: proofread/rewrites/<n>.txt → proofread/findings/rewrite/
+node scripts/proofread/breaks.mjs [dir]  # 3g. lost paragraph breaks, positions from a reference copy → proofread/findings/breaks/
 node scripts/proofread/review.mjs    # 4. review UI at http://localhost:5180 → proofread/decisions.json
 node scripts/proofread/apply.mjs     # 5. accepted fixes → proofread/out/<same name>.epub
 node scripts/proofread/apply.mjs --check   # verify every finding still locates its text
@@ -73,6 +74,14 @@ becomes one *replace-chapter* suggestion over every paragraph of the fake copy; 
 other suggestions made for that copy are dropped. In Ream the copy is hidden and the
 real chapter shown after it (Undo brings the copy back); *Write corrected epubs*
 swaps the paragraphs in the file.
+
+**Lost paragraph breaks** (`breaks.mjs`): some chapters (vol 9–10, ≈1976–2304)
+came through with whole pages in one paragraph. Given another copy that kept its
+paragraphs (`proofread/reference/<n>.txt`, or a folder of `<n> Title.md` files as
+argument), it takes only *where* each paragraph starts and suggests splitting the
+epub's own text there (a *split-para* with `breaks` = the opening words of each new
+paragraph) — only where the epub ends a sentence just before. Ream inserts the
+breaks without touching the text, so other fixes in the paragraph keep working.
 
 **Review UI** keys: `A`/`Enter` accept · `D` discard · `E` edit the fix ·
 `O` delete the other copy (duplicates) · `J`/`K` next/previous · `U` undo.
