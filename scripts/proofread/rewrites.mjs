@@ -50,7 +50,7 @@ for (const name of (await readdir(path.join(WORK, 'books'))).filter((f) => f.end
       original: c.paras.join('\n\n'),
       replacement: paras.join('\n\n'),
       kind: 'rewrite',
-      note: `This copy is an AI rewrite — replace it with the real chapter (${paras.length} paragraphs)`,
+      note: `This copy differs from the real chapter (rewritten or incomplete) — replace it with the real text (${paras.length} paragraphs)`,
     })
     console.log(`${book.slug}: ${c.title} — ${c.paras.length} ¶ → ${paras.length} ¶`)
   }
