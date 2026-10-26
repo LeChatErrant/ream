@@ -5,7 +5,7 @@
 // reading position bookkeeping; the router drives it via renderReader /
 // destroyRendition / setCurrentBook.
 // =========================================================================
-import ePub from "epubjs";
+import ePub, { Contents } from "epubjs";
 // The reader theme is inlined into the JS bundle (not fetched per chapter) and
 // injected as a <style> element into each chapter document via a content hook.
 // Registering it as an external URL made epub.js drop a <link> into every
@@ -41,6 +41,24 @@ import {
   chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
 import { keepAwake, releaseWakeLock } from "./device.js";
+
+// A saved reading spot (an epub.js CFI) counts the chapter's elements and
+// characters as they were on screen, proofreading's marks and fixes included.
+// A chapter reopens before those are applied again, so a spot past a wrapped
+// block can point one paragraph on, at an offset that paragraph doesn't have.
+// epub.js throws resolving it, midway through displaying the chapter: the
+// chapter is never shown, and as Continue replays the same spot, it opens on a
+// blank page every time. Such a spot resolves to the chapter's top instead; the
+// exact saved offset (restoreScrollAfter) then takes you back to it.
+const locationOf = Contents.prototype.locationOf;
+Contents.prototype.locationOf = function (...args) {
+  try {
+    return locationOf.apply(this, args);
+  } catch (err) {
+    console.warn("Reading spot doesn't fit the chapter:", err);
+    return { left: 0, top: 0 };
+  }
+};
 
 let book = null; // live epub.js Book
 let rendition = null;
