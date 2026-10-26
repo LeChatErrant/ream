@@ -114,11 +114,16 @@ function readerContentDoc() {
 // never yanked — a short lock keeps the page in memory and never runs this.
 const RESTORE_MAX_MS = 4000; // hard cap on how long we keep correcting
 const RESTORE_STABLE_MS = 400; // layout must hold this long before we let go
+// Bumped by each restore: an older one still running (its chapter was redrawn
+// before it settled) stops, and leaves the gate to the newer one.
+let restoreRun = 0;
 function restoreScrollAfter(shown, scrollTop) {
+  const run = ++restoreRun;
   restoreActive = true;
   holdChrome(RESTORE_MAX_MS + 1000); // the settling scrolls aren't the reader's
   Promise.resolve(shown)
     .then(() => {
+      if (run !== restoreRun) return;
       const c = rendition?.manager?.container;
       if (!c) {
         restoreActive = false;
@@ -138,6 +143,7 @@ function restoreScrollAfter(shown, scrollTop) {
       let stableSince = 0;
       const finish = () => {
         for (const t of targets) for (const e of evs) t.removeEventListener(e, markInteracted);
+        if (run !== restoreRun) return;
         // One last persist of where we actually landed, then reopen the gate so
         // ordinary scroll-driven saves resume from the correct position.
         restoreActive = false;
@@ -148,7 +154,7 @@ function restoreScrollAfter(shown, scrollTop) {
         } catch (_) {}
       };
       const tick = (now) => {
-        if (interacted || !c.isConnected || !rendition) return finish();
+        if (run !== restoreRun || interacted || !c.isConnected || !rendition) return finish();
         const max = Math.max(0, c.scrollHeight - c.clientHeight);
         const y = Math.min(scrollTop, max);
         if (y > 0) c.scrollTop = y;
@@ -167,7 +173,7 @@ function restoreScrollAfter(shown, scrollTop) {
       requestAnimationFrame(tick);
     })
     .catch(() => {
-      restoreActive = false;
+      if (run === restoreRun) restoreActive = false;
     });
 }
 
@@ -363,14 +369,22 @@ export async function renderReader(lib, startHref = null) {
   const resume = chapterState?.cfi || resumeHref;
   // A chapter tapped in the list/drawer opens at its top and offers the
   // per-chapter resume chip; the book-level "Continue" restores the exact spot.
-  if (startHref) {
-    displayChapterTop(startHref);
-  } else {
+  const showOpening = () => {
+    if (startHref) return displayChapterTop(startHref);
     const shown = rendition.display(resume || flatToc[0]?.href || undefined);
     if (chapterState && resume === chapterState.cfi && chapterState.scrollTop > 0) {
       restoreScrollAfter(shown, chapterState.scrollTop);
     }
-  }
+  };
+  showOpening();
+  // A window resize (Android fires them as the keyboard or the system bars
+  // settle) makes epub.js tear the chapter view down and redraw it at the last
+  // reported location. Until the opening chapter has reported one, there is
+  // nothing to redraw: the half-built chapter is dropped and the page stays
+  // blank. So open it again ourselves.
+  rendition.on("resized", () => {
+    if (!rendition?.location?.start) showOpening();
+  });
 
   // Refine the chapter list once the live navigation resolves (accurate hrefs).
   book.loaded.navigation.then((nav) => {
