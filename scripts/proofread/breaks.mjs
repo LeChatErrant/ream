@@ -36,9 +36,9 @@ for (const name of (await readdir(path.join(WORK, 'books'))).filter((f) => f.end
     const n = c.title.match(/^Chapter\s*(\d+)/i)?.[1]
     if (!refs.has(n)) continue
     const ref = await refParas(refs.get(n))
-    // Only chapters whose paragraphs were run together: far fewer than the reference.
+    // Only chapters with fewer paragraphs than the reference (a break was lost somewhere).
     const real = c.paras.filter((p) => p.trim()).length
-    if (real >= ref.length * 0.8) continue
+    if (real >= ref.length) continue // nothing to restore
     // Every epub word, with its paragraph and offset.
     const toks = []
     c.paras.forEach((p, i) => words(p).forEach((t, k) => toks.push({ ...t, i, first: k === 0 })))
