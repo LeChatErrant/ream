@@ -75,6 +75,11 @@ Events, anchored at `"chapter:paragraph"` (paragraph index as in `text.json`):
 | `told` + `for` + `list` | a name the story gives in prose only, for an item with no runes (Slayer's [Pure Soul], `"list": "Attributes"`): shown under that list with the passage |
 | `history` (+ `to`) | a passage about the item (review page only); `flashback: true` when told out of order |
 
+An item received at the end of a chapter but described only in the next one (a Spell
+message, then its runes after the break) is shown from that description on, whole —
+the build moves it in the app's copy (`build.mjs --moved` lists them); the timeline and
+checkpoints keep the real moment.
+
 Order is **reading order**: a flashback (ch 122–168) adds history, it doesn't
 rewind the inventory. Status sheets that aren't Sunny's are skipped by name;
 list unnamed ones in `notSunny`. Known checkpoint differences go in

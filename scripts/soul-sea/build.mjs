@@ -499,5 +499,24 @@ const app = {
     return o
   }),
 }
+// An item the book hands over at the end of a chapter but only describes in the next
+// one (a Spell message, then its runes after the chapter break) appears there, whole,
+// instead of a chapter early as a bare name. The checkpoints above keep the real moment.
+{
+  const telling = new Set(['runes', 'told', 'fact', 'name'])
+  const bare = (e) => e.type === 'runes' && !e.sheet.f.length && !e.sheet.d && !e.sheet.l.length
+  const moved = []
+  for (const g of app.events.filter((e) => e.type === 'gain' || e.type === 'become')) {
+    const id = g.type === 'gain' ? g.id : g.to
+    const own = app.events.filter((e) => e.id === id && e !== g && telling.has(e.type) && !bare(e))
+    const first = own.find((e) => cmp(e.at, g.at) >= 0)
+    if (!first || first.at[0] !== g.at[0] + 1) continue
+    if (app.events.some((e) => e.id === g.id && e.type === 'lose' && cmp(e.at, first.at) < 0)) continue
+    moved.push(`${id} ${g.at.join(':')} → ${first.at.join(':')}`)
+    Object.assign(g, { at: first.at, fp: first.fp })
+  }
+  app.events.sort((a, b) => cmp(a.at, b.at)) // stable: a moved gain stays before the runes it waits for
+  if (process.argv.includes('--moved')) console.log(`Shown a chapter later, with their description (${moved.length}):\n  ` + moved.join('\n  '))
+}
 await writeFile(APP_DATA, JSON.stringify(app) + '\n')
 console.log(`App data → ${path.relative(process.cwd(), APP_DATA)}`)
