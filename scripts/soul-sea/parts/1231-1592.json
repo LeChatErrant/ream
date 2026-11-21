@@ -683,7 +683,8 @@
       "at": "1592:38",
       "become": "ravenous-fiend",
       "to": "shadow-fiend",
-      "name": "Shadow Fiend"
+      "name": "Shadow Fiend",
+      "rename": true
     },
     {
       "at": "1592:38",

@@ -222,7 +222,7 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
     // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]". The
     // book sometimes trails off ("[Royal Promise]...") or garbles a bracket ("(Blessing of Soul],").
     else if (/s$/.test(label) && !/ss$/.test(label) && /^[[(][^\]\d]/.test(r.value.trim()) && /\]/.test(r.value) && !/\]\s*[^,.\s…\]]/.test(r.value.replace(/\]\s*,\s*[[(]/g, "")))
-      put(lists, { label, names: [...r.value.matchAll(/[[(]([^[\]()]+)\]/g)].map((m) => clean(m[1])).filter(Boolean) }, (l) => l.label === label);
+      put(lists, { label, names: [...r.value.matchAll(/[[(]([^[\]()]+)\]/g)].map((m) => clean(m[1])).filter(Boolean), cut: /(…|\.\.\.|,)\s*\.?$/.test(r.value.trim()) }, (l) => l.label === label);
     else put(facts, { label, value: label === "Tier" ? romanTier(value) : value }, (f) => f.label === label);
   }
   // A list naming the item itself is Sunny's own ("Attributes: [Fated], [Ember of Divinity]"
@@ -244,7 +244,9 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
     if (unnamed.length && unnamed.length === open.length) unnamed.forEach((n, i) => (n.title = open[i]));
   }
   // Each listed name with its description, typos and all. A description the list
-  // doesn't name (a list the book cut short or garbled) joins the list of its kind.
+  // doesn't name joins the list of its kind only when the book cut that list short or
+  // printed none: under a whole list it is what the item had before it evolved
+  // ([Battle Master] beside [War Master]), not what it has now.
   const placed = new Set();
   const out = lists.map((l) => ({
     label: l.label,
@@ -256,7 +258,12 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
       return { name: typo ? prefer(name, n.title) : name, text: n.text, src: n.src, ...(typo ? { typo: [name, n.title] } : {}) };
     }),
   }));
+  const whole = (label) => lists.some((l) => l.label === label && !l.cut);
   for (const n of notes.filter((n) => !placed.has(n) && n.title && KIND_LIST[n.kind])) {
+    if (whole(KIND_LIST[n.kind])) {
+      placed.add(n); // outgrown: neither listed nor a note of its own
+      continue;
+    }
     let l = out.find((l) => l.label === KIND_LIST[n.kind]);
     if (!l) out.push((l = { label: KIND_LIST[n.kind], names: [] }));
     l.names.push({ name: n.title, text: n.text, src: n.src, unlisted: true });

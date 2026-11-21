@@ -315,13 +315,15 @@ function row(x, gone) {
 
   const detail = h("div", { class: "soulsea__detail" });
   if (x.sheet) detail.append(sheet(x.sheet, x));
-  // No runes at all: the Rank / Class the story states ("Mimic had achieved Transcendent
-  // status"), then its own description (with runes but no description of the item, the
-  // sheet puts it in the description's place).
-  const stated = !x.sheet && x.facts && Object.keys(x.facts).length;
-  if (stated) detail.append(buildSheet({ at: [0], sheet: { f: [], l: [] } }, new Map(), { ...x, told: null }));
-  if (x.told && !x.sheet) detail.append(told(x.told, true));
-  if (!x.sheet && !x.told && !stated) detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
+  else {
+    // No runes at all: the sheet the story gives instead — the Rank / Class it states
+    // ("Mimic had achieved Transcendent status"), its own description, and the names it
+    // gives in prose (Slayer's [Pure Soul]), each with the passage explaining it.
+    const lists = toldLists(x);
+    const stated = x.facts && Object.keys(x.facts).length;
+    if (stated || x.told || lists.length) detail.append(sheet({ at: [0], sheet: { f: [], l: lists } }, x));
+    else detail.append(h("p", { class: "soulsea__none" }, "No runes shown yet"));
+  }
   // Where it came from: the creature, the giver, or what it evolved from.
   // Another item of the Soul Sea (what it evolved from, the Legacy whose relic it is) is a link.
   const before = x.from && stateOf(x.from);
@@ -430,15 +432,18 @@ function toldFor(x) {
   return out;
 }
 
-// No runes in the book: what it holds, as the story names it, and the story's own words.
-function buildTold(e, texts, withNames) {
-  const box = h("div", { class: "soulsea__sheet" });
-  for (const [label, names] of withNames ? Object.entries(e.names || {}) : [])
-    box.append(h("div", { class: "soulsea__list-row" }, h("span", { class: "soulsea__k" }, label), names.map((n) => h("div", { class: "soulsea__note-block" }, h("div", { class: "soulsea__note-title" }, n)))));
-  const ps = e.paras.map((r) => texts.get(refKey(e, r))).filter((t) => t != null);
-  box.append(h("span", { class: "soulsea__k" }, "In the story"));
-  box.append(...(ps.length ? ps.map((t) => h("p", { class: "soulsea__note-text" }, t)) : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")]));
-  return box;
+// No runes in the book: what the item holds, as the story names it — the names its
+// description passage gives ("[Sonorous], [Silenced]…"), then those named in prose
+// under a list ("list": "Attributes"), whose passage explains them.
+function toldLists(x) {
+  const lists = Object.entries(x.told?.names || {}).map(([k, names]) => ({ k, n: names.map((n) => ({ n })) }));
+  for (const e of Object.values(x.toldFor || {})) {
+    if (!e.list) continue;
+    let l = lists.find((l) => l.k === e.list);
+    if (!l) lists.push((l = { k: e.list, n: [] }));
+    if (!l.n.some((n) => n.n.toLowerCase() === e.for.toLowerCase())) l.n.push({ n: e.for });
+  }
+  return lists;
 }
 
 // Resolved paragraphs, so a re-render (expanding another row) draws instantly.
@@ -472,4 +477,3 @@ function whenLoaded(evs, draw) {
 }
 
 const sheet = (e, x) => whenLoaded([e, ...(x.told ? [x.told] : []), ...Object.values(toldFor(x))], (texts) => buildSheet(e, texts, x));
-const told = (e, withNames) => whenLoaded([e], (texts) => buildTold(e, texts, withNames));

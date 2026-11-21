@@ -171,6 +171,9 @@ for (const e of tl.events) {
     // and in the sheets of what the item evolves into.
     if (e.for && !ps.some((r) => norm(text[r.ch][r.p]).toLowerCase().includes(norm(e.for).toLowerCase())))
       errors.push(`${e.at}: "${e.for}" is not in the passage`)
+    // …a name the story gives in prose only, under its list ("list": "Attributes": Slayer's [Pure Soul]).
+    if (e.list && (!e.for || !['Attributes', 'Abilities', 'Enchantments'].includes(e.list)))
+      errors.push(`${e.at}: "list" goes with "for", and is Attributes, Abilities or Enchantments`)
   }
   events.push(out)
 }
@@ -216,7 +219,10 @@ for (const e of tl.events) {
       const from = tl.entries[e.become]?.kind
       const to = tl.entries[e.to]?.kind
       const subject = (k) => k.match(/^(?:attribute|enchantment|ability)\|(.+?)(#\d+)?$/)?.[1]
-      const keep = from === 'echo' && to === 'shadow' ? (x) => /attribute description/.test(x.key) || x.key.startsWith('attribute|')
+      // A new name for the same creature (Ravenous Fiend → Shadow Fiend, "rename") keeps
+      // everything but the name line: nothing about it changed.
+      const keep = e.rename ? (x) => ![...x.keys].some((k) => /^(memory|shadow|echo)$/.test(k))
+        : from === 'echo' && to === 'shadow' ? (x) => /attribute description/.test(x.key) || x.key.startsWith('attribute|')
         : from === to && (to === 'shadow' || to === 'memory') ? (x) => ![...x.keys].some((k) => /^(memory|shadow|echo)$|rank$|class$|tier$|fragments$/.test(k))
         : from === to && to === 'attribute' ? (x) => /traits$/.test(x.key) || (subject(x.key) && !namesOf(e.become).has(subject(x.key)))
         : () => false
@@ -485,6 +491,7 @@ const app = {
     if (e.told) {
       if (e.names) o.names = e.names
       if (e.for) o.for = e.for
+      if (e.list) o.list = e.list
       o.paras = e.paras.map((r) => ({ p: r.p, fp: r.fp, g: textSig(text[r.ch][r.p]), ...(r.ch !== e.at[0] ? { ch: r.ch } : {}) }))
     }
     if (e.flashback) o.flashback = true

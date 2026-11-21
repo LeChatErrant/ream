@@ -65,13 +65,14 @@ Events, anchored at `"chapter:paragraph"` (paragraph index as in `text.json`):
 | `gain` + `name` or `label` | starts holding it; `label` is a quote for an item not yet named |
 | `name` + `value` | the item gets its name |
 | `lose` + `how` | stops holding it (`destroyed`, `given`, `consumed`…) |
-| `become` + `to` + `name` | turns into another entry (Echo → Shadow, Attribute evolution) |
+| `become` + `to` + `name` (+ `rename`) | turns into another entry (Echo → Shadow, Attribute evolution); `rename: true` = the same creature under a new name (Ravenous Fiend → Shadow Fiend), keeping its Rank / Class |
 | `set` + `value` | a stat (True Name, Rank, Core) |
 | `runes` (+ `to`) | the rune sheet: rune lines in that paragraph range |
 | `source` + `value` | where it came from: the creature slain, the giver (“Obtained from”) |
 | `fact` + `label` + `value` | a Rank / Class / Tier / Type the book states in prose (\"now a Transcendent Devil\"); shown until a newer rune sheet prints that line itself (one only repeating older lines doesn’t undo it) |
 | `told` (+ `to`, `names`) | narration describing an item the runes don't (Essence Pearl, Bone Singer): shown when the item has no rune sheet, or one with no description of its own; `names` = `{ "Enchantments": [...] }` it names |
 | `told` + `for` | narration explaining one listed name the runes leave bare (Marble Shell's [Mantle]): shown under that name, in the item's sheet and in those of what it evolves into |
+| `told` + `for` + `list` | a name the story gives in prose only, for an item with no runes (Slayer's [Pure Soul], `"list": "Attributes"`): shown under that list with the passage |
 | `history` (+ `to`) | a passage about the item (review page only); `flashback: true` when told out of order |
 
 Order is **reading order**: a flashback (ch 122–168) adds history, it doesn't
