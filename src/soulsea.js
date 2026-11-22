@@ -368,8 +368,11 @@ function row(x, gone) {
   if (!open) return out;
 
   const detail = h("div", { class: "soulsea__detail" });
-  if (x.sheet) detail.append(sheet(x.sheet, x));
-  else {
+  if (x.sheet) {
+    // A list the runes leave out but the story gives (the Curse's seven enchantments, 2573).
+    const more = toldLists(x).filter((l) => !x.sheet.sheet.l.some((m) => m.k === l.k));
+    detail.append(sheet(more.length ? { ...x.sheet, sheet: { ...x.sheet.sheet, l: [...x.sheet.sheet.l, ...more] } } : x.sheet, x));
+  } else {
     // No runes at all: the sheet the story gives instead — the Rank / Class it states
     // ("Mimic had achieved Transcendent status"), its own description, and the names it
     // gives in prose (Slayer's [Pure Soul]), each with the passage explaining it.

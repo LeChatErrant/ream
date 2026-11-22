@@ -287,6 +287,61 @@
       "to": "2573:12"
     },
     {
+      "told": "curse",
+      "at": "2573:49",
+      "names": {
+        "Enchantments": [
+          "Bound",
+          "Dark Embrace",
+          "Absence of Light",
+          "Mercy of Shadow",
+          "Shadow Flame",
+          "Weakening Curse",
+          "Chain"
+        ]
+      }
+    },
+    {
+      "told": "curse",
+      "at": "2574:14",
+      "for": "Bound"
+    },
+    {
+      "told": "curse",
+      "at": "2574:17",
+      "for": "Dark Embrace"
+    },
+    {
+      "told": "curse",
+      "at": "2574:22",
+      "to": "2574:24",
+      "for": "Absence of Light"
+    },
+    {
+      "told": "curse",
+      "at": "2574:25",
+      "to": "2574:29",
+      "for": "Mercy of Shadow"
+    },
+    {
+      "told": "curse",
+      "at": "2574:30",
+      "to": "2574:36",
+      "for": "Shadow Flame"
+    },
+    {
+      "told": "curse",
+      "at": "2574:37",
+      "to": "2574:40",
+      "for": "Weakening Curse"
+    },
+    {
+      "told": "curse",
+      "at": "2575:27",
+      "to": "2575:30",
+      "for": "Chain"
+    },
+    {
       "told": "spirit-weave",
       "at": "2719:1",
       "to": "2719:2"
