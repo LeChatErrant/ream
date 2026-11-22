@@ -511,7 +511,9 @@ const app = {
     const own = app.events.filter((e) => e.id === id && e !== g && telling.has(e.type) && !bare(e))
     const first = own.find((e) => cmp(e.at, g.at) >= 0)
     if (!first || first.at[0] !== g.at[0] + 1) continue
-    if (app.events.some((e) => e.id === g.id && e.type === 'lose' && cmp(e.at, first.at) < 0)) continue
+    // …unless it is gone by the end of that chapter (Dire Fang's Echo, the Curse): moved,
+    // it would never be seen held at all.
+    if (app.events.some((e) => e.id === id && (e.type === 'lose' || e.type === 'become') && e !== g && e.at[0] <= first.at[0])) continue
     moved.push(`${id} ${g.at.join(':')} → ${first.at.join(':')}`)
     Object.assign(g, { at: first.at, fp: first.fp })
   }

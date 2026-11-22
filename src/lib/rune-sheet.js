@@ -53,14 +53,20 @@ export function parseRune(t) {
 }
 
 // Lines the epub runs together in one paragraph ("Echoes: -Shadows: [Onyx Saint]…")
-// are split where a new "Label:" starts outside any brackets.
+// are split where a new "Label:" starts outside any brackets — right after the last
+// line's end, or after a space when that line was a quoted description
+// ('…grow fuller." [Blade of Darkness] Ability Description: "…').
 const LABEL_AT = /^(?:\[[^\]]+\]\s+)?[A-Z][A-Za-z' ]{1,40}:\s/;
+// A quoted description the narration runs on after ('…a mundane weapon." ...When Revel
+// summoned…'): the line ends with its closing quote.
+const QUOTED_DESC = /^((?:\[[^\]]+\]\s+)?[A-Z][\w' ]{0,40}Description\s*:\s*(["“«])[^"”»]*["”»]\.?)\s+\S.*$/s;
 export function splitFields(t) {
   const out = [];
   let depth = 0;
   let start = 0;
   for (let i = 0; i < t.length; i++) {
-    if (depth === 0 && i > start && /[.\]\-—?]/.test(t[i - 1]) && LABEL_AT.test(t.slice(i, i + 80))) {
+    const after = /[.\]\-—?]/.test(t[i - 1]) || (/\s/.test(t[i - 1]) && /["”»]\s+$/.test(t.slice(start, i)));
+    if (depth === 0 && i > start && after && LABEL_AT.test(t.slice(i, i + 80))) {
       out.push(t.slice(start, i).trim());
       start = i;
     }
@@ -68,7 +74,7 @@ export function splitFields(t) {
     else if (t[i] === "]") depth = Math.max(0, depth - 1);
   }
   out.push(t.slice(start).trim());
-  return out.filter(Boolean);
+  return out.filter(Boolean).map((l) => l.replace(QUOTED_DESC, "$1"));
 }
 
 /**
