@@ -22,6 +22,7 @@ import { baseHref } from "./lib/chapters.js";
 import { textKey, textSig, sigSimilarity } from "./lib/proof-key.js";
 import { descText, cap } from "./lib/rune-sheet.js";
 import { armOverlay, closeOverlay } from "./router.js";
+import { realChapter, onProofChange } from "./proof.js";
 
 const MATCH = /shadow\s*slave/i;
 
@@ -81,7 +82,9 @@ function parasOf(num) {
         const root = await section.load(b.load.bind(b));
         const out = [...root.querySelectorAll("p")].map((p) => p.textContent);
         section.unload();
-        return out;
+        // A rewritten copy the reader replaced with the real chapter (proofreading)
+        // reads as the real one — what the timeline points at.
+        return (await realChapter(section.href, out)) ?? out;
       })().catch(() => null)
     );
   return chapterParas.get(num);
@@ -450,8 +453,9 @@ function buildSheet(e, texts, x) {
   const explained = toldFor(x);
   // What the story says, where the runes say nothing ("In the story").
   const story = (e) => {
-    const ps = e.paras.map((r) => texts.get(refKey(e, r))).filter((t) => t != null);
-    return ps.length
+    // All of it or nothing: half a passage (a rewritten copy matching one line) misleads.
+    const ps = e.paras.map((r) => texts.get(refKey(e, r)));
+    return ps.every((t) => t != null)
       ? [h("span", { class: "soulsea__told-k" }, "In the story"), ...ps.map((t) => h("p", { class: "soulsea__note-text" }, t))]
       : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")];
   };
@@ -506,6 +510,8 @@ function toldLists(x) {
 // Resolved paragraphs, so a re-render (expanding another row) draws instantly.
 // A reference is { p, fp, g, ch? } (see build.mjs); a sheet's are all its descriptions'.
 const textCache = new Map();
+// A proofreading decision can swap a chapter for the real one: read them again.
+onProofChange(() => (chapterParas.clear(), textCache.clear()));
 const refKey = (e, r) => `${r.ch ?? e.at[0]}:${r.p}:${r.fp}`;
 const refsOf = (e) =>
   e.sheet ? [e.sheet.d, ...e.sheet.l.flatMap((l) => l.n.map((n) => n.d)), ...(e.sheet.o || []).map((n) => n.d)].filter(Boolean).flat() : e.paras || [];

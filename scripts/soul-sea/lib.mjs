@@ -2,6 +2,7 @@
 // rune blocks Shadow Slave prints (Memories, Echoes, Shadows, Attributes,
 // Aspect, Flaw, status sheets) out of the epubs, verbatim, so an inventory
 // timeline can point at them. Not part of the app.
+import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { ROOT, listEpubs, readChapters } from '../proofread/lib.mjs'
 import { textKey } from '../../src/lib/proof-key.js'
@@ -15,15 +16,32 @@ export const APP_DATA = path.join(ROOT, 'src/soul-sea/shadow-slave.json')
 /** Every Shadow Slave chapter, keyed by its global number: { n, vol, href, title, paras }. */
 export async function readSeries() {
   const chapters = []
+  const real = await realChapters()
   for (const { name, file } of await listEpubs()) {
     const vol = +name.match(/^shadow slave\D*(\d+)/i)?.[1]
     if (!vol) continue
     for (const c of await readChapters(file)) {
       const n = +c.title.match(/^Chapter\W*(\d+)/i)?.[1]
-      if (n) chapters.push({ n, vol, href: c.href, title: c.title, paras: c.paras })
+      if (n) chapters.push({ n, vol, href: c.href, title: c.title, paras: real(c) ?? c.paras })
     }
   }
   return chapters.sort((a, b) => a.n - b.n)
+}
+
+// Chapters the epubs carry as an AI rewrite (Shadow Slave 1905, 2575…) are read as
+// the real text instead: the proofreading's "replace chapter" fixes
+// (proofread/findings/rewrite, from proofread/rewrites/<n>.txt). The app reads them
+// the same way once the reader has accepted the fix (proof.js realChapter), so the
+// timeline points at the real paragraphs; a copy without the fix shows "not in your copy".
+async function realChapters() {
+  const dir = path.join(ROOT, 'proofread/findings/rewrite')
+  const fixes = []
+  for (const f of await readdir(dir).catch(() => []))
+    if (f.endsWith('.json')) fixes.push(...JSON.parse(await readFile(path.join(dir, f), 'utf8')).filter((x) => x.op === 'replace-chapter'))
+  return (c) => {
+    const f = fixes.find((f) => f.href === c.href && c.paras.length > f.paraEnd && textKey(c.paras.slice(f.para, f.paraEnd + 1).join('\n\n')) === textKey(f.original))
+    return f && [...c.paras.slice(0, f.para), ...f.replacement.split('\n\n'), ...c.paras.slice(f.paraEnd + 1)]
+  }
 }
 
 // Labels the Spell uses in rune sheets, longest first so "Memory Rank" wins over "Memory".

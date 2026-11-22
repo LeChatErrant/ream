@@ -96,3 +96,14 @@ from the imported volumes: the paragraph with the same fingerprint, or — in a 
 edited a little (a typo fixed, a proofread epub) — the one near the same place whose
 similarity signature nearly matches (9 of 12 bytes, length within 25%). Never a
 different paragraph: a description the copy doesn't have says so.
+
+## Rewritten chapters
+
+Some chapters of the epubs are AI rewrites (1961, 2571, 2575… — see
+`scripts/proofread/rewrites.mjs`). The pipeline reads the real text instead: the
+proofreading's "replace chapter" fixes (`proofread/findings/rewrite`), spliced in by
+`readSeries`, so the timeline points at the real paragraphs. The panel reads a chapter
+the same way once the reader has accepted that fix in Ream's proofreading
+(`proof.js` `realChapter`, whether proofreading mode is on or not). A copy without the
+fix shows "Not in your copy of the book" for those passages — a passage is shown whole
+or not at all.

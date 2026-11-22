@@ -305,6 +305,27 @@ export async function removePackage() {
   notify();
 }
 
+/**
+ * A chapter's paragraphs (`texts`, every <p> of the spine file at `href`) as this
+ * device's copy reads once an accepted "replace chapter" fix is in: the real
+ * chapter instead of the rewritten one. For what reads the book outside the
+ * reader (the Soul Sea). An accepted fix is the reader's copy, so it applies
+ * whether proofreading mode is on or not. Null when no accepted fix fits.
+ */
+export async function realChapter(href, texts) {
+  await proofReady;
+  const f = (byFile.get(href.split("/").pop()) || []).find(
+    (f) =>
+      f.op === "replace-chapter" &&
+      (f.href === href || f.href.endsWith("/" + href) || href.endsWith("/" + f.href)) &&
+      Object.entries(f.check || {}).every(([i, k]) => texts[i] != null && textKey(texts[i]) === k)
+  );
+  if (!f) return null;
+  const v = withDecision(f, decisionOf(f.id, pkg.decisions));
+  if (v.status !== "accepted") return null;
+  return [...texts.slice(0, f.para), ...v.replacement.split("\n\n"), ...texts.slice(f.paraEnd + 1)];
+}
+
 // ---- the chapters currently on screen --------------------------------------
 // doc → { doc, paras, heading, findings }
 const chapters = new Map();

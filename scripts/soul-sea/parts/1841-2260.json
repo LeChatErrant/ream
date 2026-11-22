@@ -259,40 +259,40 @@
     {
       "at": "1961:8",
       "source": "green-canteen",
-      "value": "the leftover scraps of the Huntsman's axe"
+      "value": "the leftovers scraps of the Huntsman's axe"
     },
     {
-      "at": "1961:10",
+      "at": "1961:9",
       "gain": "green-canteen",
       "name": "Green Canteen"
     },
     {
-      "at": "1961:12",
+      "at": "1961:13",
       "gain": "in-case-of-emergency",
       "name": "In Case of Emergency"
     },
     {
-      "at": "1961:17",
+      "at": "1961:20",
       "gain": "heavy-burden",
       "name": "Heavy Blow"
     },
     {
-      "at": "1961:17",
+      "at": "1961:20",
       "gain": "outskirts-at-noon",
       "name": "Outskirts at Noon"
     },
     {
-      "at": "1961:17",
+      "at": "1961:20",
       "gain": "dont-cut-yourself",
       "name": "Don't Cut Yourself"
     },
     {
-      "at": "1961:29",
+      "at": "1961:35",
       "gain": "piece-de-resistance",
       "name": "Piece de Resistance"
     },
     {
-      "at": "1961:33",
+      "at": "1961:39",
       "gain": "safety-first",
       "name": "Safety First"
     },
