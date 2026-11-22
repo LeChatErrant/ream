@@ -285,6 +285,11 @@
       "to": "1080:38"
     },
     {
+      "at": "1090:1",
+      "set": "core",
+      "value": "a new Shadow Core.His fifth one"
+    },
+    {
       "at": "1090:39",
       "set": "class",
       "value": "Tyrant"

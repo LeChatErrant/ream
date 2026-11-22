@@ -473,6 +473,21 @@
       "how": "destroyed"
     },
     {
+      "at": "1383:4",
+      "set": "fragments",
+      "value": "1944/5000"
+    },
+    {
+      "at": "1395:25",
+      "set": "fragments",
+      "value": "close to two thousand and five hundred"
+    },
+    {
+      "at": "1471:2",
+      "set": "core",
+      "value": "a new Shadow Core"
+    },
+    {
       "at": "1471:10",
       "set": "class",
       "value": "Terror"

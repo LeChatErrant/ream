@@ -125,7 +125,14 @@ function stateAt(last) {
       Object.assign(x, { held: false, lost: e.at[0], how: "became", into: e.to });
       Object.assign(get(e.to), { held: true, name: e.name, since: e.at[0], from: e.id });
     } else if (e.type === "name") x.name = e.value;
-    else if (e.type === "set") Object.assign(x, { held: true, value: e.value, since: e.at[0], values: [...(x.values || []), e.value] });
+    else if (e.type === "set") {
+      const before = x.id === "core" && x.values ? coreCount(x.values).n : 0;
+      Object.assign(x, { held: true, value: e.value, since: e.at[0], values: [...(x.values || []), e.value] });
+      // A new core starts the count of shadow fragments over, towards the next thousand
+      // (a fifth core: 0 / 5000) — until the runes or the story give the number.
+      const now = x.id === "core" ? coreCount(x.values).n : 0;
+      if (before && now > before) Object.assign(get("fragments"), { held: true, value: `0/${now * 1000}`, since: e.at[0] });
+    }
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
       // a newer sheet supersedes facts told in prose — those it prints itself (`s`), not ones carried from older sheets
@@ -189,14 +196,28 @@ function header(context) {
 // ("His soul possessed six cores now", "the seventh, final core"): the count is that
 // number, out of the last maximum the runes showed.
 const NUMBER = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7 };
+// How many cores, after each of these values in turn: "[5/7]", "six cores", "His fifth
+// one" — or "a new Shadow Core", one more than before. `n` is 0 when none says.
+const ORDINAL_WORD = /\b(one|two|three|four|five|six|seven|first|second|third|fourth|fifth|sixth|seventh)\b/i;
+function coreCount(values) {
+  let n = 0;
+  let max = null;
+  for (const v of values) {
+    const r = v.match(/\[(\d+)\/(\d+)\]/);
+    const w = /\bcores?\b/i.test(v) && v.match(ORDINAL_WORD);
+    if (r) [n, max] = [+r[1], r[2]];
+    else if (w) n = NUMBER[w[1].toLowerCase()];
+    else if (/\bnew\b[\w ]*\bcore\b/i.test(v) && n) n += 1;
+    else if (/\bCore:/.test(v)) n ||= 1; // "Shadow Core: Dormant" — the one he starts with
+  }
+  return { n, max };
+}
 function coreStat(x) {
   const runes = [...x.values].reverse().find((v) => /\[\d+\/\d+\]/.test(v));
   const label = (x.value.match(/^\s*([A-Z][\w ]*?):/) || runes?.match(/^\s*([A-Z][\w ]*?):/))?.[1] ?? "Core";
-  const n = x.value.match(/\[(\d+)\/(\d+)\]/);
-  if (n) return [label, `${n[1]} / ${n[2]}`];
-  const w = x.value.match(/\b(one|two|three|four|five|six|seven|first|second|third|fourth|fifth|sixth|seventh)\b[\w, ]*?\bcores?\b/i);
-  const max = runes?.match(/\/(\d+)\]/)?.[1];
-  if (w) return [label, `${NUMBER[w[1].toLowerCase()]}${max ? " / " + max : ""}`];
+  const { n, max } = coreCount(x.values);
+  const counted = /\[\d+\/\d+\]/.test(x.value) || (/\bcores?\b/i.test(x.value) && (ORDINAL_WORD.test(x.value) || /\bnew\b/i.test(x.value)));
+  if (n && counted) return [label, `${n}${max ? " / " + max : ""}`];
   return [label, x.value.replace(/^\s*[A-Z][\w ]*?:\s*/, "").replace(/\.$/, "")];
 }
 
@@ -237,7 +258,7 @@ function render() {
         { class: "soulsea__stats" },
         stats.map((x) => {
           const [k, v] =
-            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? x.value.replace(/^(\d+)\/(\d+)$/, "$1 / $2") : x.value];
+            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? cap(x.value.replace(/^(\d+)\/(\d+)$/, "$1 / $2")) : x.value];
           return h("div", { class: "soulsea__stat" }, h("span", { class: "soulsea__stat-k" }, k), h("span", { class: "soulsea__stat-v" }, v));
         })
       )

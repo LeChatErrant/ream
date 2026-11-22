@@ -22,6 +22,8 @@ import { textSig } from '../../src/lib/proof-key.js'
 import { readSheet, descText } from '../../src/lib/rune-sheet.js'
 
 const tl = JSON.parse(await readFile(TIMELINE, 'utf8'))
+// Sunny's Shadow Fragments: read from the runes (below), and from the story where it gives a number.
+tl.entries.fragments ??= { kind: 'stat', label: 'Shadow Fragments' }
 const text = JSON.parse(await readFile(path.join(WORK, 'text.json'), 'utf8'))
 const runes = JSON.parse(await readFile(path.join(WORK, 'runes.json'), 'utf8'))
 
@@ -292,22 +294,35 @@ for (const e of tl.events) {
 
 // ---- Sunny's Shadow Fragments, derived from the runes ---------------------------
 // A "Shadow Fragments: [x/y]" line is Sunny's when it sits in his own sheet, or
-// stands alone with the same denominator as his last sheet (his Shadow has its own).
+// stands alone with the same denominator as his last count — or a higher thousand,
+// his next core's (444/7000 after the seventh); his Shadows count in hundreds. A line
+// the book cuts short ("Shadow Fragments: …") says nothing: the count it reprints does.
 {
   let denom = null
-  const sheets = runes.blocks.filter((b) => b.ch <= RANGE[1] && b.ch >= RANGE[0])
-  for (const b of sheets) {
+  const his = (d) => d && (d === denom || (denom && +d % 1000 === 0 && +d > +denom))
+  const found = []
+  for (const b of runes.blocks.filter((b) => b.ch <= RANGE[1] && b.ch >= RANGE[0])) {
     const own = b.kind === 'status' && b.fields.some((f) => f.label === 'Name' && /^Sun(ny|less)\b/.test(f.value))
+    // Someone else's sheet, read through Sunny's eyes (Nephis's "True Name: Changing Star", 693).
+    const other = !own && b.fields.some((f) => (f.label === 'Name' && !/^Sun(ny|less)\b/.test(f.value)) || (f.label === 'True Name' && !/Lost from Light|^[—-]/.test(f.value)))
     for (const f of b.fields.filter((f) => f.label === 'Shadow Fragments')) {
       const d = f.value.match(/\/\s*(\d+)/)?.[1]
-      if (own) denom = d
-      else if (b.kind !== 'status' || !denom || d !== denom) continue
-      events.push({ set: 'fragments', value: f.value.replace(/^\[|[\].\s]+$/g, ''), at: [b.ch, f.p], ref: ref([b.ch, f.p]), auto: true })
+      if (!d || other) continue
+      if (!own && (b.kind !== 'status' || !his(d))) continue
+      found.push({ value: f.value.replace(/^\[|[\].\s]+$/g, ''), at: [b.ch, f.p], d })
+      denom = d
     }
   }
   for (const m of runes.messages.filter((m) => m.ch <= RANGE[1] && m.ch >= RANGE[0])) {
     const v = m.text.match(/^\[Shadow Fragments: \[?(\d+\/(\d+))\]?\.?\]\.?$/)
-    if (v && v[2] === (denom ?? v[2])) events.push({ set: 'fragments', value: v[1], at: [m.ch, m.p], ref: ref([m.ch, m.p]), auto: true })
+    if (v) found.push({ value: v[1], at: [m.ch, m.p], d: v[2], message: true })
+  }
+  // Spell messages are checked in reading order against the counts around them.
+  denom = null
+  for (const f of found.sort((a, b) => cmp(a.at, b.at))) {
+    if (f.message && denom && !his(f.d)) continue
+    denom = f.d
+    events.push({ set: 'fragments', value: f.value, at: f.at, ref: ref(f.at), auto: true })
   }
   tl.entries.fragments = { kind: 'stat', label: 'Shadow Fragments' }
 }
@@ -511,6 +526,8 @@ const app = {
     const own = app.events.filter((e) => e.id === id && e !== g && telling.has(e.type) && !bare(e))
     const first = own.find((e) => cmp(e.at, g.at) >= 0)
     if (!first || first.at[0] !== g.at[0] + 1) continue
+    // Its own chapter already says what it is (Evening Star, 2395:21): nothing to wait for.
+    if (own.some((e) => e.at[0] === g.at[0])) continue
     // …unless it is gone by the end of that chapter (Dire Fang's Echo, the Curse): moved,
     // it would never be seen held at all.
     if (app.events.some((e) => e.id === id && (e.type === 'lose' || e.type === 'become') && e !== g && e.at[0] <= first.at[0])) continue
