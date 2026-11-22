@@ -131,7 +131,10 @@ function stateAt(last) {
       // A new core starts the count of shadow fragments over, towards the next thousand
       // (a fifth core: 0 / 5000) — until the runes or the story give the number.
       const now = x.id === "core" ? coreCount(x.values).n : 0;
-      if (before && now > before) Object.assign(get("fragments"), { held: true, value: `0/${now * 1000}`, since: e.at[0] });
+      if (before && now > before) {
+        const f = get("fragments");
+        Object.assign(f, { held: true, value: `0/${now * 1000}`, since: e.at[0], values: [...(f.values || []), `0/${now * 1000}`] });
+      }
     }
     else if (e.type === "runes") {
       x.sheet = e; // each sheet already carries the earlier lines (see build.mjs)
@@ -196,6 +199,36 @@ function header(context) {
 // ("His soul possessed six cores now", "the seventh, final core"): the count is that
 // number, out of the last maximum the runes showed.
 const NUMBER = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7 };
+// "1944/5000" → 1944 / 5000. A count the story gives in words ("close to two thousand
+// and five hundred") becomes a number too, "~" when the story says it's about that,
+// out of the last maximum the runes showed: ~2500 / 5000.
+const UNITS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+function wordsToNumber(t) {
+  let total = 0;
+  let cur = 0;
+  let any = false;
+  for (const w of t.toLowerCase().split(/[\s-]+/)) {
+    if (w in UNITS) cur += UNITS[w];
+    else if (w === "hundred") cur = (cur || 1) * 100;
+    else if (w === "thousand") (total += (cur || 1) * 1000), (cur = 0);
+    else if (w === "and") continue;
+    else if (any) break;
+    else continue;
+    any = true;
+  }
+  return any ? total + cur : null;
+}
+function fragmentStat(x) {
+  const label = data.entries[x.id].label;
+  const n = x.value.match(/^(\d+)\/(\d+)$/);
+  if (n) return [label, `${n[1]} / ${n[2]}`];
+  const num = wordsToNumber(x.value);
+  if (num == null) return [label, cap(x.value)];
+  const about = /\b(close to|almost|nearly|about|around|roughly|over|more than)\b/i.test(x.value) ? "~" : "";
+  const max = [...(x.values || [])].reverse().map((v) => v.match(/\/(\d+)$/)?.[1]).find(Boolean);
+  return [label, `${about}${num}${max ? " / " + max : ""}`];
+}
+
 // How many cores, after each of these values in turn: "[5/7]", "six cores", "His fifth
 // one" — or "a new Shadow Core", one more than before. `n` is 0 when none says.
 const ORDINAL_WORD = /\b(one|two|three|four|five|six|seven|first|second|third|fourth|fifth|sixth|seventh)\b/i;
@@ -258,7 +291,7 @@ function render() {
         { class: "soulsea__stats" },
         stats.map((x) => {
           const [k, v] =
-            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? cap(x.value.replace(/^(\d+)\/(\d+)$/, "$1 / $2")) : x.value];
+            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? fragmentStat(x) : x.value];
           return h("div", { class: "soulsea__stat" }, h("span", { class: "soulsea__stat-k" }, k), h("span", { class: "soulsea__stat-v" }, v));
         })
       )
