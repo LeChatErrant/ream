@@ -90,7 +90,9 @@ export function setProofEnabled(on) {
   } catch (_) {
     /* best effort */
   }
-  if (!on) for (const c of onScreen()) unmarkChapter(c);
+  // A chapter already matched keeps its findings while off (only the marks go),
+  // so switching back on puts the marks back here; proofChapter would skip it.
+  for (const c of onScreen()) (on ? remarkChapter : unmarkChapter)(c);
   notify();
 }
 
@@ -576,6 +578,10 @@ function unmark(c, f) {
 
 function unmarkChapter(c) {
   for (const f of c.findings) unmark(c, f);
+}
+
+function remarkChapter(c) {
+  for (const f of c.findings) if (f.status === "pending" && !c.doc.querySelector(`[data-proof="${CSS.escape(f.id)}"]`)) mark(c, f);
 }
 
 // Hidden, not removed: CFIs count element positions, so reading spots stay put.
