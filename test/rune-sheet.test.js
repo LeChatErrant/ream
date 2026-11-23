@@ -41,3 +41,22 @@ describe("sameName", () => {
     expect(sameName("Blessing of Mind", "Blessing of Soul")).toBe(false);
   });
 });
+
+import { tidyStory } from "../src/lib/rune-sheet.js";
+describe("tidyStory", () => {
+  const names = ["Bound", "Mercy of Shadow", "Shadow Flame", "Chain", "Weakening Curse"];
+  it("drops an opening quote nothing closes", () => {
+    expect(tidyStory("“The [Bound] enchantment was self-explanatory.", names)).toBe("The [Bound] enchantment was self-explanatory.");
+    expect(tidyStory("it had another use. “The (Weakening Curse] was it.", names)).toBe("It had another use. The [Weakening Curse] was it.");
+  });
+  it("keeps real dialogue", () => {
+    expect(tidyStory('“Let\'s hope no one ever sees these runes."', names)).toBe('“Let\'s hope no one ever sees these runes."');
+    expect(tidyStory("He said, “Go.” Then left.", names)).toBe("He said, “Go.” Then left.");
+  });
+  it("mends the brackets of listed names", () => {
+    expect(tidyStory("The (Mercy of Shadow] enhanced it.", names)).toBe("The [Mercy of Shadow] enhanced it.");
+    expect(tidyStory("with the [Shadow Flamel, he could", names)).toBe("With the [Shadow Flame], he could");
+    expect(tidyStory("The [Chain.]", names)).toBe("The [Chain].");
+    expect(tidyStory("[Bound], [Chain] and [Mercy of Shadow]", names)).toBe("[Bound], [Chain] and [Mercy of Shadow]");
+  });
+});

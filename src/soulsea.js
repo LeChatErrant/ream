@@ -20,7 +20,7 @@ import { displayTitle } from "./reading.js";
 import { parseChapterLabel } from "./lib/text.js";
 import { baseHref } from "./lib/chapters.js";
 import { textKey, textSig, sigSimilarity } from "./lib/proof-key.js";
-import { descText, cap } from "./lib/rune-sheet.js";
+import { descText, cap, tidyStory } from "./lib/rune-sheet.js";
 import { armOverlay, closeOverlay } from "./router.js";
 import { realChapter, onProofChange } from "./proof.js";
 
@@ -451,12 +451,14 @@ function buildSheet(e, texts, x) {
     );
   const prose = (text, cls) => cap(text).split(/\n\n+/).map((t) => h("p", { class: cls }, t));
   const explained = toldFor(x);
+  // The names this item lists, so a story passage's misscanned brackets read right.
+  const names = [x.name, ...[...sh.l, ...toldLists(x)].flatMap((l) => l.n.map((n) => n.n)), ...(sh.o || []).map((n) => n.n)].filter(Boolean);
   // What the story says, where the runes say nothing ("In the story").
   const story = (e) => {
     // All of it or nothing: half a passage (a rewritten copy matching one line) misleads.
     const ps = e.paras.map((r) => texts.get(refKey(e, r)));
     return ps.every((t) => t != null)
-      ? [h("span", { class: "soulsea__told-k" }, "In the story"), ...ps.map((t) => h("p", { class: "soulsea__note-text" }, t))]
+      ? [h("span", { class: "soulsea__told-k" }, "In the story"), ...ps.map((t) => h("p", { class: "soulsea__note-text" }, tidyStory(t, names)))]
       : [h("p", { class: "soulsea__none" }, "Not in your copy of the book")];
   };
   // A description the reader's copy doesn't have (another edition, a missing volume) says so.

@@ -277,3 +277,20 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
   }
   return { facts, lists: out, notes: notes.filter((n) => !placed.has(n)), epigraph };
 }
+
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * A story paragraph as the panel shows it: the scanned text's slips tidied, never
+ * its words. An opening “ that nothing closes is a scanning stray (“The [Bound]
+ * enchantment…); a name the item lists, written with a wrong bracket — "(Mercy of
+ * Shadow]", "[Shadow Flamel", "[Chain.]", "[Blood Weave," — reads as [Name]. A
+ * paragraph the scan starts in lower case starts with a capital.
+ */
+export function tidyStory(t, names = []) {
+  let out = t.replace(/“(?![^”"]*["”])/g, "").replace(/^\s+/, "");
+  for (const n of [...new Set(names)].sort((a, b) => b.length - a.length)) {
+    const re = new RegExp(`[\\[(]${esc(n)}(\\.)?(?:\\]|\\)|l(?![a-z]))?(?![a-z])`, "g");
+    out = out.replace(re, (_, dot) => `[${n}]${dot || ""}`);
+  }
+  return cap(out);
+}
