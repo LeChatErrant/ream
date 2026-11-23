@@ -294,7 +294,7 @@ function render() {
         { class: "soulsea__stats" },
         stats.map((x) => {
           const [k, v] =
-            x.id === "core" ? coreStat(x) : [data.entries[x.id].label, x.id === "fragments" ? fragmentStat(x) : x.value];
+            x.id === "core" ? coreStat(x) : x.id === "fragments" ? fragmentStat(x) : [data.entries[x.id].label, x.value];
           return h("div", { class: "soulsea__stat" }, h("span", { class: "soulsea__stat-k" }, k), h("span", { class: "soulsea__stat-v" }, v));
         })
       )
