@@ -41,6 +41,8 @@ import {
   chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
 import { keepAwake, releaseWakeLock } from "./device.js";
+import { noteActivity, endSession, creditProgress } from "./stats.js";
+import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 
 // A saved reading spot (an epub.js CFI) counts the chapter's elements and
 // characters as they were on screen, proofreading's marks and fixes included.
@@ -92,6 +94,7 @@ export const setCurrentBook = (b) => { currentBook = b; };
 export const hasRendition = () => !!rendition;
 export function destroyRendition() {
   releaseWakeLock();
+  endSession();
   if (rendition) {
     rendition.destroy();
     rendition = null;
@@ -239,6 +242,8 @@ function saveReadingLocation(location) {
       const pct = rawPct == null ? base.pct || 0 : Math.max(base.pct || 0, rawPct);
       const advanced = rawPct != null && rawPct >= (base.pct || 0);
       const done = base.done || (pct >= CHAPTER_DONE_PCT && scrolled >= MIN_SCROLL_PCT);
+      // Reading stats: the words of the stretch just read (stats.js).
+      creditProgress(lib, href, base.pct, pct, done && !base.done);
       chapters[href] = {
         pct,
         cfi: advanced && location.start.cfi ? location.start.cfi : base.cfi || location.start.cfi || null,
@@ -325,6 +330,9 @@ export async function renderReader(lib, startHref = null) {
   el.topTitle.textContent = displayTitle(lib);
   document.title = displayTitle(lib);
   applyDock();
+  // Reading stats credit words per chapter, so count this book's chapters in
+  // the background once the first page has settled (a no-op once cached).
+  if (!hasCurrentWordCount(lib)) setTimeout(() => ensureWordCount(lib).catch(() => {}), 4000);
   el.topbar.style.setProperty("--chapter-pct", "0%");
   setChrome(true);
 
@@ -762,6 +770,7 @@ function prepareChrome(contents) {
   applyChromeInsets(doc);
   doc.addEventListener("click", chromeTap);
   doc.addEventListener("click", keepAwake);
+  doc.addEventListener("click", () => noteActivity(currentBook?.id));
 }
 // Crossing between the phone and wide layouts changes that padding.
 WIDE.addEventListener("change", () => {
@@ -958,8 +967,10 @@ function paintChapterProgress() {
   el.topbar.style.setProperty("--chapter-pct", pct.toFixed(2) + "%");
   scrollReaderMark(c.scrollTop);
   chromeScrolled(c);
-  // Every scroll (and every chapter landing) is reading: keep the screen on.
+  // Every scroll (and every chapter landing) is reading: keep the screen on,
+  // and keep the stats clock running.
   keepAwake();
+  noteActivity(currentBook?.id);
 }
 
 // -------------------------------------------------------------------------

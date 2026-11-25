@@ -1,5 +1,5 @@
 // =========================================================================
-// Routing — library is the root; info, chapters and reader are pushed on top —
+// Routing — library is the root; info, chapters, stats and reader are pushed on top —
 // plus the overlay/Back history stack that lets sheets close before the route
 // changes. This module owns the current route, the history entries and the
 // popstate unwind; the screen modules own their own rendering.
@@ -9,6 +9,7 @@ import { renderReader, closeDrawer, destroyRendition, setCurrentBook } from "./r
 import { renderLibrary, exitSelection, isSelecting } from "./library.js";
 import { renderInfo } from "./info.js";
 import { renderChapters, teardownChapters } from "./chapters.js";
+import { renderStats } from "./statsview.js";
 
 function setRouteChrome(route) {
   document.getElementById("app").dataset.route = route;
@@ -58,6 +59,10 @@ async function applyState(state) {
     currentInfo = null;
     setRouteChrome("chapters");
     renderChapters(s.kind || "book", s.id, s.volId);
+  } else if (s.route === "stats") {
+    currentInfo = null;
+    setRouteChrome("stats");
+    renderStats(s.kind || "all", s.id);
   } else {
     currentInfo = null;
     setRouteChrome("library");
@@ -79,6 +84,10 @@ export function go(state, push = true) {
     currentInfo = null;
     setRouteChrome("chapters");
     renderChapters(state.kind || "book", state.id, state.volId);
+  } else if (state.route === "stats") {
+    currentInfo = null;
+    setRouteChrome("stats");
+    renderStats(state.kind || "all", state.id);
   } else {
     currentInfo = null;
     setRouteChrome("library");
@@ -99,7 +108,8 @@ export function openSeries(id) {
 
 // The screen the phone's Back gesture should land on — the *structural* parent,
 // not wherever you happened to come from. reader → the book's info page (its
-// series page for a volume), chapters → the same info page, info → the library.
+// series page for a volume), chapters → the same info page, a book's stats →
+// its info page, the overall stats and info → the library.
 // This makes Back predictable no matter the path in (a book opened straight into
 // the reader from the Continue card still backs out to its info page).
 let activeState = { route: "library" };
@@ -145,6 +155,8 @@ function structuralParent(state) {
   if (state.route === "reader" && state.id) return bookInfoParent(state.id);
   if (state.route === "chapters" && state.id)
     return state.kind === "series" ? { route: "info", kind: "series", id: state.id } : bookInfoParent(state.id);
+  if (state.route === "stats")
+    return state.kind === "book" || state.kind === "series" ? { route: "info", kind: state.kind, id: state.id } : { route: "library" };
   if (state.route === "info") return { route: "library" };
   return null; // library / unknown — the root; let Back leave the app
 }

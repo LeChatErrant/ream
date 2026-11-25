@@ -18,6 +18,12 @@ Everything runs locally in the browser — no book ever leaves your device.
   tap, or the chapter's top / end. After a jump, that button offers the way
   back ("↩ 38 %"); a jump never counts as reading.
 - Resumes the last book and reading position automatically (IndexedDB)
+- **Reading stats** — time read, pace, time left and an estimated finish date
+  per book or series (a card on its info page), plus weekly / monthly / yearly
+  totals, streaks and a reading calendar (the Library's "This week" strip).
+  Time counts while you scroll or tap and pauses after 3 idle minutes; reading
+  from before stats existed is estimated from your progress and shown striped
+  (`src/stats.js`, `src/statsview.js`)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
 - Asks the browser to keep the library's storage persistent, and keeps the
   screen awake while you read — released after 5 minutes without a scroll or tap

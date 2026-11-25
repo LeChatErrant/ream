@@ -51,7 +51,7 @@ const notify = () => listeners.forEach((fn) => fn());
 // Load the file + this device's decisions once, at startup.
 export const proofReady = (async () => {
   try {
-    // kvGet hands back the raw request for a missing key, so check the shape.
+    // Check the shape: an older or foreign record is ignored.
     const p = await kvGet(PKG_KEY);
     pkg = p?.format === PACKAGE_FORMAT && Array.isArray(p.findings) ? p : null;
     const l = await kvGet(LOCAL_KEY);

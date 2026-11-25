@@ -44,6 +44,7 @@ import { mountReadbar } from "./readbar.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMarks } from "./brand.js";
 import { ensurePersistentStorage } from "./device.js";
+import { loadStats, endSession } from "./stats.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
   applyUpdate, hideUpdateBanner,
@@ -153,10 +154,16 @@ function wireEvents() {
 
   // Save the reading position the moment the app is backgrounded — phone lock,
   // app-switch, or tab close. Covers the gap left by the throttled scroll save.
+  // The stats session ends there too (credited up to the last screen).
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) flushReadingPosition();
+    if (!document.hidden) return;
+    flushReadingPosition();
+    endSession();
   });
-  window.addEventListener("pagehide", flushReadingPosition);
+  window.addEventListener("pagehide", () => {
+    flushReadingPosition();
+    endSession();
+  });
 }
 
 // The library search: on a phone, a row under the header that the search button
@@ -199,6 +206,7 @@ async function migrateLegacy() {
   try {
     await loadState();
     await migrateLegacy();
+    await loadStats();
   } catch (err) {
     console.warn("State load failed:", err);
   }

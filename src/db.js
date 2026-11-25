@@ -1,15 +1,16 @@
 // -------------------------------------------------------------------------
-// Storage — one IndexedDB database, four object stores:
+// Storage — one IndexedDB database, five object stores:
 //   books    (keyPath id)      the imported .epub: bytes + parsed metadata
 //   series   (keyPath id)      a named ordered group of book ids
 //   progress (keyPath bookId)  per-book reading position + finished flag
+//   stats    (keyPath id)      reading time per book per day ("day|bookId")
 //   kv       (plain key/value) misc app state (ui prefs, legacy migration)
 // This module is the only place that talks to IndexedDB; everything above it
 // works through the small get/put/delete helpers exported here.
 // -------------------------------------------------------------------------
 // Pre-rename name, kept on purpose: changing it would orphan existing libraries.
 const DB_NAME = "webnovel-reader";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -20,6 +21,7 @@ function openDB() {
       if (!db.objectStoreNames.contains("books")) db.createObjectStore("books", { keyPath: "id" });
       if (!db.objectStoreNames.contains("series")) db.createObjectStore("series", { keyPath: "id" });
       if (!db.objectStoreNames.contains("progress")) db.createObjectStore("progress", { keyPath: "bookId" });
+      if (!db.objectStoreNames.contains("stats")) db.createObjectStore("stats", { keyPath: "id" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -32,7 +34,9 @@ function tx(store, mode, fn) {
         const t = db.transaction(store, mode);
         const os = t.objectStore(store);
         const out = fn(os);
-        t.oncomplete = () => resolve(out?.result ?? out);
+        // A request resolves to its result — undefined for a missing key, never
+        // the request object itself.
+        t.oncomplete = () => resolve(out instanceof IDBRequest ? out.result : out);
         t.onerror = () => reject(t.error);
       })
   );

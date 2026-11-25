@@ -86,6 +86,7 @@ export function collectRefs() {
     libSearchInput: "lib-search-input",
     infoScreen: "info-screen",
     chaptersScreen: "chapters-screen",
+    statsScreen: "stats-screen",
     topTitle: "book-title",
     chapterTitle: "chapter-title",
     titleBlock: "title-block",

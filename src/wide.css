@@ -36,7 +36,7 @@
     --shelf-pad: 32px;
   }
 
-  .lib-body, .info-screen, .ch-list, .editor-body, .sheet-card {
+  .lib-body, .info-screen, .stats-screen, .ch-list, .editor-body, .sheet-card {
     scrollbar-width: thin;
     scrollbar-color: #343b49 transparent;
   }
@@ -57,6 +57,7 @@
      ==================================================================== */
   .lib-header,
   .lib-section--continue,
+  .lib-section--strip,
   .lib-section--grid {
     width: 100%;
     max-width: calc(var(--shelf-max) + 2 * var(--shelf-pad));
@@ -461,6 +462,7 @@
   .info-side { display: block; grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
   .info-sidelabel { padding-bottom: 10px; }
   .info-side .info-table { padding: 0; }
+  .info-side .info-stats { padding: 18px 0 0; }
   .info-vollabel { padding: 0 24px 10px; }
   .info-main > .cprev:first-child { margin-top: 0; }
   .info-vol-preview .cprev { margin-top: 40px; }
