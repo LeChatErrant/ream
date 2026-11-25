@@ -2207,7 +2207,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-tile { min-width: 0; padding: 12px 12px 11px; border-radius: 12px; background: var(--surface); }
 .st-tile__k { font: 400 11px var(--font-ui); color: var(--text-muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .st-tile__v { margin-top: 6px; font: 600 20px/1 var(--font-ui); color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.st-tile__sub { margin-top: 6px; font: 400 11px var(--font-ui); color: var(--text-muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-tile__sub { margin-top: 6px; font: 400 11px/1.35 var(--font-ui); color: var(--text-muted2); overflow-wrap: anywhere; }
 
 /* Bar charts */
 .st-bars { display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid var(--border-2f); }

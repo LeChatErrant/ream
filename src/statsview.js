@@ -49,18 +49,19 @@ function scopeOf(kind, id) {
 }
 const idsOf = (scope) => new Set(scope.books.map((b) => b.id));
 
-// Per-day totals: { ms, estMs, words, chapters, sessions, trackedMs }.
+// Per-day totals: { ms, estMs, words, chapters, sessions, trackedMs, trackedChapters }.
 function byDay(rows) {
   const m = new Map();
   for (const r of rows) {
     let d = m.get(r.day);
-    if (!d) m.set(r.day, (d = { ms: 0, estMs: 0, trackedMs: 0, words: 0, chapters: 0, sessions: 0 }));
+    if (!d) m.set(r.day, (d = { ms: 0, estMs: 0, trackedMs: 0, words: 0, chapters: 0, trackedChapters: 0, sessions: 0 }));
     d.ms += r.ms;
     d.words += r.words;
     d.chapters += r.chapters;
     if (r.est) d.estMs += r.ms;
     else {
       d.trackedMs += r.ms;
+      d.trackedChapters += r.chapters;
       d.sessions += r.sessions || 0;
     }
   }
@@ -78,19 +79,30 @@ function sumRange(days, from, to) {
   }
   return out;
 }
+// The averages (`dayMs`, `dayChapters`) come from tracked days alone: the
+// estimate is one flat stream by construction, so it would smear a few minutes
+// over every day since Aug 24 and drag "a reading day" down to nothing.
 function totals(days) {
-  const t = { ms: 0, trackedMs: 0, estMs: 0, chapters: 0, sessions: 0, readDays: 0, first: null, firstEst: false };
+  const t = { ms: 0, trackedMs: 0, estMs: 0, chapters: 0, sessions: 0, readDays: 0, dayMs: 0, dayChapters: 0, first: null, firstEst: false };
+  let trackedChapters = 0;
   for (const [k, d] of days) {
     t.ms += d.ms;
     t.trackedMs += d.trackedMs;
     t.estMs += d.estMs;
     t.chapters += d.chapters;
     t.sessions += d.sessions;
-    if (d.ms >= MIN_DAY_MS) t.readDays++;
+    if (d.trackedMs >= MIN_DAY_MS) {
+      t.readDays++;
+      trackedChapters += d.trackedChapters;
+    }
     if (d.ms > 0 && (!t.first || k < t.first)) {
       t.first = k;
       t.firstEst = d.trackedMs === 0;
     }
+  }
+  if (t.readDays) {
+    t.dayMs = t.trackedMs / t.readDays;
+    t.dayChapters = trackedChapters / t.readDays;
   }
   return t;
 }
@@ -303,9 +315,8 @@ function renderBook(content, scope) {
     if (best) table.append(row("Like reading", `${formatMultiplier(best.ratio)} ${refShortTitle(best.ref)}`));
   }
   if (t.readDays) {
-    const perDay = t.ms / t.readDays;
-    const ch = Math.round(t.chapters / t.readDays);
-    table.append(row("Average reading day", formatDuration(perDay) + (ch ? ` · ${ch} chapter${ch === 1 ? "" : "s"}` : "")));
+    const ch = Math.round(t.dayChapters);
+    table.append(row("Average reading day", formatDuration(t.dayMs) + (ch ? ` · ${ch} chapter${ch === 1 ? "" : "s"}` : "")));
   }
   appendTrackedRows(table, m.days, today);
   content.append(h("section", { class: "st-section" }, label("Details"), table));
@@ -466,7 +477,7 @@ function periodBuckets(kind, today, days) {
   let y = f.getFullYear();
   let mo = f.getMonth();
   while (y < t.getFullYear() || (y === t.getFullYear() && mo <= t.getMonth())) {
-    buckets.push(monthBucket(y, mo, mo === 0 || !buckets.length ? `${monthShort(mo)}${mo === 0 && buckets.length ? " " + String(y).slice(2) : ""}` : monthShort(mo)));
+    buckets.push(monthBucket(y, mo, mo === 0 && buckets.length ? `${monthShort(mo)} ’${String(y).slice(2)}` : monthShort(mo)));
     if (++mo > 11) {
       mo = 0;
       y++;
@@ -510,8 +521,8 @@ function renderOverall(content, scope) {
   // Headline + chart.
   const p = periodBuckets(period, today, days);
   const sum = p.buckets.reduce(
-    (a, b) => ({ ms: a.ms + b.ms, words: a.words + b.words, chapters: a.chapters + b.chapters }),
-    { ms: 0, words: 0, chapters: 0 }
+    (a, b) => ({ ms: a.ms + b.ms, estMs: a.estMs + b.estMs, words: a.words + b.words, chapters: a.chapters + b.chapters }),
+    { ms: 0, estMs: 0, words: 0, chapters: 0 }
   );
   const bits = [];
   if (sum.words >= 1) bits.push(`${formatCompactNumber(Math.round(sum.words))} words`);
@@ -519,9 +530,12 @@ function renderOverall(content, scope) {
   if (p.prevFrom) {
     // Against the same stretch of the previous period (Monday to today's
     // weekday last week, …), so a half-done week isn't "less" than a whole one.
+    // Only tracked against tracked: the estimate is a flat guess, so "933%
+    // more than last week" would measure the guess, not you.
     const elapsed = daysBetween(p.buckets[0].from, today);
-    const prev = sumRange(days, p.prevFrom, addDays(p.prevFrom, elapsed)).ms;
-    if (prev > 0 && sum.ms > 0) {
+    const prevSum = sumRange(days, p.prevFrom, addDays(p.prevFrom, elapsed));
+    const prev = prevSum.ms;
+    if (prev > 0 && sum.ms > 0 && !prevSum.estMs && !sum.estMs) {
       const d = Math.round(((sum.ms - prev) / prev) * 100);
       bits.push(d === 0 ? `same as this time ${p.prevName}` : `${Math.abs(d)}% ${d > 0 ? "more" : "less"} than this time ${p.prevName}`);
     }
@@ -546,9 +560,9 @@ function renderOverall(content, scope) {
       "div",
       { class: "st-tiles st-tiles--2" },
       tile("Streak", `${streak} day${streak === 1 ? "" : "s"}`),
-      tile("Average reading day", all.readDays ? formatDuration(all.ms / all.readDays) : "—"),
+      tile("Average reading day", all.readDays ? formatDuration(all.dayMs) : "—"),
       tile("Pace", pace ? `${wpm(pace)} wpm` : `≈ ${wpm(paceFor(null))} wpm`, pace ? null : "assumed for now"),
-      tile("Chapters a day", all.readDays ? String(Math.round(all.chapters / all.readDays)) : "—")
+      tile("Chapters a day", all.readDays ? String(Math.round(all.dayChapters)) : "—")
     )
   );
 
