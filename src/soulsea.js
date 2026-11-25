@@ -82,8 +82,8 @@ function parasOf(num) {
         const root = await section.load(b.load.bind(b));
         const out = [...root.querySelectorAll("p")].map((p) => p.textContent);
         section.unload();
-        // A rewritten copy the reader replaced with the real chapter (proofreading)
-        // reads as the real one — what the timeline points at.
+        // A rewritten copy the reader replaced with the real chapter (proofreading,
+        // while it's on) reads as the real one — what the timeline points at.
         return (await realChapter(section.href, out)) ?? out;
       })().catch(() => null)
     );
@@ -512,7 +512,7 @@ function toldLists(x) {
 // Resolved paragraphs, so a re-render (expanding another row) draws instantly.
 // A reference is { p, fp, g, ch? } (see build.mjs); a sheet's are all its descriptions'.
 const textCache = new Map();
-// A proofreading decision can swap a chapter for the real one: read them again.
+// A proofreading decision (or the switch) can swap a chapter for the real one: read them again.
 onProofChange(() => (chapterParas.clear(), textCache.clear()));
 const refKey = (e, r) => `${r.ch ?? e.at[0]}:${r.p}:${r.fp}`;
 const refsOf = (e) =>

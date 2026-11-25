@@ -10,6 +10,9 @@
 // Switched on from the reader drawer, each chapter's open suggestions are
 // marked in the text, accepted ones are shown applied and discarded ones are
 // left alone; tapping a mark opens a sheet to accept / edit / discard.
+// Switched off, the book reads exactly as the epub has it — no marks and no
+// accepted fixes either (the Soul Sea included), so the uncorrected text is
+// always one tap away.
 //
 // Suggestions are matched by the fingerprint of the paragraph text they were
 // made for (lib/proof-key.js), never by file name or library id — so separate
@@ -90,9 +93,10 @@ export function setProofEnabled(on) {
   } catch (_) {
     /* best effort */
   }
-  // A chapter already matched keeps its findings while off (only the marks go),
-  // so switching back on puts the marks back here; proofChapter would skip it.
-  for (const c of onScreen()) (on ? remarkChapter : unmarkChapter)(c);
+  // Off reads the epub as it is: marks and accepted fixes both go. A chapter
+  // already matched keeps its findings, so switching back on redraws it here
+  // (proofChapter would skip it).
+  for (const c of onScreen()) (on ? showChapter : hideChapter)(c);
   notify();
 }
 
@@ -303,7 +307,8 @@ export async function removePackage() {
   await kvDelete(PKG_KEY);
   await kvDelete(LOCAL_KEY);
   await linkFile(null);
-  for (const c of onScreen()) unmarkChapter(c);
+  for (const c of onScreen()) hideChapter(c);
+  chapters.clear();
   notify();
 }
 
@@ -311,11 +316,12 @@ export async function removePackage() {
  * A chapter's paragraphs (`texts`, every <p> of the spine file at `href`) as this
  * device's copy reads once an accepted "replace chapter" fix is in: the real
  * chapter instead of the rewritten one. For what reads the book outside the
- * reader (the Soul Sea). An accepted fix is the reader's copy, so it applies
- * whether proofreading mode is on or not. Null when no accepted fix fits.
+ * reader (the Soul Sea). Like the reader, it follows the switch: with
+ * proofreading off the book reads uncorrected. Null when no accepted fix fits.
  */
 export async function realChapter(href, texts) {
   await proofReady;
+  if (!enabled || !pkg) return null;
   const f = (byFile.get(href.split("/").pop()) || []).find(
     (f) =>
       f.op === "replace-chapter" &&
@@ -435,7 +441,7 @@ export async function proofChapter(contents, lib, href) {
     bookPending = key ? pendingInBook(key) : null;
   }
 
-  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map(), blocks };
+  const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map(), blocks, shown: true };
   chapters.set(doc, c);
   const gone = () => chapters.delete(doc) && notify();
   doc.defaultView.addEventListener("pagehide", gone);
@@ -576,12 +582,22 @@ function unmark(c, f) {
   c.doc.body.normalize();
 }
 
-function unmarkChapter(c) {
-  for (const f of c.findings) unmark(c, f);
+/** Proofreading off: the chapter as the epub has it (marks gone, fixes undone, last first). */
+function hideChapter(c) {
+  if (!c.shown) return;
+  c.shown = false;
+  for (const f of [...c.findings].reverse()) (f.status === "pending" ? unmark : revert)(c, f);
 }
 
-function remarkChapter(c) {
-  for (const f of c.findings) if (f.status === "pending" && !c.doc.querySelector(`[data-proof="${CSS.escape(f.id)}"]`)) mark(c, f);
+/** Proofreading back on: marks and decisions shown again, as proofChapter first drew them. */
+function showChapter(c) {
+  if (c.shown) return;
+  c.shown = true;
+  for (const f of c.findings) {
+    if (f.status === "accepted") applyFix(c, f);
+    else if (f.status === "pending") mark(c, f);
+    else anchorOriginal(c, f);
+  }
 }
 
 // Hidden, not removed: CFIs count element positions, so reading spots stay put.

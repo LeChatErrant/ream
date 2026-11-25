@@ -1173,7 +1173,7 @@ function renderProofControls() {
   if (!proofRow) return;
   const s = proofState();
   let status;
-  if (!s.enabled) status = "Off";
+  if (!s.enabled) status = "Off — original text";
   else if (!s.hasFile) status = "No proofreading file — tap to import";
   else
     status = [s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Ready", s.toExport ? `${s.toExport} to export` : null]
