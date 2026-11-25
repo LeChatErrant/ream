@@ -11,16 +11,19 @@
 // words, chapters, sessions, hours[24] }.
 //
 // Estimated: reading done before tracking existed. On the first run a
-// baseline snapshots each started book (how much of it was read, when it was
-// last read). At query time that is spread over the days the book was likely
-// read — from its import, or the previous volume's finish, to its last read —
-// and turned into time with your measured pace. Nothing estimated is stored,
-// so the estimate sharpens on its own as word counts and pace come in.
+// baseline snapshots each started book (how much of it was read). At query
+// time all of it is laid out as one steady stream from READING_SINCE to when
+// tracking began — series volumes in order, each taking time in proportion to
+// its words — and turned into time with your measured pace. Per-book dates
+// can't place it better: this library was re-imported in October, so import
+// dates and "last read" stamps say when files arrived, not when they were
+// read. Nothing estimated is stored, so the estimate sharpens on its own as
+// word counts and pace come in.
 // =========================================================================
 import { dbGetAll, dbPut, kvGet, kvSet } from "./db.js";
 import { books, progressMap, bookById, seriesById } from "./state.js";
 import { readableChapters, baseHref } from "./lib/chapters.js";
-import { dayKey, spreadEstimate } from "./lib/stats.js";
+import { dayKey, spreadEstimate, streamSpans } from "./lib/stats.js";
 import { hasCurrentWordCount } from "./lib/wordcount.js";
 
 const IDLE_GAP = 3 * 60 * 1000; // longer than any screen takes to read
@@ -29,6 +32,9 @@ const SESSION_MIN = 60 * 1000; // a session counts once it lasts a minute
 const SAVE_DELAY = 20 * 1000;
 const DEFAULT_WPM = 250; // until your own pace is measured
 const MIN_PACE_MS = 20 * 60 * 1000; // tracked time needed to trust a pace
+// Ream's first build (Aug 24, 2026): reading in it can't be older, and this
+// library has been read since then.
+const READING_SINCE = new Date(2026, 7, 24).getTime();
 
 const rows = new Map(); // id → tracked row
 let baseline = null; // { at, books: { [bookId]: { frac, chapters, lastAt, addedAt } } }
@@ -175,34 +181,37 @@ export function trackedPace(bookIds = null) {
 }
 const estimatePace = () => trackedPace() || DEFAULT_WPM / 60000;
 
-// Where each baselined book's estimated reading sits in time: from when it was
-// imported — or, for a series volume, when the previous volume was finished —
-// to when it was last read before tracking began.
+// Where each baselined book's estimated reading sits in time: everything read
+// before tracking, end to end from READING_SINCE to the baseline — a series'
+// volumes in order, series and books in the order they were last read.
 function estimateSpans() {
   const spans = {};
   if (!baseline) return spans;
   const entries = baseline.books;
+  const groups = []; // [[{ id, words, chapters, lastAt }]] in reading order
   const placed = new Set();
-  const place = (b, prevEnd) => {
+  const item = (b) => {
     const e = entries[b.id];
-    if (!e) return prevEnd;
-    const start = Math.max(e.addedAt || 0, prevEnd || 0);
-    spans[b.id] = { ...e, start, end: e.lastAt };
     placed.add(b.id);
-    return e.lastAt;
+    return e && b.wordCount ? { id: b.id, words: e.frac * b.wordCount, chapters: e.chapters, lastAt: e.lastAt } : null;
   };
   const seen = new Set();
   for (const b of books) {
     if (!b.seriesId || seen.has(b.seriesId)) continue;
     seen.add(b.seriesId);
-    const s = seriesById(b.seriesId);
-    let prevEnd = 0;
-    for (const id of s?.bookIds || []) {
-      const vb = bookById(id);
-      if (vb) prevEnd = place(vb, prevEnd);
-    }
+    const vols = (seriesById(b.seriesId)?.bookIds || []).map(bookById).filter(Boolean);
+    const g = vols.map(item).filter(Boolean);
+    if (g.length) groups.push(g);
   }
-  for (const b of books) if (!placed.has(b.id)) place(b, 0);
+  for (const b of books) {
+    if (placed.has(b.id)) continue;
+    const it = item(b);
+    if (it) groups.push([it]);
+  }
+  groups.sort((a, b) => Math.min(...a.map((x) => x.lastAt)) - Math.min(...b.map((x) => x.lastAt)));
+  const starts = Object.values(entries).map((e) => e.addedAt || Infinity);
+  const from = Math.min(READING_SINCE, ...starts);
+  for (const sp of streamSpans(groups.flat(), from, baseline.at)) spans[sp.id] = sp;
   return spans;
 }
 
@@ -220,9 +229,7 @@ export function statRows(bookIds = null) {
   const spans = estimateSpans();
   for (const [id, sp] of Object.entries(spans)) {
     if (bookIds && !bookIds.has(id)) continue;
-    const b = bookById(id);
-    if (!b?.wordCount) continue;
-    const parts = spreadEstimate({ words: sp.frac * b.wordCount, chapters: sp.chapters, startTs: sp.start, endTs: sp.end, beforeDay: since });
+    const parts = spreadEstimate({ words: sp.words, chapters: sp.chapters, startTs: sp.start, endTs: sp.end, beforeDay: since });
     for (const p of parts) out.push({ est: true, day: p.day, bookId: id, words: p.words, chapters: p.chapters, ms: p.words / pace, sessions: 0 });
   }
   return out;

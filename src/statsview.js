@@ -263,7 +263,8 @@ function renderBook(content, scope) {
       { class: "st-tiles st-tiles--3" },
       tile("Time read", formatDuration(t.ms), t.first ? `since ${t.firstEst ? "~" : ""}${formatDay(t.first, today)}` : null),
       leftTile,
-      m.measured ? tile("Your pace", String(wpm(m.pace)), "words / min") : tile("Your pace", "—", "measuring…")
+      // Unmeasured, every estimated hour rests on the assumed pace — say so.
+      tile("Your pace", (m.measured ? "" : "≈ ") + wpm(m.pace), m.measured ? "words / min" : "assumed for now")
     )
   );
 
@@ -386,7 +387,7 @@ function volumeTimeline(scope, m) {
         { class: "st-tl__row" },
         h("span", { class: "st-tl__name" }, "Vol. " + volumeNumber(scope.series, v.b)),
         track,
-        h("span", { class: "st-tl__time" }, ms ? (v.estMs > v.trMs ? "≈ " : "") + formatHoursShort(ms) : "")
+        h("span", { class: "st-tl__time" }, ms ? formatHoursShort(ms) : "")
       )
     );
   }
@@ -546,7 +547,7 @@ function renderOverall(content, scope) {
       { class: "st-tiles st-tiles--2" },
       tile("Streak", `${streak} day${streak === 1 ? "" : "s"}`),
       tile("Average reading day", all.readDays ? formatDuration(all.ms / all.readDays) : "—"),
-      tile("Pace", pace ? `${wpm(pace)} wpm` : "—", pace ? null : "measuring…"),
+      tile("Pace", pace ? `${wpm(pace)} wpm` : `≈ ${wpm(paceFor(null))} wpm`, pace ? null : "assumed for now"),
       tile("Chapters a day", all.readDays ? String(Math.round(all.chapters / all.readDays)) : "—")
     )
   );

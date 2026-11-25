@@ -32,20 +32,40 @@ export function weekStart(key) {
   return addDays(key, -dow);
 }
 
-// Spread `words` and `chapters` evenly over every day from `startTs` to `endTs`
-// (inclusive), never reaching `beforeDay` or later — that's when real tracking
-// took over. A span that ends before it starts (or sits entirely past the
-// cut-off) collapses onto its last allowed day. Returns [{ day, words, chapters }].
+// Spread `words` and `chapters` over the time from `startTs` to `endTs`, each
+// local day getting its share of the overlap — so back-to-back spans add up to a
+// steady pace instead of doubling up on the day they meet. Nothing lands on
+// `beforeDay` or later (that's when real tracking took over); a span that is
+// empty, backwards or entirely past the cut-off collapses onto its last allowed
+// day. Returns [{ day, words, chapters }].
 export function spreadEstimate({ words, chapters, startTs, endTs, beforeDay }) {
-  const lastAllowed = addDays(beforeDay, -1);
-  let end = dayKey(endTs);
-  if (end > lastAllowed) end = lastAllowed;
-  let start = dayKey(startTs);
-  if (start > end) start = end;
-  const n = daysBetween(start, end) + 1;
+  const cutoff = dayDate(beforeDay).getTime();
+  const end = Math.min(endTs, cutoff);
+  const start = Math.min(startTs, end);
+  if (end - start <= 0) return [{ day: dayKey(Math.min(end, cutoff - 1)), words, chapters }];
   const out = [];
-  for (let i = 0; i < n; i++) out.push({ day: addDays(start, i), words: words / n, chapters: chapters / n });
+  for (let day = dayKey(start); dayDate(day).getTime() < end; day = addDays(day, 1)) {
+    const from = Math.max(start, dayDate(day).getTime());
+    const to = Math.min(end, dayDate(addDays(day, 1)).getTime());
+    const share = (to - from) / (end - start);
+    if (share > 0) out.push({ day, words: words * share, chapters: chapters * share });
+  }
   return out;
+}
+
+// Lay `items` ({ words }) end to end between `startTs` and `endTs`, each taking
+// time in proportion to its words — one steady reading pace across them all.
+// Returns the items with `start` / `end` added.
+export function streamSpans(items, startTs, endTs) {
+  const total = items.reduce((n, it) => n + it.words, 0);
+  const span = Math.max(0, endTs - startTs);
+  let t = startTs;
+  return items.map((it) => {
+    const d = total ? (span * it.words) / total : 0;
+    const out = { ...it, start: t, end: t + d };
+    t += d;
+    return out;
+  });
 }
 
 // Consecutive reading days ending today — or yesterday, so a streak isn't

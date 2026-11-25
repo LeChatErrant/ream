@@ -5,6 +5,7 @@ import {
   daysBetween,
   weekStart,
   spreadEstimate,
+  streamSpans,
   currentStreak,
   longestStreak,
   formatDuration,
@@ -35,29 +36,30 @@ describe("day keys", () => {
 });
 
 describe("spreadEstimate", () => {
-  it("spreads evenly over the span, inclusive", () => {
+  it("gives each day its share of the span", () => {
     const out = spreadEstimate({
       words: 1000,
       chapters: 10,
-      startTs: at(2026, 10, 1),
-      endTs: at(2026, 10, 4),
+      startTs: at(2026, 10, 1, 12),
+      endTs: at(2026, 10, 3, 12),
       beforeDay: "2026-11-01",
     });
-    expect(out.map((r) => r.day)).toEqual(["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"]);
-    expect(out.every((r) => r.words === 250 && r.chapters === 2.5)).toBe(true);
+    expect(out.map((r) => r.day)).toEqual(["2026-10-01", "2026-10-02", "2026-10-03"]);
+    expect(out.map((r) => r.words)).toEqual([250, 500, 250]);
+    expect(out.map((r) => r.chapters)).toEqual([2.5, 5, 2.5]);
   });
   it("never reaches the day tracking began", () => {
     const out = spreadEstimate({
       words: 300,
       chapters: 3,
-      startTs: at(2026, 11, 8),
+      startTs: at(2026, 11, 8, 0),
       endTs: at(2026, 11, 12),
       beforeDay: "2026-11-10",
     });
     expect(out.map((r) => r.day)).toEqual(["2026-11-08", "2026-11-09"]);
-    expect(out.reduce((n, r) => n + r.words, 0)).toBe(300);
+    expect(out.reduce((n, r) => n + r.words, 0)).toBeCloseTo(300);
   });
-  it("collapses a backwards span onto its last day", () => {
+  it("collapses an empty or backwards span onto its last day", () => {
     const out = spreadEstimate({
       words: 500,
       chapters: 5,
@@ -66,6 +68,29 @@ describe("spreadEstimate", () => {
       beforeDay: "2026-12-01",
     });
     expect(out).toEqual([{ day: "2026-11-02", words: 500, chapters: 5 }]);
+  });
+  it("collapses a span past the cut-off onto the day before it", () => {
+    const out = spreadEstimate({
+      words: 9,
+      chapters: 1,
+      startTs: at(2026, 11, 20),
+      endTs: at(2026, 11, 21),
+      beforeDay: "2026-11-10",
+    });
+    expect(out).toEqual([{ day: "2026-11-09", words: 9, chapters: 1 }]);
+  });
+});
+
+describe("streamSpans", () => {
+  it("lays items end to end in proportion to their words", () => {
+    const out = streamSpans([{ words: 100 }, { words: 300 }], 0, 400);
+    expect(out.map((x) => [x.start, x.end])).toEqual([
+      [0, 100],
+      [100, 400],
+    ]);
+  });
+  it("copes with nothing to lay out", () => {
+    expect(streamSpans([{ words: 0 }], 0, 10)).toEqual([{ words: 0, start: 0, end: 0 }]);
   });
 });
 
