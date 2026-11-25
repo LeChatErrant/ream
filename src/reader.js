@@ -19,15 +19,16 @@ import {
 } from "./state.js";
 import {
   baseHref, chapterCount, chapterDisplay, readableChapters, frontMatterEntries, isFrontMatter, markEarlierDone,
-  flatten, CHAPTER_DONE_PCT, MIN_SCROLL_PCT,
+  flatten, stepEntry, CHAPTER_DONE_PCT, MIN_SCROLL_PCT,
 } from "./lib/chapters.js";
-import { parseChapterLabel, stripVolume } from "./lib/text.js";
+import { parseChapterLabel, stripVolume, paragraphSizing, chapterTextSize } from "./lib/text.js";
 import {
   chapterProgress, bookPercent, volumeChapterOffset, volumeNumber, nextVolume,
   seriesVolumes, displayTitle, absChapterNum, volumeFirstAbs, volumeLastAbs,
 } from "./reading.js";
 import { go, openInfo, openSeries } from "./router.js";
-import { addVolumeToSeries } from "./import.js";
+import { addVolumeToSeries, chaptersWithSpine } from "./import.js";
+import { dbPut } from "./db.js";
 import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
@@ -361,6 +362,7 @@ export async function renderReader(lib, startHref = null) {
   // per-chapter fetch — no flash, and it works fully offline.
   rendition.themes.default({ "html, body": { background: "#1f2129 !important" } });
   rendition.hooks.content.register(injectReaderTheme);
+  rendition.hooks.content.register(evenOutTypeSizes);
   // Before the chapter-end card, so it snapshots only the story's paragraphs.
   rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
   rendition.hooks.content.register(prepareChrome);
@@ -413,13 +415,25 @@ export async function renderReader(lib, startHref = null) {
   });
 
   // Refine the chapter list once the live navigation resolves (accurate hrefs).
-  book.loaded.navigation.then((nav) => {
-    const full = flatten(nav.toc);
-    flatToc = readableChapters(full);
-    tocExtras = full.filter((e) => !flatToc.includes(e));
-    renderToc();
-    updateChapterTitle(currentHref);
-  });
+  // Spine documents the TOC leaves out get entries of their own (see
+  // chaptersWithSpine); a book imported before that existed picks them up here
+  // and keeps them, so its info page and counts see them too.
+  const opened = book;
+  Promise.all([book.loaded.navigation, book.ready])
+    .then(([nav]) => chaptersWithSpine(opened, flatten(nav.toc), lib.chapters))
+    .then((full) => {
+      if (opened !== book) return;
+      flatToc = readableChapters(full);
+      tocExtras = full.filter((e) => !flatToc.includes(e));
+      renderToc();
+      updateChapterTitle(currentHref);
+      const key = (list) => (list || []).map((e) => `${e.href}|${e.label}`).join("\n");
+      if (key(full) !== key(lib.chapters)) {
+        lib.chapters = full;
+        dbPut("books", lib).catch(() => {});
+      }
+    })
+    .catch(() => {});
 
   rendition.on("relocated", (location) => {
     currentHref = location?.start?.href || null;
@@ -644,26 +658,23 @@ function navContextFor(href) {
   if (tocExtras.some((e) => baseHref(e.href) === cur)) return tocExtras;
   return flatToc;
 }
-// Move one entry back/forward and open it at its top, staying within the current
-// context (chapters, or the extras once you're in them). In scrolled-doc flow
-// rendition.prev() lands at the *end* of the previous section, so stepping by
-// href instead keeps "previous" and "next" symmetric — both start you at the
-// beginning of the target.
+// Move one document back/forward (see stepEntry) and open it at its top,
+// staying within the current context (chapters, or the extras once you're in
+// them). In scrolled-doc flow rendition.prev() lands at the *end* of the
+// previous section, so stepping by href instead keeps "previous" and "next"
+// symmetric — both start you at the beginning of the target.
 export function goChapter(delta) {
   if (!rendition) return;
   const list = navContextFor(currentHref);
   if (!list.length) return;
-  const cur = baseHref(currentHref);
-  const i = list.findIndex((e) => baseHref(e.href) === cur);
-  const target = list[(i < 0 ? 0 : i) + delta];
+  const target = stepEntry(list, currentHref, delta);
   if (target) displayChapterTop(target.href);
 }
 // ‹ / › can't step past the ends of the current context.
 function updateSteps() {
   const list = navContextFor(currentHref);
-  const i = list.findIndex((e) => baseHref(e.href) === baseHref(currentHref));
-  const hasPrev = i > 0;
-  const hasNext = (i < 0 ? 0 : i) + 1 < list.length;
+  const hasPrev = !!stepEntry(list, currentHref, -1);
+  const hasNext = !!stepEntry(list, currentHref, 1);
   el.btnPrev.disabled = el.rbPrev.disabled = !hasPrev;
   el.btnNext.disabled = el.rbNext.disabled = !hasNext;
 }
@@ -761,6 +772,35 @@ function injectReaderTheme(contents) {
   (doc.head || doc.documentElement).appendChild(style);
 }
 
+// Content hook: paragraphs whose type sizes are conversion noise (see
+// paragraphSizing) are set at one size — the reader's body size, or our
+// heading style for a title the converter left as a <p>. Classes only, so the
+// chapter's elements and text (and with them saved reading spots) are
+// untouched. Every size is read before any class is set, so the layout is
+// computed once.
+function evenOutTypeSizes(contents) {
+  const doc = contents?.document;
+  const win = doc?.defaultView;
+  if (!doc?.body || !win) return;
+  const base = parseFloat(win.getComputedStyle(doc.body).fontSize) || 0;
+  const paras = [];
+  for (const p of doc.body.querySelectorAll("p")) {
+    const runs = [];
+    const walk = doc.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const host = n.parentElement;
+      if (!host || host.closest("sup, sub")) continue;
+      runs.push({ size: parseFloat(win.getComputedStyle(host).fontSize) || base, text: n.data });
+    }
+    paras.push([p, runs]);
+  }
+  const text = chapterTextSize(paras.map(([, runs]) => runs));
+  for (const [p, runs] of paras) {
+    const how = paragraphSizing(runs, { text, base });
+    if (how) p.classList.add(how === "heading" ? "ream-heading" : "ream-even");
+  }
+}
+
 // Content hook for the phone's floating bottom bar (readbar.js): pad the
 // chapter's end so its last lines clear it, and let a tap on the text show /
 // hide it.
@@ -799,7 +839,7 @@ function injectChapterNav(contents) {
   const list = curIsExtra ? tocExtras : flatToc;
   const listIdx = thisHref ? list.findIndex((e) => baseHref(e.href) === baseHref(thisHref)) : -1;
   const curEntry = listIdx >= 0 ? list[listIdx] : null;
-  const nextEntry = listIdx >= 0 ? list[listIdx + 1] || null : null;
+  const nextEntry = listIdx >= 0 ? stepEntry(list, thisHref, 1) : null;
   const nextIsExtra = curIsExtra; // within the extras, the next entry is an extra too
 
   // Chapter numbers apply to readable chapters only; an extra never gets one.

@@ -110,6 +110,25 @@ export function markEarlierDone(book, href, chapters) {
   }
 }
 
+// The entry `delta` documents away from `href` in an ordered entry list, or
+// null past either end. The reader shows a whole spine document at a time, so
+// stepping moves by document, not by entry: a document holding several entries
+// (a Gutenberg file with the title, contents, preface and Book I's start) is
+// one step — stepping to the next *entry* there just reopened the same page.
+// The entry returned is the first one in its document. `href` outside the list
+// steps from its start.
+export function stepEntry(list, href, delta) {
+  const first = new Map();
+  for (const e of list || []) {
+    const k = baseHref(e.href);
+    if (!first.has(k)) first.set(k, e);
+  }
+  const docs = [...first.keys()];
+  const i = docs.indexOf(baseHref(href));
+  const k = docs[(i < 0 ? 0 : i) + delta];
+  return k == null ? null : first.get(k);
+}
+
 // Flatten a nested epub.js TOC into a depth-tagged list.
 export function flatten(items, depth = 0, out = []) {
   for (const item of items || []) {
@@ -145,4 +164,82 @@ export function scrollAnchorFor(items, curItem, curBookId, curLocal) {
     if (anchor) return anchor.absNum;
   }
   return null;
+}
+
+// -------------------------------------------------------------------------
+// Spine gaps — pages the TOC never lists. The reader moves chapter by chapter
+// through the TOC, so a spine document no TOC entry points at can't be
+// reached: no row in the chapter list, and Next skips straight over it. That's
+// the norm in converted books (a calibre conversion splits a long chapter
+// into several files but lists only the first; a PDF conversion often ships a
+// one-entry TOC over the whole book), and it silently drops the rest. So every
+// unlisted spine document after the first listed one becomes an entry of its
+// own, slotted in spine order. Documents *before* the first listed one stay
+// out: that's the cover/title page our info page already stands in for. A book
+// with no TOC at all gets every spine document.
+// -------------------------------------------------------------------------
+
+// Indexes of the spine items the TOC misses (non-linear items excluded).
+// `spine` is [{ href, linear }], linear false meaning `linear="no"`.
+export function spineGaps(toc, spine) {
+  const listed = new Set((toc || []).map((e) => baseHref(e.href)).filter(Boolean));
+  const keys = (spine || []).map((s) => baseHref(s.href));
+  const first = listed.size ? keys.findIndex((k) => listed.has(k)) : 0;
+  if (first < 0) return [];
+  const gaps = [];
+  for (let i = first + 1; i < keys.length; i++) {
+    if (keys[i] && !listed.has(keys[i]) && spine[i].linear !== false) gaps.push(i);
+  }
+  if (!listed.size && spine.length && spine[0].linear !== false) gaps.unshift(0);
+  return gaps;
+}
+
+// The TOC with an entry added for each spine gap. `spine` is [{ href, linear,
+// title }], `title` being the gap document's own heading (see sectionTitle);
+// a gap with none — typically a chapter's spill-over file, which opens
+// mid-paragraph — is named after the entry it continues. Each one lands right
+// after the last entry that sits earlier in the spine, at that entry's depth,
+// and is tagged `spine: true`. A TOC with no gaps is returned as is.
+export function fillSpineGaps(toc, spine) {
+  const gaps = spineGaps(toc, spine);
+  const out = (toc || []).slice();
+  if (!gaps.length) return out;
+  const pos = new Map((spine || []).map((s, i) => [baseHref(s.href), i]));
+  const spineIdx = (e) => (pos.has(baseHref(e.href)) ? pos.get(baseHref(e.href)) : -1);
+  for (const i of gaps) {
+    let at = -1;
+    for (let j = 0; j < out.length; j++) {
+      const k = spineIdx(out[j]);
+      if (k >= 0 && k < i) at = j;
+    }
+    const prev = at >= 0 ? out[at] : null;
+    const title = (spine[i].title || "").trim();
+    const label =
+      title ||
+      (prev?.label ? `${prev.label.replace(/\s*\(continued\)$/, "")} (continued)` : `Section ${i + 1}`);
+    out.splice(at + 1, 0, { label, href: spine[i].href, depth: prev?.depth || 0, spine: true });
+  }
+  return out;
+}
+
+// A gap document's name, from the text of its first block (heading or
+// paragraph) — or "" when that doesn't read as a title (too long: a
+// paragraph carried over from the previous file). PDF conversions letter-space
+// display type ("S T AG E   3   ·   B U I L D", words split by runs of spaces;
+// "C LO S I N G"), which is closed back up; an all-caps result is set in title case.
+export function sectionTitle(raw) {
+  let s = (raw || "").replace(/[\u00a0\t\r\n]/g, " ");
+  const tokens = s.trim().split(/ +/).filter(Boolean);
+  const letters = tokens.filter((t) => t.length === 1).length;
+  if (tokens.length >= 4 && letters / tokens.length >= 0.6) {
+    // Words are split by the wider gaps; a single spaced-out word has none.
+    const words = / {2,}/.test(s.trim()) ? s.trim().split(/ {2,}/) : [s];
+    s = words.map((w) => w.replace(/ /g, "")).join(" ");
+  }
+  s = s.replace(/\s+/g, " ").trim();
+  if (!s || s.length > 80) return "";
+  if (/[A-Z]/.test(s) && s === s.toUpperCase()) {
+    s = s.toLowerCase().replace(/(^|[\s·:—–-])(\p{L})/gu, (_, a, c) => a + c.toUpperCase());
+  }
+  return s;
 }

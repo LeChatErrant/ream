@@ -4,8 +4,10 @@
 // Nothing here renders; callers re-render through renderCurrentRoute.
 // =========================================================================
 import ePub from "epubjs";
-import { parseVolumeIndex, stripVolume, seriesKey } from "./lib/text.js";
-import { flatten, chapterCount, readableChapters } from "./lib/chapters.js";
+import { parseVolumeIndex, stripVolume, seriesKey, cleanTitle, cleanAuthor } from "./lib/text.js";
+import {
+  flatten, chapterCount, readableChapters, baseHref, spineGaps, fillSpineGaps, sectionTitle,
+} from "./lib/chapters.js";
 import {
   books, series, bookById, seriesById, uid, progressMap, ui, saveUi,
   putProgress, migrateProgressRecords, setBooks, setSeries,
@@ -36,12 +38,50 @@ async function parseSubjects(b) {
   }
 }
 
+// The text of a spine document's first block — the first text node's nearest
+// block-level ancestor — as written (runs of spaces kept, for sectionTitle).
+const BLOCK = "h1,h2,h3,h4,h5,h6,p,li,dt,dd,td,th,blockquote,figcaption,div,section,article,body";
+async function firstBlockText(b, item) {
+  try {
+    const html = await b.archive.getText(item.url || item.href);
+    if (!html) return "";
+    let doc = new DOMParser().parseFromString(html, "application/xhtml+xml");
+    if (doc.getElementsByTagName("parsererror").length) doc = new DOMParser().parseFromString(html, "text/html");
+    const body = doc.body || doc.getElementsByTagName("body")[0];
+    if (!body) return "";
+    const walk = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!n.data.trim()) continue;
+      const block = n.parentElement?.closest(BLOCK);
+      return (block || n.parentElement)?.textContent || n.data;
+    }
+  } catch {
+    /* unreadable — fall back to the continued/section name */
+  }
+  return "";
+}
+
+// The book's chapter list: its TOC plus an entry for every spine document the
+// TOC leaves out (see fillSpineGaps). `known` is a previously stored list whose
+// gap labels are reused rather than re-read from the documents.
+export async function chaptersWithSpine(b, toc, known = []) {
+  const spine = (b.spine?.spineItems || []).map((it) => ({ href: it.href, url: it.url, linear: it.linear !== false }));
+  const gaps = spineGaps(toc, spine);
+  if (!gaps.length) return toc;
+  const stored = new Map((known || []).filter((e) => e.spine).map((e) => [baseHref(e.href), e.label]));
+  for (const i of gaps) {
+    const prior = stored.get(baseHref(spine[i].href));
+    spine[i].title = prior ?? sectionTitle(await firstBlockText(b, spine[i]));
+  }
+  return fillSpineGaps(toc, spine);
+}
+
 async function parseEpub(buffer, filename) {
   const b = ePub(buffer);
   await b.ready;
   const meta = await b.loaded.metadata.catch(() => ({}));
   const nav = await b.loaded.navigation.catch(() => ({ toc: [] }));
-  const chapters = flatten(nav.toc);
+  const chapters = await chaptersWithSpine(b, flatten(nav.toc));
   const spineCount = b.spine?.spineItems?.length || chapters.length || 1;
   const subjects = await parseSubjects(b);
   let coverBlob = null;
@@ -51,8 +91,8 @@ async function parseEpub(buffer, filename) {
   } catch {
     /* no cover */
   }
-  const title = (meta.title || filename.replace(/\.epub$/i, "")).trim();
-  const author = (meta.creator || "").trim();
+  const title = cleanTitle(meta.title || filename.replace(/\.epub$/i, ""));
+  const author = cleanAuthor(meta.creator);
   const clean = (v) => (v || "").trim();
   try {
     b.destroy();

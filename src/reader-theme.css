@@ -163,6 +163,23 @@ h1, h2 { font-size: 22px !important; }
 h3 { font-size: 19px !important; }
 h4, h5, h6 { font-size: 17px !important; }
 
+/* Paragraphs the app evens out (evenOutTypeSizes in reader.js): converted
+   books set type as spans at random sizes, which read as noise. Their spans
+   take the paragraph's size; a title left as a <p> reads as a heading (h2). */
+p.ream-even { font-size: 1em !important; }
+p.ream-even *, p.ream-heading * {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+p.ream-heading {
+  color: #eef1f5 !important;
+  font-weight: 500 !important;
+  font-size: 22px !important;
+  line-height: 1.25 !important;
+  margin: 1.2em 0 0.7em !important;
+}
+p.ream-heading + p.ream-heading { margin-top: -0.35em !important; }
+
 a { color: #9aa6c9 !important; text-decoration: none !important; }
 
 img, svg {
@@ -196,7 +213,7 @@ html { scrollbar-width: none !important; }
     padding: 36px max(40px, calc((100% - 34em) / 2)) 96px !important;
   }
   p { margin: 0 0 1.1em !important; }
-  h1, h2 { font-size: 30px !important; }
+  h1, h2, p.ream-heading { font-size: 30px !important; }
   h3 { font-size: 23px !important; }
   h4, h5, h6 { font-size: 19px !important; }
   .chapter-end { margin-top: 4em !important; }
