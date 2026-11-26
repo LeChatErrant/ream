@@ -46,7 +46,6 @@ export const dbPut = (store, value) => tx(store, "readwrite", (os) => os.put(val
 // Several puts in one transaction (all or nothing).
 export const dbPutMany = (store, values) => tx(store, "readwrite", (os) => values.forEach((v) => os.put(v)));
 export const dbDelete = (store, key) => tx(store, "readwrite", (os) => os.delete(key));
-export const dbDeleteMany = (store, keys) => tx(store, "readwrite", (os) => keys.forEach((k) => os.delete(k)));
 export const kvGet = (key) => tx("kv", "readonly", (os) => os.get(key));
 export const kvSet = (key, value) => tx("kv", "readwrite", (os) => os.put(value, key));
 export const kvDelete = (key) => tx("kv", "readwrite", (os) => os.delete(key));

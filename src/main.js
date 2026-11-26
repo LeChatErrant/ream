@@ -44,7 +44,7 @@ import { mountReadbar } from "./readbar.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMarks } from "./brand.js";
 import { ensurePersistentStorage } from "./device.js";
-import { loadStats, endSession, runBackfill } from "./stats.js";
+import { loadStats, endSession } from "./stats.js";
 import { refreshStats } from "./statsview.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
@@ -219,10 +219,6 @@ async function migrateLegacy() {
   go({ route: "library" }, false);
   refreshInstallNote();
   ensurePersistentStorage();
-  // One time: turn the reading done before stats existed into history.
-  runBackfill()
-    .then((wrote) => wrote && repaintStats())
-    .catch((err) => console.warn("Stats backfill failed:", err));
 })();
 
 function repaintStats() {
