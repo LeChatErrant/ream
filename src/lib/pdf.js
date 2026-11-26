@@ -1,0 +1,123 @@
+// -------------------------------------------------------------------------
+// PDF books, the pure part — how a PDF maps onto Ream's chapter model. The
+// reader, the chapter list, progress and stats all work in chapters keyed by
+// href; a PDF's "chapter" is a run of pages, from one bookmark to the next,
+// keyed "p<first page>". The page rendering lives in src/pdf.js; everything
+// here is a plain function of plain data, unit-tested in test/pdf.test.js.
+// -------------------------------------------------------------------------
+import { baseHref } from "./chapters.js";
+
+export const pageHref = (n) => `p${n}`;
+export const hrefPage = (href) => {
+  const m = /^p(\d+)$/.exec(baseHref(href));
+  return m ? Number(m[1]) : null;
+};
+
+// Without bookmarks, a short PDF is one chapter; a longer one is cut every
+// CHUNK pages, so progress, Continue and the chapter list still have steps.
+const SINGLE_MAX = 24;
+const CHUNK = 10;
+const pagesLabel = (a, b) => (a === b ? `Page ${a}` : `Pages ${a}–${b}`);
+
+// The chapter list for a PDF, from its bookmarks ([{ title, page, depth }],
+// page 1-based; entries without a usable page are dropped) and its page count.
+// Bookmarks are put in page order; several on one page share that page's
+// chapter. Pages before the first bookmark become a chapter of their own — a
+// single page is the cover (hidden from the reading flow like an epub's, the
+// info page shows it), more are "Pages 1–n".
+export function pdfChapters(outline, pageCount) {
+  const n = Math.max(1, pageCount | 0);
+  const marks = (outline || [])
+    .map((e, i) => ({
+      label: (e.title || "").replace(/\s+/g, " ").trim(),
+      page: e.page,
+      depth: e.depth || 0,
+      i,
+    }))
+    .filter((e) => e.label && Number.isInteger(e.page) && e.page >= 1 && e.page <= n)
+    .sort((a, b) => a.page - b.page || a.i - b.i);
+  if (!marks.length) {
+    if (n <= SINGLE_MAX) return [{ label: pagesLabel(1, n), href: pageHref(1), depth: 0 }];
+    const out = [];
+    for (let a = 1; a <= n; a += CHUNK)
+      out.push({ label: pagesLabel(a, Math.min(n, a + CHUNK - 1)), href: pageHref(a), depth: 0 });
+    return out;
+  }
+  const minDepth = Math.min(...marks.map((e) => e.depth));
+  const out = marks.map((e) => ({ label: e.label, href: pageHref(e.page), depth: e.depth - minDepth }));
+  const first = marks[0].page;
+  if (first > 1)
+    out.unshift({ label: first === 2 ? "Cover" : pagesLabel(1, first - 1), href: pageHref(1), depth: 0 });
+  return out;
+}
+
+// The documents the reader steps through — one per distinct first page, in
+// page order — each with its page range [from, to].
+export function pdfSections(chapters, pageCount) {
+  const starts = [...new Set((chapters || []).map((e) => hrefPage(e.href)).filter((p) => p != null))].sort(
+    (a, b) => a - b
+  );
+  if (!starts.length || starts[0] !== 1) starts.unshift(1);
+  return starts.map((from, i) => ({
+    href: pageHref(from),
+    from,
+    to: Math.max(from, (starts[i + 1] ?? pageCount + 1) - 1),
+  }));
+}
+
+// The section holding page `n`.
+export function sectionOfPage(sections, n) {
+  let hit = sections[0] || null;
+  for (const s of sections) if (s.from <= n) hit = s;
+  return hit;
+}
+
+// A reading spot inside a PDF: a page and how far down it (0–1). Stored where
+// an epub keeps its CFI, so it survives a different screen size.
+export const pdfPos = (page, frac) =>
+  `pdf:${page}:${Math.round(Math.min(1, Math.max(0, frac || 0)) * 10000) / 10000}`;
+export function parsePdfPos(s) {
+  const m = /^pdf:(\d+):([\d.]+)$/.exec(s || "");
+  return m ? { page: Number(m[1]), frac: Math.min(1, Number(m[2]) || 0) } : null;
+}
+
+// Rebuild a nested TOC (epub.js's shape: { label, href, subitems }) from a flat
+// depth-tagged list, so flatten() gives the same list back.
+export function nestByDepth(list) {
+  const root = [];
+  const stack = [{ depth: -1, subitems: root }];
+  for (const e of list || []) {
+    const node = { label: e.label, href: e.href, subitems: [] };
+    while (stack.length > 1 && stack[stack.length - 1].depth >= (e.depth || 0)) stack.pop();
+    stack[stack.length - 1].subitems.push(node);
+    stack.push({ depth: e.depth || 0, subitems: node.subitems });
+  }
+  return root;
+}
+
+// A PDF's title field is often an artefact of how it was made ("Microsoft Word
+// - report.docx", "untitled", a path); the file name is a better title then.
+export function pdfTitle(infoTitle, filename) {
+  const t = (infoTitle || "").replace(/\s+/g, " ").trim();
+  const junk =
+    !t ||
+    /^(untitled|title|document|unknown|none)$/i.test(t) ||
+    /^microsoft (word|powerpoint|excel)\s*-/i.test(t) ||
+    /\.(docx?|pptx?|xlsx?|pdf|indd|tex|odt|pages|key|html?)$/i.test(t) ||
+    /[\\/]/.test(t);
+  return junk ? (filename || "").replace(/\.pdf$/i, "").trim() || t : t;
+}
+
+// A PDF date ("D:20260923170823+02'00'") as an ISO date ("2026-09-23"), or "".
+export function pdfDate(s) {
+  const m = /^(?:D:)?(\d{4})(\d{2})?(\d{2})?/.exec((s || "").trim());
+  if (!m) return "";
+  return [m[1], m[2], m[3]].filter(Boolean).join("-");
+}
+
+// Keywords field → subjects.
+export const pdfSubjects = (s) =>
+  (s || "")
+    .split(/[,;]/)
+    .map((k) => k.trim())
+    .filter(Boolean);

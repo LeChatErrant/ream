@@ -41,6 +41,8 @@ function countWords(text) {
 async function extractWordCount(book) {
   const chapters = {};
   if (!book.fileBlob) return { total: 0, chapters };
+  // A PDF counts the text on its pages, per run of pages (src/pdf.js).
+  if (book.format === "pdf") return (await import("../pdf.js")).pdfWordCounts(book);
   const buffer = await book.fileBlob.arrayBuffer();
   const b = ePub(buffer);
   try {

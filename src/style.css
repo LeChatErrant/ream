@@ -861,6 +861,9 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 #viewer { width: 100%; height: 100%; background: #1f2129; }
 #viewer iframe { border: 0 !important; background: #1f2129 !important; }
+/* A PDF's scroller (src/pdf.js) — epub.js's .epub-container for pages. Scrolls
+   sideways too, once zoomed past the width. */
+.pdf-container { width: 100%; height: 100%; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 #viewer, #viewer * { scrollbar-width: none; }
 #viewer ::-webkit-scrollbar, #viewer::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
@@ -1917,6 +1920,26 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .proof-switch--on { background: #3e5a8a; }
 .proof-switch--on::after { transform: translateX(14px); background: #dbe6ff; }
+.proof-row[hidden] { display: none; }
+
+/* ---- PDF page view (src/pdf.js) -------------------------------------------
+   Dark pages + zoom, in the drawer where proofreading sits for an epub. */
+.pdf-row { display: flex; flex-direction: column; gap: 2px; padding: 0 18px 14px; }
+.pdf-row[hidden] { display: none; }
+.pdf-row__line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; }
+.pdf-row__label { font: 600 13px var(--font-ui); color: var(--text-secondary); }
+.pdf-row button { appearance: none; border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0; }
+.pdf-zoom { display: flex; align-items: center; gap: 2px; }
+.pdf-zoom__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font: 500 17px var(--font-ui);
+  color: var(--text-secondary) !important;
+}
+.pdf-zoom__btn:hover:not(:disabled) { background: var(--track) !important; color: var(--text-primary) !important; }
+.pdf-zoom__btn:disabled { opacity: 0.35; cursor: default !important; }
+.pdf-zoom__value { min-width: 52px; text-align: center; font: 500 12.5px var(--font-ui); color: var(--text-dim) !important; }
 
 .proof-pill {
   appearance: none;

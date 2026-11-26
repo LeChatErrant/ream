@@ -44,8 +44,9 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ["icon.svg", "*.png", "fonts/*.ttf"],
       workbox: {
-        // Precache every built asset plus the fonts.
-        globPatterns: ["**/*.{js,css,html,svg,png,ttf,woff2}"],
+        // Precache every built asset plus the fonts (and PDF.js's worker, an
+        // .mjs, so PDFs open offline too).
+        globPatterns: ["**/*.{js,mjs,css,html,svg,png,ttf,woff2}"],
         // The dev-seed books (public/seed/*.epub) are a large, dev-only fixture
         // fetched on demand by a hidden long-press — never precache them.
         globIgnores: ["**/seed/**"],
@@ -57,7 +58,7 @@ export default defineConfig({
       manifest: {
         name: "Ream",
         short_name: "Ream",
-        description: "A private, offline EPUB reader for long web novels.",
+        description: "A private, offline EPUB (and PDF) reader for long web novels.",
         start_url: "./",
         scope: "./",
         display: "standalone",
