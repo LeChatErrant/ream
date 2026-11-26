@@ -1991,8 +1991,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-pill:hover { background: rgba(143, 179, 255, 0.24); }
 .proof-pill[hidden] { display: none; }
 .proof-pill--clear { background: transparent; color: var(--text-dim); }
-.proof-pill--done { background: rgba(111, 207, 151, 0.12); color: #9fe0b8; }
-.proof-pill--done:hover { background: rgba(111, 207, 151, 0.2); }
+.proof-pill--done { background: rgba(127, 183, 164, 0.12); color: #7fb7a4; }
+.proof-pill--done:hover { background: rgba(127, 183, 164, 0.2); }
 
 .proof-head { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .proof-kind, .proof-conf, .proof-src {
@@ -2036,7 +2036,7 @@ html { -webkit-tap-highlight-color: transparent; }
   flex: none;
 }
 .proof-status--pending { color: #b9cdf7; background: rgba(143, 179, 255, 0.14); }
-.proof-status--accepted { color: #9fe0b8; background: rgba(111, 207, 151, 0.14); }
+.proof-status--accepted { color: #7fb7a4; background: rgba(127, 183, 164, 0.14); }
 .proof-status--discarded { color: var(--text-dim); background: var(--pill); }
 .proof-list__summary { margin: 0 0 14px; font: 400 13px var(--font-ui); color: var(--text-muted2); }
 .proof-list__next { margin-bottom: 14px; }

@@ -15,7 +15,7 @@
 // always one tap away.
 //
 // What was accepted stays findable: the chapter's and the whole book's
-// corrections lists, and an optional green underline on every applied fix
+// corrections lists, and an optional sage underline on every applied fix
 // (tap it to see what it changed, or undo it).
 //
 // Suggestions are matched by the fingerprint of the paragraph text they were
@@ -104,7 +104,7 @@ export function proofState() {
 export const onProofChange = (fn) => listeners.add(fn);
 
 // Accepted corrections read like the rest of the text unless this is on: then
-// each one is underlined (green, where the marks to review are blue) and can be
+// each one is underlined (sage green, where the marks to review are blue) and can be
 // tapped to see what it changed — or to undo it.
 export const proofShowApplied = () => showApplied;
 export function setProofShowApplied(on) {
@@ -561,10 +561,10 @@ function injectStyle(doc) {
     .proof-joined { display: inline !important; }
     .proof-joined + .proof-joined::before { content: " "; }
     .proof-join-head::before { content: ""; display: block; height: var(--proof-gap-top, 0); }
-    .proof-show-applied .proof-applied { background: rgba(111, 207, 151, 0.1); border-bottom: 1.5px dotted rgba(111, 207, 151, 0.8); border-radius: 2px; cursor: pointer; }
+    .proof-show-applied .proof-applied { background: rgba(127, 183, 164, 0.1); border-bottom: 1.5px dotted rgba(127, 183, 164, 0.8); border-radius: 2px; cursor: pointer; }
     .proof-show-applied .proof-applied:empty { display: inline-block; min-width: 0.5em; }
-    .proof-show-applied .proof-applied-block { background: rgba(111, 207, 151, 0.06); box-shadow: -8px 0 0 -5px rgba(111, 207, 151, 0.7); border-radius: 3px; cursor: pointer; }
-    .proof-show-applied .proof-applied.is-active, .proof-show-applied .proof-applied-block.is-active { background: rgba(111, 207, 151, 0.22); }
+    .proof-show-applied .proof-applied-block { background: rgba(127, 183, 164, 0.06); box-shadow: -8px 0 0 -5px rgba(127, 183, 164, 0.7); border-radius: 3px; cursor: pointer; }
+    .proof-show-applied .proof-applied.is-active, .proof-show-applied .proof-applied-block.is-active { background: rgba(127, 183, 164, 0.22); }
     .proof-flash { animation: proof-flash 1.8s ease-out; border-radius: 3px; }
     @keyframes proof-flash { 0%, 35% { background: rgba(143, 179, 255, 0.34); } 100% { background: transparent; } }
   `;
