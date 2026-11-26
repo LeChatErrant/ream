@@ -14,7 +14,8 @@ Everything runs locally in the browser — no book ever leaves your device.
   PDFs). Chapters come from the PDF's bookmarks — or, when it has none worth
   using, from the big titles on its pages (every 10 pages as a last resort) —
   with the same progress, Continue, end-of-chapter card and stats as a book.
-  Pinch to zoom (Ctrl/⌘ + scroll or + / − / 0 on a computer; kept per book),
+  Pinch or double-tap to zoom (Ctrl/⌘ + scroll, double-click or + / − / 0 on a
+  computer; kept per book),
   links on the page work, and an opt-in **Dark pages** switch in the drawer
   redraws the pages in the reader's colours (`src/pdf.js`, `src/lib/pdf.js`)
 - Chapters menu (drawer) — jump to any chapter, current one highlighted

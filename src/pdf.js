@@ -220,6 +220,9 @@ const BEHIND = 1.5; // …and behind it
 const KEEP = 5; // screens away before a drawn page is dropped
 export const MIN_ZOOM = 1; // fit the width
 export const MAX_ZOOM = 4;
+const DOUBLE_TAP_ZOOM = 2.5;
+const DOUBLE_TAP_MS = 300; // the longest gap between the two taps of a double tap
+const ZOOM_ANIM_MS = 180;
 const clampZoom = (z) => {
   const c = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
   return c < 1.04 ? 1 : Math.round(c * 100) / 100;
@@ -251,11 +254,28 @@ class PdfRendition {
     this.manager = { container: c };
     this.onScroll = () => this.scrolled();
     c.addEventListener("scroll", this.onScroll, { passive: true });
-    // A tap on a page is a tap on the text: hand it to the chapter document,
-    // where the reader listens (bars, wake lock, stats).
+    // A tap on a page is a tap on the text: handed to the chapter document,
+    // where the reader listens (bars, wake lock, stats) — once it's clear it
+    // isn't the first of a double tap, which zooms in there (or back out).
+    let tap = null;
     c.addEventListener("click", (e) => {
       if (e.target.closest?.(".pdf-end, a")) return;
-      this.view?.doc?.body?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      if (tap && e.timeStamp - tap.t < DOUBLE_TAP_MS && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 40) {
+        clearTimeout(tap.timer);
+        tap = null;
+        this.toggleZoomAt(e.clientX, e.clientY);
+        return;
+      }
+      clearTimeout(tap?.timer);
+      tap = {
+        t: e.timeStamp,
+        x: e.clientX,
+        y: e.clientY,
+        timer: setTimeout(() => {
+          tap = null;
+          this.view?.doc?.body?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        }, DOUBLE_TAP_MS),
+      };
     });
     this.gestures();
     this.lastWidth = c.clientWidth;
@@ -484,6 +504,28 @@ class PdfRendition {
     this.drawNear();
     this.relocate();
     this.emit("zoomed", z);
+  }
+  // Double tap: in to DOUBLE_TAP_ZOOM around the spot, or back to the fitted
+  // width when already zoomed. The pages are stretched there first (a quick
+  // CSS transition), then laid out and redrawn at the new size.
+  toggleZoomAt(clientX, clientY) {
+    const v = this.view;
+    if (!v || this.zooming) return;
+    const target = this.zoom > 1 ? 1 : DOUBLE_TAP_ZOOM;
+    const done = () => {
+      this.zooming = false;
+      if (this.view !== v) return;
+      v.list.style.transition = v.list.style.transform = "";
+      this.zoomAt(target, clientX, clientY);
+    };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return done();
+    const c = this.container;
+    const r = c.getBoundingClientRect();
+    this.zooming = true;
+    v.list.style.transformOrigin = `${c.scrollLeft + clientX - r.left - v.list.offsetLeft}px ${c.scrollTop + clientY - r.top - v.list.offsetTop}px`;
+    v.list.style.transition = `transform ${ZOOM_ANIM_MS}ms ease-out`;
+    v.list.style.transform = `scale(${target / this.zoom})`;
+    setTimeout(done, ZOOM_ANIM_MS);
   }
   zoomBy(factor) {
     this.zoomAt(this.zoom * factor);
