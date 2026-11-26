@@ -18,7 +18,7 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import {
   pdfChapters, pdfSections, sectionOfPage, pageHref, hrefPage, pdfPos, parsePdfPos, nestByDepth,
-  pdfTitle, pdfDate, pdfSubjects, usefulOutline, pageLines, headingOutline,
+  pdfTitle, pdfDate, pdfSubjects, usefulOutline, pageLines, headingOutline, PDF_CHAPTERS_VERSION,
 } from "./lib/pdf.js";
 import { baseHref } from "./lib/chapters.js";
 import { cleanAuthor, cleanTitle } from "./lib/text.js";
@@ -85,6 +85,14 @@ async function titlesOf(doc) {
   return found.length >= 2 ? found : [];
 }
 
+// The chapter list: the bookmarks when they're worth using, else the pages'
+// own titles, else plain runs of pages (pdfChapters).
+async function chaptersOf(doc) {
+  let outline = await outlineOf(doc);
+  if (!usefulOutline(outline, doc.numPages)) outline = await titlesOf(doc);
+  return pdfChapters(outline, doc.numPages);
+}
+
 // Page 1, drawn as the library cover.
 async function coverOf(doc) {
   try {
@@ -109,15 +117,14 @@ export async function parsePdf(buffer, filename) {
     const meta = await doc.getMetadata().catch(() => ({}));
     const info = meta?.info || {};
     const pageCount = doc.numPages;
-    let outline = await outlineOf(doc);
-    if (!usefulOutline(outline, pageCount)) outline = await titlesOf(doc);
-    const chapters = pdfChapters(outline, pageCount);
+    const chapters = await chaptersOf(doc);
     return {
       format: "pdf",
       title: cleanTitle(pdfTitle(info.Title, filename)),
       author: cleanAuthor(info.Author),
       coverBlob: await coverOf(doc),
       chapters,
+      chaptersVersion: PDF_CHAPTERS_VERSION,
       spineCount: pdfSections(chapters, pageCount).length,
       pageCount,
       description: (info.Subject || "").trim(),
@@ -162,14 +169,28 @@ export async function pdfWordCounts(book) {
 // -------------------------------------------------------------------------
 // Reading
 // -------------------------------------------------------------------------
+// A book whose chapters an older import worked out gets them redone first
+// (`rechaptered` then holds the new list, for the reader to keep).
 export async function openPdfBook(buffer, lib) {
-  return new PdfBook(await openDoc(buffer), lib);
+  const doc = await openDoc(buffer);
+  let chapters = lib.chapters;
+  let rechaptered = null;
+  if (lib.chaptersVersion !== PDF_CHAPTERS_VERSION) {
+    try {
+      rechaptered = chapters = await chaptersOf(doc);
+    } catch {
+      /* keep the old ones */
+    }
+  }
+  const book = new PdfBook(doc, chapters);
+  book.rechaptered = rechaptered;
+  return book;
 }
 
 class PdfBook {
-  constructor(doc, lib) {
+  constructor(doc, list) {
     this.doc = doc;
-    const chapters = lib.chapters?.length ? lib.chapters : pdfChapters([], doc.numPages);
+    const chapters = list?.length ? list : pdfChapters([], doc.numPages);
     this.sections = pdfSections(chapters, doc.numPages);
     const items = this.sections.map((s, index) => ({ href: s.href, url: s.href, index, linear: true }));
     this.spine = {

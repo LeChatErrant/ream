@@ -214,3 +214,31 @@ export function headingOutline(pages) {
   }
   return out;
 }
+
+// -------------------------------------------------------------------------
+// Chapters worked out by an older import. The way a PDF is cut into chapters
+// improves now and then (v2: chapters from page titles); a book imported
+// before keeps its old cut until it's opened, when the reader redoes it.
+// -------------------------------------------------------------------------
+export const PDF_CHAPTERS_VERSION = 2;
+
+// A book's reading progress carried over to new chapters: the place you were
+// (a page, which no re-cut changes) now falls in some section — the sections
+// before it count as read, that one as under way at your spot.
+export function remapPdfProgress(prev, sections) {
+  if (!prev) return prev;
+  const out = { ...prev, chapters: {}, scrollTop: 0, updatedAt: Date.now() };
+  const pos = parsePdfPos(prev.cfi);
+  const at = pos && sectionOfPage(sections, pos.page);
+  for (const s of sections) {
+    if (prev.finished || (at && s.to < at.from)) out.chapters[s.href] = { pct: 100, cfi: s === at ? prev.cfi : null, done: true };
+  }
+  if (at && !prev.finished) {
+    const pct = Math.round(((pos.page - at.from + pos.frac) / (at.to - at.from + 1)) * 100);
+    out.chapters[at.href] = { pct: Math.min(99, Math.max(1, pct)), cfi: prev.cfi, scrollTop: 0, done: false };
+  }
+  out.href = at ? at.href : null;
+  out.chapterIndex = at ? sections.indexOf(at) : 0;
+  out.chapterLabel = "";
+  return out;
+}

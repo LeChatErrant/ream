@@ -14,6 +14,7 @@ import {
   usefulOutline,
   pageLines,
   headingOutline,
+  remapPdfProgress,
 } from "../src/lib/pdf.js";
 import { flatten, readableChapters } from "../src/lib/chapters.js";
 
@@ -209,5 +210,31 @@ describe("chapters from page titles", () => {
     expect(headingOutline([{ n: 1, lines: [line("Just text here, all the same size.", 12, 700)] }])).toEqual(
       []
     );
+  });
+});
+
+describe("remapPdfProgress", () => {
+  const sections = [
+    { href: "p1", from: 1, to: 1 },
+    { href: "p2", from: 2, to: 5 },
+    { href: "p6", from: 6, to: 9 },
+  ];
+  it("keeps your spot, counts the sections before it as read", () => {
+    const prev = { bookId: "b", cfi: "pdf:7:0.5", href: "p2", chapters: { p2: { pct: 30, cfi: "pdf:7:0.5", done: false } } };
+    const out = remapPdfProgress(prev, sections);
+    expect(out.href).toBe("p6");
+    expect(out.chapterIndex).toBe(2);
+    expect(out.chapters).toEqual({
+      p1: { pct: 100, cfi: null, done: true },
+      p2: { pct: 100, cfi: null, done: true },
+      p6: { pct: 38, cfi: "pdf:7:0.5", scrollTop: 0, done: false },
+    });
+  });
+  it("a finished book stays finished; no position, no chapter progress", () => {
+    const done = remapPdfProgress({ cfi: "pdf:3:0", finished: true, chapters: {} }, sections);
+    expect(Object.values(done.chapters).every((c) => c.done)).toBe(true);
+    expect(done.chapters.p2.cfi).toBe("pdf:3:0");
+    expect(remapPdfProgress({ cfi: null, chapters: { p2: { pct: 50 } } }, sections).chapters).toEqual({});
+    expect(remapPdfProgress(undefined, sections)).toBe(undefined);
   });
 });

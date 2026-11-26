@@ -29,6 +29,7 @@ import {
 import { go, openInfo, openSeries } from "./router.js";
 import { addVolumeToSeries, chaptersWithSpine } from "./import.js";
 import { dbPut } from "./db.js";
+import { PDF_CHAPTERS_VERSION, remapPdfProgress } from "./lib/pdf.js";
 import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
@@ -314,6 +315,23 @@ export async function openBook(id, { withDrawer = false, startHref = null } = {}
   if (withDrawer) openDrawer();
 }
 
+// A PDF imported before its chapters were worked out the current way has just
+// had them redone (openPdfBook): keep them, carry the reading progress over
+// to them, and drop the word count cached per old chapter (it's recounted).
+async function keepNewPdfChapters(lib, opened) {
+  lib.chapters = opened.rechaptered;
+  lib.chaptersVersion = PDF_CHAPTERS_VERSION;
+  lib.spineCount = opened.sections.length;
+  delete lib.wordCountVersion;
+  await dbPut("books", lib).catch(() => {});
+  const prev = progressMap[lib.id];
+  if (prev) await putProgress(remapPdfProgress(prev, opened.sections)).catch(() => {});
+  flatToc = readableChapters(lib.chapters);
+  tocExtras = frontMatterEntries(lib);
+  renderToc();
+  updateDrawerBook();
+}
+
 export async function renderReader(lib, startHref = null) {
   if (rendition) {
     rendition.destroy();
@@ -358,6 +376,7 @@ export async function renderReader(lib, startHref = null) {
       return;
     }
     book = opened;
+    if (opened.rechaptered) await keepNewPdfChapters(lib, opened);
     rendition = book.renderTo("viewer", { zoom: lib.pdfZoom || 1, dark: ui.pdfPages === "dark" });
     // A pinch (or Ctrl/⌘ + scroll) sets the zoom; it's kept per book.
     rendition.on("zoomed", (z) => {
