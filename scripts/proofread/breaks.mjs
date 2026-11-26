@@ -27,6 +27,7 @@ async function refParas(file) {
 
 const words = (s) => [...s.matchAll(/[A-Za-z0-9]+/g)].map((m) => ({ w: m[0].toLowerCase(), at: m.index }))
 const ENDS = /[.!?…"”’'—\])*:]$/
+const LONG = 120 // words: the book's paragraphs rarely run longer
 
 const out = {}
 let total = 0
@@ -36,9 +37,12 @@ for (const name of (await readdir(path.join(WORK, 'books'))).filter((f) => f.end
     const n = c.title.match(/^Chapter\s*(\d+)/i)?.[1]
     if (!refs.has(n)) continue
     const ref = await refParas(refs.get(n))
-    // Only chapters with fewer paragraphs than the reference (a break was lost somewhere).
+    // Chapters with fewer paragraphs than the reference (a break was lost somewhere);
+    // in the others, only a paragraph far longer than the book's usual ones.
     const real = c.paras.filter((p) => p.trim()).length
-    if (real >= ref.length) continue // nothing to restore
+    const short = real < ref.length
+    const long = new Set(c.paras.map((p, i) => (words(p).length > LONG ? i : -1)).filter((i) => i >= 0))
+    if (!short && !long.size) continue // nothing to restore
     // Every epub word, with its paragraph and offset.
     const toks = []
     c.paras.forEach((p, i) => words(p).forEach((t, k) => toks.push({ ...t, i, first: k === 0 })))
@@ -58,6 +62,7 @@ for (const name of (await readdir(path.join(WORK, 'books'))).filter((f) => f.end
       cursor = found + 1
       const tk = toks[found]
       if (tk.first) continue // already starts a paragraph
+      if (!short && !long.has(tk.i)) continue
       const p = c.paras[tk.i]
       let at = tk.at
       while (at > 0 && /["“‘'([…—.]/.test(p[at - 1])) at-- // keep an opening quote / ellipsis with its paragraph
