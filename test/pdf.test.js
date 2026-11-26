@@ -11,6 +11,9 @@ import {
   pdfTitle,
   pdfDate,
   pdfSubjects,
+  usefulOutline,
+  pageLines,
+  headingOutline,
 } from "../src/lib/pdf.js";
 import { flatten, readableChapters } from "../src/lib/chapters.js";
 
@@ -142,5 +145,69 @@ describe("pdf metadata", () => {
     expect(pdfDate("D:2019")).toBe("2019");
     expect(pdfDate("garbage")).toBe("");
     expect(pdfSubjects("AI, SDLC; playbook")).toEqual(["AI", "SDLC", "playbook"]);
+  });
+});
+
+describe("chapters from page titles", () => {
+  const line = (text, size, y) => ({ text, size, y });
+  it("tells useful bookmarks from leftovers", () => {
+    const junk = [
+      { title: "Playbook_designv2-cover", page: 1 },
+      { title: "Playbook_designv2", page: 2 },
+    ];
+    expect(usefulOutline(junk, 54)).toBe(false);
+    expect(usefulOutline(junk, 8)).toBe(true);
+    expect(
+      usefulOutline(
+        [
+          { title: "A", page: 1 },
+          { title: "B", page: 9 },
+          { title: "C", page: 20 },
+        ],
+        54
+      )
+    ).toBe(true);
+    expect(usefulOutline([], 5)).toBe(false);
+  });
+  it("gathers text items into lines, top first", () => {
+    const items = [
+      { str: "world", x: 60, y: 700, size: 12 },
+      { str: "Hello", x: 10, y: 700.5, size: 12 },
+      { str: "Title", x: 10, y: 750, size: 30 },
+      { str: " ", x: 0, y: 650, size: 12 },
+    ];
+    expect(pageLines(items)).toEqual([
+      { y: 750, size: 30, text: "Title" },
+      { y: 700, size: 12, text: "Hello world" },
+    ]);
+  });
+  it("opens a chapter at each page with a big title, joining a two-line title", () => {
+    const bodyText = (y) => line("Body text that runs on for a good while across the page.", 12, y);
+    const pages = [
+      { n: 1, lines: [] },
+      { n: 2, lines: [line("What's in here", 23, 700), bodyText(600), bodyText(580)] },
+      { n: 3, lines: [bodyText(700), bodyText(680)] },
+      { n: 4, lines: [line("01", 112, 500)] },
+      {
+        n: 5,
+        lines: [
+          line("STAGE 1 · PLAN", 8, 760),
+          line("Claude Code plan mode as", 23, 700),
+          line("the default starting point", 23, 672),
+          bodyText(600),
+        ],
+      },
+      { n: 6, lines: [line("Claude Code on auto mode", 19, 700), bodyText(600), line("Claude", 19, 400)] },
+    ];
+    expect(headingOutline(pages)).toEqual([
+      { title: "What's in here", page: 2, depth: 0 },
+      { title: "Claude Code plan mode as the default starting point", page: 4, depth: 0 },
+      { title: "Claude Code on auto mode", page: 6, depth: 0 },
+    ]);
+  });
+  it("finds nothing in a document of plain text", () => {
+    expect(headingOutline([{ n: 1, lines: [line("Just text here, all the same size.", 12, 700)] }])).toEqual(
+      []
+    );
   });
 });

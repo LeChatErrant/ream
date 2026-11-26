@@ -358,7 +358,12 @@ export async function renderReader(lib, startHref = null) {
       return;
     }
     book = opened;
-    rendition = book.renderTo("viewer", { zoom: lib.pdfZoom || 1, dark: ui.pdfPages !== "original" });
+    rendition = book.renderTo("viewer", { zoom: lib.pdfZoom || 1, dark: ui.pdfPages === "dark" });
+    // A pinch (or Ctrl/⌘ + scroll) sets the zoom; it's kept per book.
+    rendition.on("zoomed", (z) => {
+      lib.pdfZoom = z;
+      dbPut("books", lib).catch(() => {});
+    });
   } else {
     book = ePub(buffer);
     rendition = book.renderTo("viewer", {
@@ -1044,6 +1049,13 @@ export function handleReaderKey(e) {
   if (e.key === " " && (tag === "BUTTON" || tag === "A")) return;
   const c = rendition.manager?.container;
   if (!c) return;
+  // A PDF zooms from the keyboard too: + / − step, 0 fits the width again.
+  if (rendition.zoomBy && ["+", "=", "-", "0"].includes(e.key)) {
+    e.preventDefault();
+    if (e.key === "0") rendition.zoomAt(1);
+    else rendition.zoomBy(e.key === "-" ? 1 / 1.25 : 1.25);
+    return;
+  }
   const pageStep = Math.max(LINE_STEP, c.clientHeight - 80);
   let top = null;
   if (e.key === " ") top = c.scrollTop + (e.shiftKey ? -pageStep : pageStep);
@@ -1293,11 +1305,10 @@ function renderProofControls() {
 }
 
 // -------------------------------------------------------------------------
-// PDF page view (PDFs only): a drawer row to switch the pages between the
-// reader's dark colours and the original print, and to zoom past fitting the
-// width (remembered per book; the colours are one setting for every PDF).
+// PDF page view (PDFs only): a drawer row to redraw the pages in the reader's
+// dark colours instead of as printed (one setting for every PDF). Zoom is a
+// pinch on the page (Ctrl/⌘ + scroll, or + / − / 0, on a computer).
 // -------------------------------------------------------------------------
-const PDF_ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3];
 let pdfRow = null;
 function mountPdfControls(lib) {
   if (!pdfRow) {
@@ -1307,58 +1318,30 @@ function mountPdfControls(lib) {
   pdfRow.hidden = lib.format !== "pdf";
   if (!pdfRow.hidden) renderPdfControls();
 }
-function setPdfView(change) {
-  const lib = currentBook;
-  if (!lib) return;
-  if ("zoom" in change) {
-    lib.pdfZoom = change.zoom;
-    dbPut("books", lib).catch(() => {});
-  }
-  if ("dark" in change) {
-    ui.pdfPages = change.dark ? "dark" : "original";
-    saveUi();
-  }
-  rendition?.setPageView?.({ zoom: lib.pdfZoom || 1, dark: ui.pdfPages !== "original" });
-  renderPdfControls();
-}
 function renderPdfControls() {
-  const zoom = currentBook?.pdfZoom || 1;
-  const dark = ui.pdfPages !== "original";
-  const i = Math.max(0, PDF_ZOOMS.indexOf(zoom));
-  const step = (d) => setPdfView({ zoom: PDF_ZOOMS[Math.min(PDF_ZOOMS.length - 1, Math.max(0, i + d))] });
+  const dark = ui.pdfPages === "dark";
   pdfRow.replaceChildren(
     h(
-      "div",
-      { class: "pdf-row__line" },
-      h("span", { class: "pdf-row__label" }, "Dark pages"),
-      h(
-        "button",
-        {
-          class: "proof-switch-btn",
-          type: "button",
-          role: "switch",
-          "aria-checked": String(dark),
-          "aria-label": "Dark pages",
-          onclick: () => setPdfView({ dark: !dark }),
+      "button",
+      {
+        class: "pdf-row__line",
+        type: "button",
+        role: "switch",
+        "aria-checked": String(dark),
+        onclick: () => {
+          ui.pdfPages = dark ? "original" : "dark";
+          saveUi();
+          rendition?.setPageView?.({ dark: !dark });
+          renderPdfControls();
         },
-        h("span", { class: "proof-switch" + (dark ? " proof-switch--on" : ""), "aria-hidden": "true" })
-      )
-    ),
-    h(
-      "div",
-      { class: "pdf-row__line" },
-      h("span", { class: "pdf-row__label" }, "Zoom"),
+      },
       h(
-        "div",
-        { class: "pdf-zoom" },
-        h("button", { class: "pdf-zoom__btn", type: "button", "aria-label": "Zoom out", disabled: i === 0, onclick: () => step(-1) }, "−"),
-        h(
-          "button",
-          { class: "pdf-zoom__value", type: "button", title: "Fit the width", onclick: () => setPdfView({ zoom: 1 }) },
-          i === 0 ? "Fit" : Math.round(zoom * 100) + " %"
-        ),
-        h("button", { class: "pdf-zoom__btn", type: "button", "aria-label": "Zoom in", disabled: i === PDF_ZOOMS.length - 1, onclick: () => step(1) }, "+")
-      )
+        "span",
+        { class: "pdf-row__text" },
+        h("span", { class: "pdf-row__label" }, "Dark pages"),
+        h("span", { class: "pdf-row__status" }, dark ? "Redrawn in the reader's colours" : "Off — pages as printed")
+      ),
+      h("span", { class: "proof-switch" + (dark ? " proof-switch--on" : ""), "aria-hidden": "true" })
     )
   );
 }

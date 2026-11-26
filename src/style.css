@@ -744,6 +744,9 @@ html { -webkit-tap-highlight-color: transparent; }
 .icon-btn:hover { background: var(--surface); color: var(--text-primary); }
 .icon-btn:active { background: var(--row-current); }
 .icon-btn:disabled { opacity: 0.3; cursor: default; }
+/* Its display would otherwise beat the hidden attribute (the Soul Sea button
+   showed on every book, not just Shadow Slave). */
+.icon-btn[hidden] { display: none; }
 .icon-btn:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
 /* The menu button's Ream mark (scrolls with the chapter, src/brand.js) — about
    the burger's footprint, its bars near the burger's 2px stroke. */
@@ -863,7 +866,35 @@ html { -webkit-tap-highlight-color: transparent; }
 #viewer iframe { border: 0 !important; background: #1f2129 !important; }
 /* A PDF's scroller (src/pdf.js) — epub.js's .epub-container for pages. Scrolls
    sideways too, once zoomed past the width. */
-.pdf-container { width: 100%; height: 100%; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.pdf-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Panning is the browser's; a pinch is the reader's (zoom, src/pdf.js). */
+  touch-action: pan-x pan-y;
+  outline: none;
+}
+/* The pages, stacked and centred; each box is sized by src/pdf.js and its
+   canvas fills it. Printed pages read as paper on the reader's background. */
+.pdf-pages {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+.pdf-page { position: relative; flex: none; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.pdf-dark .pdf-page { background: #23262f; box-shadow: none; }
+.pdf-page canvas { display: block; width: 100%; height: 100%; }
+.pdf-link { position: absolute; z-index: 1; border-radius: 2px; -webkit-tap-highlight-color: rgba(154, 166, 201, 0.25); }
+.pdf-link:hover { background: rgba(154, 166, 201, 0.12); }
+/* The end-of-chapter card's document, kept in view when a zoomed page is
+   panned sideways. */
+.pdf-end { position: sticky; left: 0; display: block; border: 0; height: 0; }
 #viewer, #viewer * { scrollbar-width: none; }
 #viewer ::-webkit-scrollbar, #viewer::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
@@ -1923,23 +1954,27 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-row[hidden] { display: none; }
 
 /* ---- PDF page view (src/pdf.js) -------------------------------------------
-   Dark pages + zoom, in the drawer where proofreading sits for an epub. */
-.pdf-row { display: flex; flex-direction: column; gap: 2px; padding: 0 18px 14px; }
+   The Dark pages switch, in the drawer where proofreading sits for an epub. */
+.pdf-row { padding: 0 18px 14px; }
 .pdf-row[hidden] { display: none; }
-.pdf-row__line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 34px; }
-.pdf-row__label { font: 600 13px var(--font-ui); color: var(--text-secondary); }
-.pdf-row button { appearance: none; border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0; }
-.pdf-zoom { display: flex; align-items: center; gap: 2px; }
-.pdf-zoom__btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  font: 500 17px var(--font-ui);
-  color: var(--text-secondary) !important;
+.pdf-row__line {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
 }
-.pdf-zoom__btn:hover:not(:disabled) { background: var(--track) !important; color: var(--text-primary) !important; }
-.pdf-zoom__btn:disabled { opacity: 0.35; cursor: default !important; }
-.pdf-zoom__value { min-width: 52px; text-align: center; font: 500 12.5px var(--font-ui); color: var(--text-dim) !important; }
+.pdf-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pdf-row__label { font: 600 13px var(--font-ui); color: var(--text-secondary); }
+.pdf-row__line:hover .pdf-row__label { color: var(--text-primary); }
+.pdf-row__status { font: 400 12px var(--font-ui); color: var(--text-dim); }
 
 .proof-pill {
   appearance: none;

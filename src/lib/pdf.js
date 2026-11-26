@@ -121,3 +121,96 @@ export const pdfSubjects = (s) =>
     .split(/[,;]/)
     .map((k) => k.trim())
     .filter(Boolean);
+
+// -------------------------------------------------------------------------
+// Chapters from the pages' own titles, for a PDF whose bookmarks are missing
+// or useless (a design tool's leftovers: "…designv2-cover", "…designv2").
+// -------------------------------------------------------------------------
+
+// Bookmarks worth using: they split the document into at least three parts
+// (or the document is short enough that a couple will do).
+export function usefulOutline(outline, pageCount) {
+  const pages = new Set(
+    (outline || [])
+      .filter((e) => (e.title || "").trim() && e.page >= 1 && e.page <= pageCount)
+      .map((e) => e.page)
+  );
+  return pages.size >= 3 || (pageCount <= 12 && pages.size >= 1);
+}
+
+// Text items of a page ([{ str, x, y, size }], PDF units, y up) gathered into
+// lines, top first: items on one baseline, in reading order.
+export function pageLines(items) {
+  const rows = [];
+  for (const it of items || []) {
+    const str = (it.str || "").replace(/\s+/g, " ");
+    if (!str.trim()) continue;
+    const row = rows.find((r) => Math.abs(r.y - it.y) <= Math.max(2, it.size * 0.25));
+    if (row) row.items.push(it);
+    else rows.push({ y: it.y, items: [it] });
+  }
+  return rows
+    .map((r) => {
+      r.items.sort((a, b) => a.x - b.x);
+      return {
+        y: r.y,
+        size: Math.max(...r.items.map((i) => i.size)),
+        text: r.items
+          .map((i) => i.str)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      };
+    })
+    .sort((a, b) => b.y - a.y);
+}
+
+// Bookmark-like entries ([{ title, page, depth }]) from each page's lines
+// ([{ n, lines }], lines as pageLines gives them). The body text size is the
+// one most characters are set in; a page whose largest line is half again
+// bigger opens a chapter named by that line — joined with the lines right
+// under it in the same size, for a title set over two lines. A page whose
+// title is only a number ("01", a section divider) opens the chapter the
+// next page names.
+export function headingOutline(pages) {
+  const chars = new Map();
+  for (const pg of pages)
+    for (const l of pg.lines) {
+      const k = Math.round(l.size);
+      chars.set(k, (chars.get(k) || 0) + l.text.length);
+    }
+  let body = 0;
+  let most = 0;
+  for (const [size, n] of chars) if (n > most) [body, most] = [size, n];
+  if (!body) return [];
+  const min = body * 1.5;
+  const titleOf = (lines) => {
+    const big = lines.filter((l) => l.size >= min && l.text.length >= 1 && l.text.length <= 90);
+    if (!big.length) return null;
+    const size = Math.max(...big.map((l) => l.size));
+    const first = big.filter((l) => Math.abs(l.size - size) < 0.5).sort((a, b) => b.y - a.y)[0];
+    const parts = [first.text];
+    let y = first.y;
+    for (const l of lines) {
+      if (l.y >= y || Math.abs(l.size - size) >= 0.5) continue;
+      if (y - l.y > size * 1.7) break;
+      parts.push(l.text);
+      y = l.y;
+    }
+    const text = parts.join(" ").replace(/\s+/g, " ").trim();
+    return text.length <= 120 ? text : text.slice(0, 117).replace(/\s+\S*$/, "") + "…";
+  };
+  const out = [];
+  let divider = null;
+  for (const pg of pages) {
+    const title = titleOf(pg.lines);
+    if (!title) continue;
+    if (/^[\d\s.·—–-]{1,4}$/.test(title)) {
+      divider = divider ?? pg.n;
+      continue;
+    }
+    out.push({ title, page: divider ?? pg.n, depth: 0 });
+    divider = null;
+  }
+  return out;
+}
