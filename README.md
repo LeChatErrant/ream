@@ -10,6 +10,13 @@ Everything runs locally in the browser — no book ever leaves your device.
 ## Features
 
 - Open any `.epub` (button, or drag & drop the file anywhere)
+- **PDFs too** — shown as their real pages (PDF.js, loaded only for PDFs), with
+  chapters from the PDF's bookmarks (or every 10 pages without them), the same
+  progress, Continue, end-of-chapter card and stats as a book, and a drawer row
+  for **Dark pages** (the page redrawn in the reader's colours; off shows the
+  original print) and **Zoom** (fit the width up to 300 %, kept per book). Best
+  for text-led documents; a heavily designed PDF reads better as a real epub
+  (`src/pdf.js`, `src/lib/pdf.js`)
 - Chapters menu (drawer) — jump to any chapter, current one highlighted
 - One chapter per view, with an end-of-chapter Previous/Next block
 - Phone reading chrome: a permanent top bar (menu · title · chapter tools) and

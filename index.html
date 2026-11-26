@@ -33,7 +33,7 @@
             <button id="lib-search" class="lib-round" aria-label="Search books" title="Search">
               <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 16l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
             </button>
-            <button id="lib-import" class="lib-round lib-round--import" aria-label="Import an .epub" title="Import">
+            <button id="lib-import" class="lib-round lib-round--import" aria-label="Import an .epub or PDF" title="Import">
               <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
               <span class="lib-round__label wide-only">Import</span>
             </button>
@@ -275,7 +275,7 @@
         <span id="busy-toast-text" class="update-banner__text"></span>
       </div>
 
-      <input id="file-input" type="file" accept=".epub,application/epub+zip" multiple hidden />
+      <input id="file-input" type="file" accept=".epub,application/epub+zip,.pdf,application/pdf" multiple hidden />
     </div>
 
     <script type="module" src="/src/main.js"></script>

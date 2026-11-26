@@ -1,5 +1,5 @@
 // =========================================================================
-// Getting books into the library — .epub parsing, the import flow (with
+// Getting books into the library — .epub / .pdf parsing, the import flow (with
 // duplicate/series grouping), the file picker, and the hidden dev-seed menu.
 // Nothing here renders; callers re-render through renderCurrentRoute.
 // =========================================================================
@@ -116,13 +116,21 @@ async function parseEpub(buffer, filename) {
   };
 }
 
+// A PDF is told by its name or, failing that, its first bytes.
+const isPdfFile = (buffer, filename) =>
+  /\.pdf$/i.test(filename) ||
+  (!/\.epub$/i.test(filename) && new TextDecoder().decode(new Uint8Array(buffer, 0, Math.min(1024, buffer.byteLength))).includes("%PDF"));
+
 export async function createBook(buffer, filename, { seriesId = null } = {}) {
-  const parsed = await parseEpub(buffer, filename);
+  const pdf = isPdfFile(buffer, filename);
+  // PDF.js loads only when a PDF is actually imported.
+  const parsed = pdf ? await (await import("./pdf.js")).parsePdf(buffer, filename) : await parseEpub(buffer, filename);
   const book = {
     id: uid(),
     ...parsed,
+    volumeIndex: parsed.volumeIndex ?? (parseVolumeIndex(parsed.title) || parseVolumeIndex(filename)),
     fileName: filename,
-    fileBlob: new Blob([buffer], { type: "application/epub+zip" }),
+    fileBlob: new Blob([buffer], { type: pdf ? "application/pdf" : "application/epub+zip" }),
     seriesId,
     addedAt: Date.now(),
   };
@@ -132,7 +140,7 @@ export async function createBook(buffer, filename, { seriesId = null } = {}) {
 }
 
 // -------------------------------------------------------------------------
-// Import flow — pick .epub files, parse and store them, then look for
+// Import flow — pick .epub / .pdf files, parse and store them, then look for
 // obvious duplicates/series to suggest grouping (never grouping silently).
 // -------------------------------------------------------------------------
 let pendingImportSeriesId = null;
@@ -140,7 +148,7 @@ let pendingImportSeriesId = null;
 export async function importFiles(fileList) {
   const intoSeriesId = pendingImportSeriesId;
   pendingImportSeriesId = null;
-  const files = [...fileList].filter((f) => /\.epub$/i.test(f.name));
+  const files = [...fileList].filter((f) => /\.(epub|pdf)$/i.test(f.name) || f.type === "application/pdf");
   if (!files.length) return;
 
   const added = [];
@@ -151,7 +159,7 @@ export async function importFiles(fileList) {
       added.push(book);
     } catch (err) {
       console.warn("Could not import", file.name, err);
-      alert(`Couldn't read "${file.name}". It may not be a valid .epub file.`);
+      alert(`Couldn't read "${file.name}". It may not be a valid .epub or PDF file.`);
     }
   }
   if (!added.length) return;

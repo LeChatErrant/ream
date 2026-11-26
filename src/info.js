@@ -86,6 +86,7 @@ export function infoModel(kind, id) {
     chapterCount: chapterCount(b),
     fileCount: 1,
     byteSize: b.fileBlob?.size || 0,
+    pageCount: b.pageCount || null,
     continueTarget: b,
   };
 }
@@ -206,6 +207,7 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
   const rows = [];
   if (m.volumeCount != null) rows.push(["Volumes", String(m.volumeCount)]);
   rows.push(["Chapters", m.chapterCount.toLocaleString()]);
+  if (m.pageCount) rows.push(["Pages", m.pageCount.toLocaleString()]);
   const lang = formatLang(m.language);
   if (lang) rows.push(["Language", lang]);
   const pub = formatPublished(m.published);
@@ -570,7 +572,7 @@ function showEditDetails(m) {
     publisher: m.publisher,
   };
   const { body, saveBtn } = openEditorShell("Edit details");
-  body.append(h("p", { class: "editor-lead" }, "Type over anything the .epub got wrong. What you enter here always wins; clear a field to fall back to the file."));
+  body.append(h("p", { class: "editor-lead" }, "Type over anything the file got wrong. What you enter here always wins; clear a field to fall back to the file."));
 
   const inputs = {};
   const addField = (key, label, area) => {
@@ -746,6 +748,7 @@ function showVolumeSheet(s, book, start, end) {
   const facts = [
     book.fileName && ["File", book.fileName],
     formatBytes(book.fileBlob?.size) && ["Size", formatBytes(book.fileBlob.size)],
+    book.pageCount && ["Pages", book.pageCount.toLocaleString()],
     formatAdded(book.addedAt) && ["Added", formatAdded(book.addedAt)],
   ].filter(Boolean);
 

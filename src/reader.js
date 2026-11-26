@@ -347,15 +347,29 @@ export async function renderReader(lib, startHref = null) {
   updateDrawerBook();
 
   const buffer = await lib.fileBlob.arrayBuffer();
-  book = ePub(buffer);
-  rendition = book.renderTo("viewer", {
-    flow: "scrolled-doc",
-    manager: "default",
-    width: "100%",
-    height: "100%",
-    spread: "none",
-    allowScriptedContent: false,
-  });
+  const isPdf = lib.format === "pdf";
+  if (isPdf) {
+    // A PDF reads through PdfBook / PdfRendition (pdf.js), shaped like
+    // epub.js's book and rendition so everything below works on it as is.
+    const opened = await (await import("./pdf.js")).openPdfBook(buffer, lib);
+    // Left the reader (or opened another book) while PDF.js was loading.
+    if (currentBook !== lib || document.getElementById("app").dataset.route !== "reader" || rendition) {
+      opened.destroy();
+      return;
+    }
+    book = opened;
+    rendition = book.renderTo("viewer", { zoom: lib.pdfZoom || 1, dark: ui.pdfPages !== "original" });
+  } else {
+    book = ePub(buffer);
+    rendition = book.renderTo("viewer", {
+      flow: "scrolled-doc",
+      manager: "default",
+      width: "100%",
+      height: "100%",
+      spread: "none",
+      allowScriptedContent: false,
+    });
+  }
   // Critical dark background as a rules theme so it's applied the instant the
   // view is created; the full reading theme is injected inline per chapter by
   // injectReaderTheme (content hook, before the view is shown) so there is no
@@ -364,7 +378,7 @@ export async function renderReader(lib, startHref = null) {
   rendition.hooks.content.register(injectReaderTheme);
   rendition.hooks.content.register(evenOutTypeSizes);
   // Before the chapter-end card, so it snapshots only the story's paragraphs.
-  rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
+  if (!isPdf) rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
   rendition.hooks.content.register(prepareChrome);
   rendition.hooks.content.register(injectChapterNav);
   rendition.hooks.content.register(forwardChapterKeys);
@@ -372,6 +386,7 @@ export async function renderReader(lib, startHref = null) {
   el.btnPrev.disabled = el.rbPrev.disabled = false;
   el.btnNext.disabled = el.rbNext.disabled = false;
   mountProofControls();
+  mountPdfControls(lib);
   mountSoulSeaButton(lib);
 
   // A chapter tapped in the Chapters screen wins; otherwise resume the saved
@@ -1222,6 +1237,13 @@ function openProofMenu() {
 
 function renderProofControls() {
   if (!proofRow) return;
+  // Proofreading rewrites an epub's text; a PDF's pages have none to rewrite.
+  const pdf = currentBook?.format === "pdf";
+  proofRow.hidden = pdf;
+  if (pdf) {
+    proofPill.hidden = true;
+    return;
+  }
   const s = proofState();
   let status;
   if (!s.enabled) status = "Off — original text";
@@ -1268,6 +1290,77 @@ function renderProofControls() {
     : s.chapterTotal
       ? "Chapter reviewed — see its corrections"
       : "No corrections in this chapter";
+}
+
+// -------------------------------------------------------------------------
+// PDF page view (PDFs only): a drawer row to switch the pages between the
+// reader's dark colours and the original print, and to zoom past fitting the
+// width (remembered per book; the colours are one setting for every PDF).
+// -------------------------------------------------------------------------
+const PDF_ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3];
+let pdfRow = null;
+function mountPdfControls(lib) {
+  if (!pdfRow) {
+    pdfRow = h("div", { class: "pdf-row" });
+    el.drawer.insertBefore(pdfRow, el.drawer.querySelector(".drawer-label"));
+  }
+  pdfRow.hidden = lib.format !== "pdf";
+  if (!pdfRow.hidden) renderPdfControls();
+}
+function setPdfView(change) {
+  const lib = currentBook;
+  if (!lib) return;
+  if ("zoom" in change) {
+    lib.pdfZoom = change.zoom;
+    dbPut("books", lib).catch(() => {});
+  }
+  if ("dark" in change) {
+    ui.pdfPages = change.dark ? "dark" : "original";
+    saveUi();
+  }
+  rendition?.setPageView?.({ zoom: lib.pdfZoom || 1, dark: ui.pdfPages !== "original" });
+  renderPdfControls();
+}
+function renderPdfControls() {
+  const zoom = currentBook?.pdfZoom || 1;
+  const dark = ui.pdfPages !== "original";
+  const i = Math.max(0, PDF_ZOOMS.indexOf(zoom));
+  const step = (d) => setPdfView({ zoom: PDF_ZOOMS[Math.min(PDF_ZOOMS.length - 1, Math.max(0, i + d))] });
+  pdfRow.replaceChildren(
+    h(
+      "div",
+      { class: "pdf-row__line" },
+      h("span", { class: "pdf-row__label" }, "Dark pages"),
+      h(
+        "button",
+        {
+          class: "proof-switch-btn",
+          type: "button",
+          role: "switch",
+          "aria-checked": String(dark),
+          "aria-label": "Dark pages",
+          onclick: () => setPdfView({ dark: !dark }),
+        },
+        h("span", { class: "proof-switch" + (dark ? " proof-switch--on" : ""), "aria-hidden": "true" })
+      )
+    ),
+    h(
+      "div",
+      { class: "pdf-row__line" },
+      h("span", { class: "pdf-row__label" }, "Zoom"),
+      h(
+        "div",
+        { class: "pdf-zoom" },
+        h("button", { class: "pdf-zoom__btn", type: "button", "aria-label": "Zoom out", disabled: i === 0, onclick: () => step(-1) }, "−"),
+        h(
+          "button",
+          { class: "pdf-zoom__value", type: "button", title: "Fit the width", onclick: () => setPdfView({ zoom: 1 }) },
+          i === 0 ? "Fit" : Math.round(zoom * 100) + " %"
+        ),
+        h("button", { class: "pdf-zoom__btn", type: "button", "aria-label": "Zoom in", disabled: i === PDF_ZOOMS.length - 1, onclick: () => step(1) }, "+")
+      )
+    )
+  );
 }
 
 function applyDock() {

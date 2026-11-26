@@ -232,8 +232,8 @@ function importTile() {
     h(
       "div",
       { class: "tile__meta" },
-      h("span", { class: "narrow-only" }, ".epub from your files"),
-      h("span", { class: "wide-only" }, "Click, or drop .epub files")
+      h("span", { class: "narrow-only" }, ".epub or PDF from your files"),
+      h("span", { class: "wide-only" }, "Click, or drop .epub / PDF files")
     )
   );
   // Tap imports; a long-press is the hidden dev-seed reset.
@@ -249,7 +249,7 @@ function attachSeedGesture(node, onTap) {
 }
 
 function emptyState() {
-  const cta = h("button", { class: "empty__cta" }, "+ Import an .epub");
+  const cta = h("button", { class: "empty__cta" }, "+ Import an .epub or PDF");
   // Tap imports; long-press seeds the demo library (dev-only).
   attachSeedGesture(cta, pickFiles);
   return h(
@@ -260,10 +260,10 @@ function emptyState() {
     h(
       "p",
       { class: "empty__lead" },
-      "Add an .epub from your files and it stays on this device — covers, chapters and your place in it."
+      "Add an .epub (or a PDF) from your files and it stays on this device — covers, chapters and your place in it."
     ),
     cta,
-    h("p", { class: "empty__hint wide-only" }, "Or drop .epub files anywhere in this window.")
+    h("p", { class: "empty__hint wide-only" }, "Or drop .epub or PDF files anywhere in this window.")
   );
 }
 
