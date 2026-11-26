@@ -31,9 +31,10 @@ Everything runs locally in the browser — no book ever leaves your device.
   recent pace) per book or series (a card on its info page), plus week /
   month / year totals you can step back through and tap bar by bar, records,
   streaks and a reading calendar (the Library's "This week" strip).
-  Time counts while you scroll or tap and pauses after 3 idle minutes; reading
-  from before stats existed is estimated from your progress and shown striped
-  (`src/stats.js`, `src/statsview.js`)
+  Time counts while you scroll or tap and pauses after 3 idle minutes; days
+  turn at 4 AM. Reading from before stats existed (Aug 24 – Nov 24, 2026) was
+  backfilled once from your progress (`src/stats.js`, `src/statsview.js`,
+  `src/lib/backfill.js`)
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
 - Asks the browser to keep the library's storage persistent, and keeps the
   screen awake while you read — released after 5 minutes without a scroll or tap

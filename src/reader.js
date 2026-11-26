@@ -43,7 +43,7 @@ import {
   chromeChapter, chromeScrolled, isAway,
 } from "./readbar.js";
 import { keepAwake, releaseWakeLock } from "./device.js";
-import { noteActivity, endSession, creditProgress } from "./stats.js";
+import { noteActivity, endSession, creditProgress, setChapterFresh } from "./stats.js";
 import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 
 // A saved reading spot (an epub.js CFI) counts the chapter's elements and
@@ -238,6 +238,7 @@ function saveReadingLocation(location) {
     if (chapterEntryBaseline.href !== href) chapterEntryBaseline = { href, pct: rawPct ?? 0 };
     const scrolled = rawPct == null ? 0 : rawPct - chapterEntryBaseline.pct;
     const cur = chapters[href];
+    setChapterFresh(!cur?.done);
     const started = (cur && (cur.pct || 0) > 0) || scrolled >= MIN_SCROLL_PCT;
     if (started) {
       const base = cur || { pct: 0, cfi: null, done: false };
@@ -245,7 +246,9 @@ function saveReadingLocation(location) {
       const advanced = rawPct != null && rawPct >= (base.pct || 0);
       const done = base.done || (pct >= CHAPTER_DONE_PCT && scrolled >= MIN_SCROLL_PCT);
       // Reading stats: the words of the stretch just read (stats.js).
-      creditProgress(lib, href, base.pct, pct, done && !base.done);
+      // A chapter already done credits nothing more (its end was credited
+      // whole when it became done), and its time doesn't measure your pace.
+      creditProgress(lib, href, base.done ? 100 : base.pct, pct, done && !base.done);
       chapters[href] = {
         pct,
         cfi: advanced && location.start.cfi ? location.start.cfi : base.cfi || location.start.cfi || null,

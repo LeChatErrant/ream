@@ -37,14 +37,15 @@ import "./wide.css";
 import { el, collectRefs, WIDE } from "./dom.js";
 import { books, loadState, putProgress } from "./state.js";
 import { kvGet, kvDelete } from "./db.js";
-import { go, closeOverlay, overlayOpen } from "./router.js";
+import { go, closeOverlay, overlayOpen, renderCurrentRoute } from "./router.js";
 import { renderLibrary, setLibFilter, exitSelection, isSelecting, confirmGrouping, confirmDeleteSelection } from "./library.js";
 import { toggleDrawer, closeDrawer, goChapter, flushReadingPosition, handleReaderKey } from "./reader.js";
 import { mountReadbar } from "./readbar.js";
 import { importFiles, pickFiles, createBook } from "./import.js";
 import { mountBrandMarks } from "./brand.js";
 import { ensurePersistentStorage } from "./device.js";
-import { loadStats, endSession } from "./stats.js";
+import { loadStats, endSession, runBackfill } from "./stats.js";
+import { refreshStats } from "./statsview.js";
 import {
   APP_VERSION, refreshInstallNote, handleInstallClick, checkForUpdatesManually,
   applyUpdate, hideUpdateBanner,
@@ -156,7 +157,12 @@ function wireEvents() {
   // app-switch, or tab close. Covers the gap left by the throttled scroll save.
   // The stats session ends there too (credited up to the last screen).
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) return;
+    if (!document.hidden) {
+      // Back after a while: the Library's "This week" strip and the stats
+      // screens may be showing yesterday.
+      repaintStats();
+      return;
+    }
     flushReadingPosition();
     endSession();
   });
@@ -213,4 +219,14 @@ async function migrateLegacy() {
   go({ route: "library" }, false);
   refreshInstallNote();
   ensurePersistentStorage();
+  // One time: turn the reading done before stats existed into history.
+  runBackfill()
+    .then((wrote) => wrote && repaintStats())
+    .catch((err) => console.warn("Stats backfill failed:", err));
 })();
+
+function repaintStats() {
+  const route = document.getElementById("app").dataset.route;
+  if (route === "stats") refreshStats();
+  else if (route === "library" || route === "info") renderCurrentRoute();
+}

@@ -43,6 +43,8 @@ function tx(store, mode, fn) {
 }
 export const dbGetAll = (store) => tx(store, "readonly", (os) => os.getAll());
 export const dbPut = (store, value) => tx(store, "readwrite", (os) => os.put(value));
+// Several puts in one transaction (all or nothing).
+export const dbPutMany = (store, values) => tx(store, "readwrite", (os) => values.forEach((v) => os.put(v)));
 export const dbDelete = (store, key) => tx(store, "readwrite", (os) => os.delete(key));
 export const kvGet = (key) => tx("kv", "readonly", (os) => os.get(key));
 export const kvSet = (key, value) => tx("kv", "readwrite", (os) => os.put(value, key));

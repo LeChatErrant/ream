@@ -2262,8 +2262,6 @@ html { -webkit-tap-highlight-color: transparent; }
 /* =========================================================================
    STATS — the reading-stats screen (one book / series, or everything), the
    info page's "Reading stats" card and the Library's "This week" strip.
-   Striped marks (.st-est) are estimates of reading done before tracking began,
-   in the same stripe as a missing cover.
    ====================================================================== */
 #app[data-route="stats"] #stats-screen { display: block; }
 .stats-screen {
@@ -2292,7 +2290,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .st-head__aside { font: 400 11px var(--font-ui); color: var(--text-muted2); }
 .st-table { padding: 0; }
-.st-est, .st-bars__seg.st-est { background: repeating-linear-gradient(135deg, #5b636f 0 2px, var(--track) 2px 4px); }
 
 /* Book header */
 .st-book { display: flex; align-items: center; gap: 14px; padding-top: 8px; }
@@ -2321,19 +2318,20 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-bars__stub { width: 100%; height: 2px; background: var(--track); }
 .st-bars__labels { display: flex; gap: 3px; margin-top: 6px; }
 .st-bars__labels > span { flex: 1; min-width: 0; text-align: center; font: 400 10px var(--font-ui); color: var(--text-dim); white-space: nowrap; overflow: visible; }
-.st-note { display: flex; align-items: center; gap: 7px; margin: 18px 0 0; font: 400 11.5px/1.45 var(--font-ui); color: var(--text-muted2); }
-.st-swatch { width: 10px; height: 10px; flex: none; border-radius: 2px; }
+.st-note { margin: 12px 0 0; font: 400 11.5px/1.45 var(--font-ui); color: var(--text-muted2); }
 
 /* Volume timeline */
 .st-tl { position: relative; }
-.st-tl__row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 8px; height: 22px; }
+.st-tl__row { display: grid; grid-template-columns: var(--tl-name, 40px) minmax(0, 1fr) 40px; align-items: center; gap: 8px; height: 22px; }
+.st-tl--wide { --tl-name: 62px; }
+.st-tl__time.is-ahead { color: var(--text-dim); }
 .st-tl__name, .st-tl__time { font: 400 11px var(--font-ui); color: var(--text-muted2); white-space: nowrap; }
 .st-tl__time { text-align: right; font-variant-numeric: tabular-nums; }
 .st-tl__track { position: relative; height: 10px; }
 .st-tl__seg { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
 .st-tl__seg.is-tracked, .st-legend__key.is-tracked { background: var(--fill-card); }
 .st-tl__seg.is-ahead, .st-legend__key.is-ahead { box-sizing: border-box; border: 1px dashed #5b636f; }
-.st-tl__marks { position: absolute; top: 0; bottom: 20px; left: 48px; right: 48px; pointer-events: none; }
+.st-tl__marks { position: absolute; top: 0; bottom: 20px; left: calc(var(--tl-name, 40px) + 8px); right: 48px; pointer-events: none; }
 .st-tl__today { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--text-muted); }
 .st-tl__row--ticks { height: 20px; }
 .st-tl__ticks { position: relative; height: 100%; }
@@ -2363,10 +2361,10 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-hero__sub { margin-top: 6px; font: 400 12.5px/1.45 var(--font-ui); color: var(--text-muted2); }
 .st-hero .st-chart { margin-top: 18px; }
 .st-hero__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
-.st-hero__nav { display: flex; gap: 2px; margin-right: -6px; }
-.st-navbtn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--text-muted); cursor: pointer; }
+.st-hero__nav { display: flex; gap: 0; margin: -8px -12px -8px 0; }
+.st-navbtn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: none; color: var(--text-muted); cursor: pointer; }
 .st-navbtn > span { display: inline-flex; }
-.st-navbtn svg { width: 17px; height: 17px; }
+.st-navbtn svg { width: 19px; height: 19px; }
 .st-navbtn--next > span { transform: scaleX(-1); }
 .st-navbtn:hover:not(:disabled) { background: var(--surface); color: var(--text-primary); }
 .st-navbtn:disabled { color: var(--track); cursor: default; }
@@ -2377,15 +2375,26 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-chart.is-pickable .st-bars__col:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; border-radius: 2px; }
 .st-bars__stack, .st-bars__stub { transition: opacity 0.15s; }
 .st-chart.has-pick .st-bars__col:not(.is-picked) .st-bars__stack { opacity: 0.35; }
-.st-bars__col.is-picked .st-bars__seg:not(.st-est) { background: var(--text-primary); }
-.st-note--tiles { margin-top: 22px; }
+.st-bars__labels > span.is-picked { color: var(--text-primary); font-weight: 600; }
+.st-bars__labels > span.is-picked::after { content: ""; display: block; width: 4px; height: 4px; margin: 3px auto 0; border-radius: 50%; background: var(--text-primary); }
+.st-bars__stub.is-future { height: 0; border-top: 2px dotted var(--track); background: none; }
+.st-divider { display: flex; align-items: center; gap: 12px; margin: 38px 0 -6px; font: 400 11px var(--font-ui); color: var(--text-muted2); }
+.st-divider::before, .st-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-2f); }
 
 /* Calendar */
 .st-cal__body { display: flex; gap: 6px; }
+.st-cal__side { display: flex; flex-direction: column; }
+.st-cal__mspacer { height: 16px; }
+.st-cal__months { position: relative; height: 16px; }
+.st-cal__months > span { position: absolute; top: 0; font: 400 9.5px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
 .st-cal__dows, .st-cal__grid { display: grid; grid-template-rows: repeat(7, 13px); gap: 3px; }
 .st-cal__dows { font: 400 9px/13px var(--font-ui); color: var(--text-dim); }
 .st-cal__grid { grid-auto-flow: column; grid-auto-columns: 13px; }
-.st-cal__day { display: inline-block; width: 13px; height: 13px; border-radius: 3px; }
+.st-cal__day { display: inline-block; width: 13px; height: 13px; padding: 0; border: 0; border-radius: 3px; }
+button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.st-cal__day.is-sel { box-shadow: 0 0 0 2px var(--text-primary); }
+.st-cal__readout { min-height: 17px; margin-top: 10px; font: 400 12px var(--font-ui); color: var(--text-dim); }
+.st-cal__readout.is-on { color: var(--text-secondary); }
 .st-cal__day.l0 { background: var(--surface); }
 .st-cal__day.l1 { background: #3a4150; }
 .st-cal__day.l2 { background: #5b636f; }
@@ -2394,20 +2403,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-cal__day.is-future { background: transparent; }
 .st-cal__legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; font: 400 10.5px var(--font-ui); color: var(--text-muted2); }
 .st-cal__legend .st-cal__day { width: 10px; height: 10px; border-radius: 2px; }
-.st-cal__since { margin-right: auto; }
-.st-cal__day.is-before { background: transparent; box-shadow: inset 0 0 0 1px var(--surface); }
+.st-cal__spacer { margin-right: auto; }
 .st-cal__day.is-today { box-shadow: 0 0 0 1.5px var(--text-muted); }
-.st-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-bottom: 18px; }
-.st-month__dow { text-align: center; font: 400 10px var(--font-ui); color: var(--text-dim); padding-bottom: 2px; }
-.st-month__day { display: flex; align-items: center; justify-content: center; aspect-ratio: 1.25; max-height: 44px; border-radius: 8px; font: 400 11.5px var(--font-ui); color: var(--text-muted2); font-variant-numeric: tabular-nums; }
-.st-month__day.l0 { background: var(--surface); }
-.st-month__day.l1 { background: #3a4150; color: var(--text-secondary); }
-.st-month__day.l2 { background: #5b636f; color: #eef1f5; }
-.st-month__day.l3 { background: var(--fill-card); color: var(--page); }
-.st-month__day.l4 { background: var(--text-body); color: var(--page); font-weight: 600; }
-.st-month__day.is-before, .st-month__day.is-future { background: transparent; color: var(--text-dim); opacity: 0.6; }
-.st-month__day.is-today { box-shadow: 0 0 0 1.5px var(--text-muted); }
-.st-month + .st-cal__legend { margin-top: -6px; }
 
 /* When you read */
 .st-hours { display: flex; align-items: flex-end; gap: 2px; height: 64px; border-bottom: 1px solid var(--border-2f); }
@@ -2490,6 +2487,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-strip__bar { width: 6px; border-radius: 2px; background: var(--track); }
 .st-strip__bar.is-on { background: #5b636f; }
 .st-strip__bar.is-today { background: var(--text-body); }
+.st-strip__bar.is-future { background: none; border-top: 2px dotted var(--track); height: 0 !important; }
 
 /* Milestones — a vertical road: behind (filled), now (ring), ahead (hollow). */
 .st-miles { position: relative; }

@@ -1,7 +1,7 @@
 // -------------------------------------------------------------------------
 // Reading-stats arithmetic — pure helpers with no DOM or storage, so they can be
-// unit-tested: local calendar days, spreading an estimate over a span of days,
-// streaks, and the duration / date wording the stats screens use.
+// unit-tested: local calendar days (and the 4 AM reading day), streaks, and the
+// duration / date wording the stats screens use.
 // -------------------------------------------------------------------------
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -11,6 +11,12 @@ const pad = (n) => String(n).padStart(2, "0");
 export function dayKey(ts) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+// The READING day a moment belongs to: days turn at 4 AM, not midnight, so a
+// session from 23:00 to 01:00 is one evening's reading, not two days'.
+export const DAY_START_HOUR = 4;
+export function readingDay(ts) {
+  return dayKey(ts - DAY_START_HOUR * 3600000);
 }
 // Local midnight of a day key, as a Date.
 export function dayDate(key) {
@@ -30,42 +36,6 @@ export function daysBetween(a, b) {
 export function weekStart(key) {
   const dow = (dayDate(key).getDay() + 6) % 7; // Mon = 0
   return addDays(key, -dow);
-}
-
-// Spread `words` and `chapters` over the time from `startTs` to `endTs`, each
-// local day getting its share of the overlap — so back-to-back spans add up to a
-// steady pace instead of doubling up on the day they meet. Nothing lands on
-// `beforeDay` or later (that's when real tracking took over); a span that is
-// empty, backwards or entirely past the cut-off collapses onto its last allowed
-// day. Returns [{ day, words, chapters }].
-export function spreadEstimate({ words, chapters, startTs, endTs, beforeDay }) {
-  const cutoff = dayDate(beforeDay).getTime();
-  const end = Math.min(endTs, cutoff);
-  const start = Math.min(startTs, end);
-  if (end - start <= 0) return [{ day: dayKey(Math.min(end, cutoff - 1)), words, chapters }];
-  const out = [];
-  for (let day = dayKey(start); dayDate(day).getTime() < end; day = addDays(day, 1)) {
-    const from = Math.max(start, dayDate(day).getTime());
-    const to = Math.min(end, dayDate(addDays(day, 1)).getTime());
-    const share = (to - from) / (end - start);
-    if (share > 0) out.push({ day, words: words * share, chapters: chapters * share });
-  }
-  return out;
-}
-
-// Lay `items` ({ words }) end to end between `startTs` and `endTs`, each taking
-// time in proportion to its words — one steady reading pace across them all.
-// Returns the items with `start` / `end` added.
-export function streamSpans(items, startTs, endTs) {
-  const total = items.reduce((n, it) => n + it.words, 0);
-  const span = Math.max(0, endTs - startTs);
-  let t = startTs;
-  return items.map((it) => {
-    const d = total ? (span * it.words) / total : 0;
-    const out = { ...it, start: t, end: t + d };
-    t += d;
-    return out;
-  });
 }
 
 // Consecutive reading days ending today — or yesterday, so a streak isn't
@@ -128,11 +98,13 @@ export const MONTHS_LONG = [
   "December",
 ];
 export const monthShort = (i) => MONTHS[i];
-// "Nov 16" — or "Nov 16, 2025" when it isn't this year.
+// "Nov 16" — or "Nov 16, 2025" when it's in another year and far enough off
+// (about a year) that the month alone could be misread.
 export function formatDay(key, today) {
   const d = dayDate(key);
   const s = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-  return today && d.getFullYear() !== dayDate(today).getFullYear() ? `${s}, ${d.getFullYear()}` : s;
+  if (!today || d.getFullYear() === dayDate(today).getFullYear()) return s;
+  return Math.abs(daysBetween(key, today)) > 300 ? `${s}, ${d.getFullYear()}` : s;
 }
 
 // Words still to read from the chapter at `from` through the one at `idx`

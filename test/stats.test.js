@@ -4,8 +4,8 @@ import {
   addDays,
   daysBetween,
   weekStart,
-  spreadEstimate,
-  streamSpans,
+  readingDay,
+  formatDay,
   currentStreak,
   longestStreak,
   formatDuration,
@@ -38,62 +38,12 @@ describe("day keys", () => {
   });
 });
 
-describe("spreadEstimate", () => {
-  it("gives each day its share of the span", () => {
-    const out = spreadEstimate({
-      words: 1000,
-      chapters: 10,
-      startTs: at(2026, 10, 1, 12),
-      endTs: at(2026, 10, 3, 12),
-      beforeDay: "2026-11-01",
-    });
-    expect(out.map((r) => r.day)).toEqual(["2026-10-01", "2026-10-02", "2026-10-03"]);
-    expect(out.map((r) => r.words)).toEqual([250, 500, 250]);
-    expect(out.map((r) => r.chapters)).toEqual([2.5, 5, 2.5]);
-  });
-  it("never reaches the day tracking began", () => {
-    const out = spreadEstimate({
-      words: 300,
-      chapters: 3,
-      startTs: at(2026, 11, 8, 0),
-      endTs: at(2026, 11, 12),
-      beforeDay: "2026-11-10",
-    });
-    expect(out.map((r) => r.day)).toEqual(["2026-11-08", "2026-11-09"]);
-    expect(out.reduce((n, r) => n + r.words, 0)).toBeCloseTo(300);
-  });
-  it("collapses an empty or backwards span onto its last day", () => {
-    const out = spreadEstimate({
-      words: 500,
-      chapters: 5,
-      startTs: at(2026, 11, 5),
-      endTs: at(2026, 11, 2),
-      beforeDay: "2026-12-01",
-    });
-    expect(out).toEqual([{ day: "2026-11-02", words: 500, chapters: 5 }]);
-  });
-  it("collapses a span past the cut-off onto the day before it", () => {
-    const out = spreadEstimate({
-      words: 9,
-      chapters: 1,
-      startTs: at(2026, 11, 20),
-      endTs: at(2026, 11, 21),
-      beforeDay: "2026-11-10",
-    });
-    expect(out).toEqual([{ day: "2026-11-09", words: 9, chapters: 1 }]);
-  });
-});
-
-describe("streamSpans", () => {
-  it("lays items end to end in proportion to their words", () => {
-    const out = streamSpans([{ words: 100 }, { words: 300 }], 0, 400);
-    expect(out.map((x) => [x.start, x.end])).toEqual([
-      [0, 100],
-      [100, 400],
-    ]);
-  });
-  it("copes with nothing to lay out", () => {
-    expect(streamSpans([{ words: 0 }], 0, 10)).toEqual([{ words: 0, start: 0, end: 0 }]);
+describe("reading day", () => {
+  it("turns at 4 AM, not midnight", () => {
+    expect(readingDay(at(2026, 11, 26, 23))).toBe("2026-11-26");
+    expect(readingDay(at(2026, 11, 27, 1))).toBe("2026-11-26");
+    expect(readingDay(at(2026, 11, 27, 3))).toBe("2026-11-26");
+    expect(readingDay(at(2026, 11, 27, 4))).toBe("2026-11-27");
   });
 });
 
@@ -159,5 +109,13 @@ describe("milestones", () => {
     expect(dayReaching(per, 9)).toBe("2026-11-03");
     expect(dayReaching(per, 10)).toBe(null);
     expect(dayReaching(per, 10, 100)).toBe("2026-11-01");
+  });
+});
+
+describe("formatDay", () => {
+  it("adds the year only for dates about a year off", () => {
+    expect(formatDay("2026-11-16", "2026-11-26")).toBe("Nov 16");
+    expect(formatDay("2026-12-21", "2027-01-12")).toBe("Dec 21");
+    expect(formatDay("2025-11-16", "2027-01-12")).toBe("Nov 16, 2025");
   });
 });
