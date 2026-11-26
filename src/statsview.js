@@ -3,26 +3,24 @@
 // page) or for the whole library (pushed from the Library's "This week" strip).
 // Also builds those two ways in: the info page's "Reading stats" card and the
 // Library strip. The data comes from stats.js: one row per book per reading
-// day (days turn at 4 AM).
+// day (days turn at 4 AM). Time is the unit throughout; chapters only say
+// where you are. "Your usual" — the yardstick every number is set against —
+// is the average of your last full weeks (or months).
 // =========================================================================
 import { el, h, svg, ICON, coverNode, progressBar } from "./dom.js";
 import { books, progressMap, bookById, seriesById } from "./state.js";
 import { chapterCount, readableChapters, baseHref, chapterDisplay, chapterOrdinalFor } from "./lib/chapters.js";
 import { formatCompactNumber } from "./lib/format.js";
 import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
-import {
-  readingDay, dayKey, addDays, daysBetween, weekStart, dayDate, currentStreak, longestStreak,
-  formatDuration, formatHoursShort, formatDay, monthShort, MONTHS_LONG, wordsThrough, roundMilestones, dayReaching,
-} from "./lib/stats.js";
+import { readingDay, dayKey, addDays, daysBetween, weekStart, dayDate, formatDuration, formatHoursShort, formatDay, monthShort, MONTHS_LONG, wordsThrough } from "./lib/stats.js";
 import { statRows, needsCounting, paceFor, trackedPace, hasAnyStats, flushStats } from "./stats.js";
-import {
-  displayTitle, bookPercent, seriesVolumes, seriesPercent, currentVolume, absChapterNum, volumeNumber,
-  wordsRead, bookIsStarted, volumeChapterOffset,
-} from "./reading.js";
+import { displayTitle, bookPercent, seriesVolumes, seriesPercent, currentVolume, absChapterNum, volumeNumber, wordsRead, bookIsStarted, volumeChapterOffset } from "./reading.js";
 import { go } from "./router.js";
 
 const MIN_DAY_MS = 60 * 1000; // a day counts as "read" from a minute on
-const RECENT_DAYS = 14; // "lately": what finish dates and chapters a day use
+const RECENT_DAYS = 14; // what finish dates project with
+const USUAL_WEEKS = 6; // "your usual week": the average of this many full weeks
+const USUAL_MONTHS = 6; // … and of up to this many full months
 let period = "week"; // the overall screen's Week / Month / Year / All
 let offset = 0; // which one: 0 the current, −1 the one before, …
 let renderToken = 0;
@@ -74,32 +72,23 @@ function sumRange(days, from, to) {
   }
   return out;
 }
-// Totals, plus the averages over READING days (a minute or more) — "a day"
-// everywhere in these screens means a day you read.
+// Total time, and the first and last day read.
 function totals(days) {
-  const t = { ms: 0, chapters: 0, sessions: 0, readDays: 0, dayMs: 0, dayChapters: 0, first: null, last: null };
-  let rdMs = 0;
-  let rdCh = 0;
+  const t = { ms: 0, first: null, last: null };
   for (const [k, d] of days) {
     t.ms += d.ms;
-    t.chapters += d.chapters;
-    t.sessions += d.sessions;
-    if (d.ms >= MIN_DAY_MS) {
-      t.readDays++;
-      rdMs += d.ms;
-      rdCh += d.chapters;
-    }
     if (d.ms > 0 && (!t.first || k < t.first)) t.first = k;
     if (d.ms > 0 && (!t.last || k > t.last)) t.last = k;
   }
-  if (t.readDays) {
-    t.dayMs = rdMs / t.readDays;
-    t.dayChapters = rdCh / t.readDays;
-  }
   return t;
 }
-const readDaySet = (days) => new Set([...days].filter(([, d]) => d.ms >= MIN_DAY_MS).map(([k]) => k));
 const firstDayOf = (days) => [...days].filter(([, d]) => d.ms > 0).map(([k]) => k).sort()[0] || null;
+// Days of [from, to] read (a minute or more).
+function daysRead(days, from, to) {
+  let n = 0;
+  for (const [k, d] of days) if (k >= from && k <= to && d.ms >= MIN_DAY_MS) n++;
+  return n;
+}
 
 // Average reading time per calendar day lately — what a finish date projects with.
 function recentRate(days, day, first) {
@@ -107,6 +96,53 @@ function recentRate(days, day, first) {
   const span = Math.min(RECENT_DAYS, daysBetween(first, day) + 1);
   return sumRange(days, addDays(day, -(span - 1)), day).ms / span;
 }
+
+// ---- Your usual ---------------------------------------------------------------
+
+const monthFrom = (y, mo) => dayKey(new Date(y, mo, 1).getTime());
+const monthTo = (y, mo) => dayKey(new Date(y, mo + 1, 0).getTime());
+
+// The average of the last full weeks before this one (up to USUAL_WEEKS, and
+// none from before you started): { ms, n } or null.
+function usualWeek(days, day) {
+  const first = firstDayOf(days);
+  if (!first) return null;
+  const mon = weekStart(day);
+  let ms = 0;
+  let n = 0;
+  for (let i = 1; i <= USUAL_WEEKS; i++) {
+    const from = addDays(mon, -7 * i);
+    if (from < first) break;
+    ms += sumRange(days, from, addDays(from, 6)).ms;
+    n++;
+  }
+  return n ? { ms: ms / n, n } : null;
+}
+// The same over full months.
+function usualMonth(days, day) {
+  const first = firstDayOf(days);
+  if (!first) return null;
+  const t = dayDate(day);
+  let ms = 0;
+  let n = 0;
+  for (let i = 1; i <= USUAL_MONTHS; i++) {
+    const d = new Date(t.getFullYear(), t.getMonth() - i, 1);
+    const from = monthFrom(d.getFullYear(), d.getMonth());
+    if (from < first) break;
+    ms += sumRange(days, from, monthTo(d.getFullYear(), d.getMonth())).ms;
+    n++;
+  }
+  return n ? { ms: ms / n, n } : null;
+}
+// Best calendar week / month: { from, ms } or null.
+function bestOf(days, keyOf) {
+  const per = new Map();
+  for (const [k, d] of days) if (d.ms > 0) per.set(keyOf(k), (per.get(keyOf(k)) || 0) + d.ms);
+  let best = null;
+  for (const [from, ms] of per) if (!best || ms > best.ms) best = { from, ms };
+  return best;
+}
+const monthKeyOf = (k) => k.slice(0, 8) + "01";
 
 // ---- Shared pieces ------------------------------------------------------------
 
@@ -118,24 +154,28 @@ const tile = (k, v, sub) =>
 const wpm = (pace) => Math.round(pace * 60000);
 const plural = (n, w) => `${n.toLocaleString("en-US")} ${w}${n === 1 ? "" : "s"}`;
 const fmtN = (n) => n.toLocaleString("en-US");
-// "2.5", "12" — one decimal while it still says something.
-const perDayNum = (x) => (x < 10 ? String(Math.round(x * 10) / 10) : String(Math.round(x)));
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DOW_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const dayName = (k, day) => `${DOW[dayDate(k).getDay()]}, ${formatDay(k, day)}`;
-// Calendar shade for a day's reading time.
-const level = (ms) => (ms < MIN_DAY_MS ? 0 : ms < 30 * 60000 ? 1 : ms < 90 * 60000 ? 2 : ms < 180 * 60000 ? 3 : 4);
-// One day, in words: "1 h 20 · 9 chapters".
-function dayLine(d) {
-  if (!d || d.ms < MIN_DAY_MS) return "nothing read";
-  const ch = Math.round(d.chapters);
-  return formatDuration(d.ms) + (ch ? ` · ${plural(ch, "chapter")}` : "");
+// "Jan 4 – 10", "Dec 28 – Jan 3".
+function weekRange(mon, day) {
+  const sun = addDays(mon, 6);
+  const same = dayDate(mon).getMonth() === dayDate(sun).getMonth();
+  return `${formatDay(mon, day)} – ${same ? dayDate(sun).getDate() : formatDay(sun, day)}`;
 }
+// "December", or "December 2025" in another year.
+function monthName(k, day) {
+  const d = dayDate(k);
+  return MONTHS_LONG[d.getMonth()] + (d.getFullYear() !== dayDate(day).getFullYear() ? ` ${d.getFullYear()}` : "");
+}
+const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 
 // Bars of reading time. buckets: [{ label, name, ms, current, future }].
 // With `onPick`, each past bar is a button: tapping one calls onPick(index),
 // tapping it again calls onPick(null). Future bars are inert dotted stubs.
-function barChart(buckets, { height = 110, values = false, aria = "", onPick = null } = {}) {
-  const max = Math.max(1, ...buckets.map((b) => b.ms));
+// `line` ({ ms, label }) draws your usual as a dashed line across.
+function barChart(buckets, { height = 110, values = false, aria = "", onPick = null, line = null } = {}) {
+  const max = Math.max(1, ...buckets.map((b) => b.ms), line ? line.ms * 1.08 : 0);
   const room = values ? height - 16 : height;
   const bars = h("div", { class: "st-bars", style: `height:${height}px`, role: onPick ? "group" : "img", "aria-label": aria });
   const labels = h("div", { class: "st-bars__labels" });
@@ -172,6 +212,8 @@ function barChart(buckets, { height = 110, values = false, aria = "", onPick = n
     cols.push(col);
     bars.append(col);
   });
+  if (line && line.ms > 0)
+    bars.append(h("div", { class: "st-bars__line", style: `bottom:${Math.round((line.ms / max) * room)}px`, "aria-hidden": "true" }, line.label ? h("span", null, line.label) : null));
   return chart;
 }
 
@@ -316,23 +358,6 @@ function bookModel(scope) {
   return { ids, rows, days, t, today: day, pace, measured, pos, leftMs, rate, finishIn };
 }
 
-// Chapters per reading day over the last two weeks, and this week's so far;
-// null when nothing was read in that time.
-function chaptersLately(days, day) {
-  const from = addDays(day, -(RECENT_DAYS - 1));
-  const mon = weekStart(day);
-  let n = 0;
-  let ch = 0;
-  let week = 0;
-  for (const [k, d] of days) {
-    if (k < from || k > day || d.ms < MIN_DAY_MS) continue;
-    n++;
-    ch += d.chapters;
-    if (k >= mon) week += d.chapters;
-  }
-  return n ? { perDay: ch / n, week: Math.round(week) } : null;
-}
-
 function renderBook(content, scope) {
   const m = bookModel(scope);
   const { t, today: day } = m;
@@ -366,40 +391,47 @@ function renderBook(content, scope) {
     return;
   }
 
-  // Tiles — time read, time left, and chapters a day (or, for a book set
-  // aside, when you last read it).
+  // Tiles — time left (and when), time a week lately (or, for a book set
+  // aside, when you last read it), time read.
   const done = m.pos.leftWords <= 0;
   const endWord = scope.kind === "series" ? "caught up" : "done";
   const leftTile = done
     ? tile("Time left", "Done", endWord === "done" ? "finished" : "caught up")
     : tile("Time left", formatDuration(m.leftMs), m.finishIn != null ? `${endWord} ~${formatDay(addDays(day, m.finishIn), day)}` : "at your pace");
-  const lately = chaptersLately(m.days, day);
-  const third = lately
-    ? tile("Chapters a day", perDayNum(lately.perDay), `${plural(lately.week, "chapter")} this week`)
-    : tile("Last read", formatDay(t.last, day), plural(daysBetween(t.last, day), "day") + " ago");
-  content.append(h("div", { class: "st-tiles st-tiles--3" }, tile("Time read", formatDuration(t.ms), `since ${formatDay(t.first, day)}`), leftTile, third));
+  const from = addDays(day, -27);
+  const start = t.first > from ? t.first : from;
+  const lateMs = sumRange(m.days, start, day).ms;
+  const span = daysBetween(start, day) + 1;
+  const lately =
+    lateMs >= MIN_DAY_MS
+      ? tile("Lately", formatDuration(lateMs / Math.max(1, span / 7)), span >= 28 ? "a week, last 4 weeks" : "a week so far")
+      : tile("Last read", formatDay(t.last, day), plural(daysBetween(t.last, day), "day") + " ago");
+  content.append(h("div", { class: "st-tiles st-tiles--3" }, leftTile, lately, tile("Time read", formatDuration(t.ms), `since ${formatDay(t.first, day)}`)));
 
-  const miles = milestones(scope, m);
-  if (miles) content.append(h("section", { class: "st-section" }, label("Milestones", m.finishIn != null ? "at your recent pace" : null), miles));
+  const curve = progressCurve(scope, m);
+  if (curve) content.append(h("section", { class: "st-section" }, label("Progress", curve.ahead ? "dashed: at your recent pace" : null), curve.node));
+  if (m.pos.behind)
+    content.append(h("p", { class: "st-note" }, `${plural(m.pos.behind, "earlier chapter")} still unread — not counted in the time left.`));
 
-  if (scope.kind === "series" && scope.books.length > 1) {
-    const tl = volumeTimeline(scope, m);
-    if (tl) content.append(h("section", { class: "st-section" }, label("Volumes"), tl));
-  }
-
-  // Hours per week, last 8 weeks.
+  // Hours per week, last 8 weeks, against your usual week on this book.
   const thisWeek = weekStart(day);
   const weeks = [];
   for (let i = 7; i >= 0; i--) {
-    const from = addDays(thisWeek, -7 * i);
-    const s = sumRange(m.days, from, addDays(from, 6));
-    const d = dayDate(from);
-    const prev = dayDate(addDays(from, -7));
+    const wf = addDays(thisWeek, -7 * i);
+    const s = sumRange(m.days, wf, addDays(wf, 6));
+    const d = dayDate(wf);
+    const prev = dayDate(addDays(wf, -7));
     const lbl = i === 7 || d.getMonth() !== prev.getMonth() ? `${monthShort(d.getMonth())} ${d.getDate()}` : String(d.getDate());
     weeks.push({ ...s, label: lbl, current: i === 0 });
   }
+  const usual = usualWeek(m.days, day);
   content.append(
-    h("section", { class: "st-section" }, label("Hours per week", "last 8 weeks"), barChart(weeks, { height: 118, values: true, aria: "Hours read per week over the last 8 weeks" }))
+    h(
+      "section",
+      { class: "st-section" },
+      label("Hours per week", usual ? `last 8 weeks · dashed: usual ${formatDuration(usual.ms)}` : "last 8 weeks"),
+      barChart(weeks, { height: 118, values: true, aria: "Hours read per week over the last 8 weeks", line: usual ? { ms: usual.ms } : null })
+    )
   );
 
   // Details.
@@ -409,185 +441,125 @@ function renderBook(content, scope) {
   if (read) table.append(row("Words read", formatCompactNumber(read) + (all ? ` of ${formatCompactNumber(all)}` : "")));
   // Unmeasured, every hour above rests on the assumed pace — say so.
   table.append(row("Pace", m.measured ? `${wpm(m.pace)} words / min` : `≈ ${wpm(m.pace)} words / min · assumed`));
-  if (t.readDays) table.append(row("Average reading day", formatDuration(t.dayMs)));
-  table.append(row("Days read", `${t.readDays} of ${daysBetween(t.first, day) + 1}`));
-  const rd = readDaySet(m.days);
-  const cur = currentStreak(rd, day);
-  const best = longestStreak(rd);
-  table.append(row("Streak", plural(cur, "day") + (best > cur ? ` · best ${best}` : "")));
-  if (t.sessions) table.append(row("Sessions", `${fmtN(t.sessions)} · ${formatDuration(t.ms / t.sessions)} average`));
+  table.append(row("Started", formatDay(t.first, day)));
   content.append(h("section", { class: "st-section" }, label("Details"), table));
 }
 
-// Where you are on the road through a book / series: the last round chapter
-// behind you (and the day you got there), the chapter you're on, and what's
-// ahead — the next round chapters, the end of this volume, the end — dated at
-// your recent reading rate, from the same words-left as the "Time left" tile.
-function milestones(scope, m) {
-  const { list, cur, behind: unreadBehind } = m.pos;
-  if (cur >= list.length) return null;
-  const day = m.today;
-  const curAbs = list[cur].abs;
-  const lastIdx = list.length - 1;
-  const atOrAfter = (n) => {
-    for (let i = cur; i < list.length; i++) if (list[i].abs >= n) return i;
-    return -1;
-  };
-  const round = roundMilestones(curAbs, list[lastIdx].abs);
-
-  // Ahead — by chapter index, so an odd label number can't misplace them.
-  const targets = new Map(); // idx → { label, sub }
-  for (const n of round.ahead) {
-    const i = atOrAfter(n);
-    if (i > cur) targets.set(i, { label: `Chapter ${fmtN(list[i].abs)}` });
-  }
-  if (scope.kind === "series") {
-    const vol = list[cur].book;
-    let end = cur;
-    while (end + 1 < list.length && list[end + 1].book === vol) end++;
-    if (end < lastIdx) targets.set(end, { label: `End of Vol. ${volumeNumber(scope.series, vol)}`, sub: `chapter ${fmtN(list[end].abs)}` });
-  }
-  if (lastIdx > cur) targets.set(lastIdx, scope.kind === "series" ? { label: "Caught up", sub: `chapter ${fmtN(list[lastIdx].abs)}` } : { label: "The end" });
-
-  const rows = [];
-  const mile = (kind, text, sub, when, whenSub) =>
-    h(
-      "div",
-      { class: "st-mile is-" + kind },
-      h("span", { class: "st-mile__dot", "aria-hidden": "true" }),
-      h("span", { class: "st-mile__text" }, h("span", { class: "st-mile__label" }, text), sub ? h("span", { class: "st-mile__sub" }, sub) : null),
-      h("span", { class: "st-mile__when" }, when, whenSub ? h("span", { class: "st-mile__sub" }, whenSub) : null)
-    );
-
-  // Behind: the day the running count of finished chapters reached it —
-  // anchored so the count today matches where you are.
-  if (round.behind != null) {
-    const bi = list.findIndex((c) => c.abs >= round.behind);
-    const perDay = [...m.days].filter(([, d]) => d.chapters > 0).sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, d]) => [k, d.chapters]);
-    const counted = perDay.reduce((n, [, c]) => n + c, 0);
-    const shift = cur - counted; // chapters done that no reading explains (marked read, skipped)
-    const reached = bi >= 0 && bi + 1 > shift ? dayReaching(perDay, bi + 1, shift) : null;
-    if (reached) rows.push(mile("past", `Chapter ${fmtN(round.behind)}`, null, formatDay(reached, day), null));
-  }
-  rows.push(mile("now", `Chapter ${fmtN(curAbs)}`, list[cur].frac > 0 ? `${Math.round(list[cur].frac * 100)}% in` : null, "now", null));
-
-  for (const [i, tg] of [...targets].sort((a, b) => a[0] - b[0]).slice(0, 4)) {
-    const words = wordsThrough(list, i, cur);
-    if (!(m.rate > 0)) {
-      rows.push(mile("ahead", tg.label, tg.sub, formatDuration(words / m.pace), "of reading"));
-      continue;
-    }
-    const days = words / m.pace / m.rate;
-    if (days > 3 * 365) continue;
-    const n = Math.max(0, Math.ceil(days - 0.05));
-    rows.push(mile("ahead", tg.label, tg.sub, n === 0 ? "today" : formatDay(addDays(day, n), day), n === 0 ? null : n === 1 ? "tomorrow" : `in ${plural(n, "day")}`));
-  }
-  if (rows.length < 2) return null;
-  const out = h("div", { class: "st-miles" }, rows);
-  if (unreadBehind)
-    return h("div", null, out, h("p", { class: "st-note" }, `${plural(unreadBehind, "earlier chapter")} still unread — not counted in the time left.`));
-  return out;
-}
-
-// One bar per volume across time: read (solid) and still ahead at your pace
-// (dashed), and a line for today. A long series folds into a few rows: the
-// volumes finished long ago as one, the recent and current ones, and the
-// rest ahead as one.
-function volumeTimeline(scope, m) {
-  const day = m.today;
+// How far through the book / series you were, day by day, from the first day
+// read to today — then dashed to the end at your recent pace. Volumes (or the
+// book) are the unit: each counts as 1, filled by the share of its words read.
+// Worked backwards from where you are today, undoing each day's words, so it
+// ends exactly at your position and whatever was read before tracking (or
+// marked read) shows as the starting height. { node, ahead } or null.
+function progressCurve(scope, m) {
   const { list, cur } = m.pos;
-  const curBook = list[cur]?.book || null;
-  const vols = scope.books.map((b, vi) => {
-    const r = m.rows.filter((x) => x.bookId === b.id && x.ms > 0).map((x) => x.day).sort();
-    const ms = m.rows.reduce((n, x) => n + (x.bookId === b.id ? x.ms : 0), 0);
-    const left = list.reduce((n, c, i) => n + (c.book === b && i >= cur ? c.words * (1 - Math.min(1, c.frac)) : 0), 0);
-    return { b, vi, first: r[0], last: r.at(-1), ms, left, num: volumeNumber(scope.series, b) };
-  });
-  const firsts = vols.map((v) => v.first).filter(Boolean).sort();
-  if (!firsts.length) return null;
-  const start = firsts[0];
-  const off = (k) => daysBetween(start, k);
-  const todayOff = off(day) + 1;
-
-  // Projection: what's left, volume after volume, at your recent rate.
-  let cursor = todayOff;
-  for (const v of vols) {
-    if (!(v.left > 0) || !m.rate) continue;
-    const days = v.left / m.pace / m.rate;
-    if (cursor + days - todayOff > 365) continue;
-    v.ahead = [cursor, cursor + days];
-    cursor += days;
+  const day = m.today;
+  const first = m.t.first;
+  if (!first || !list.length) return null;
+  const vols = new Map(); // bookId → { w: total words, f: share read now }
+  for (const c of list) {
+    let v = vols.get(c.book.id);
+    if (!v) vols.set(c.book.id, (v = { w: 0, r: 0 }));
+    v.w += c.words;
+    v.r += c.words * Math.min(1, c.frac);
   }
-
-  // Fold a long series.
-  const curVi = curBook ? scope.books.indexOf(curBook) : vols.findLastIndex((v) => v.first);
-  let shownRows = vols.map((v) => ({ ...v, name: `Vol. ${v.num}` }));
-  if (vols.length > 8) {
-    const pastEnd = Math.max(0, curVi - 2); // volumes before this fold into one
-    const aheadStart = Math.min(vols.length, curVi + 3); // and from this one on
-    const group = (vs) => {
-      if (vs.length < 2) return vs.map((v) => ({ ...v, name: `Vol. ${v.num}` }));
-      const fs = vs.map((v) => v.first).filter(Boolean).sort();
-      const ls = vs.map((v) => v.last).filter(Boolean).sort();
-      const ah = vs.map((v) => v.ahead).filter(Boolean);
-      return [
-        {
-          name: `Vol. ${vs[0].num}–${vs.at(-1).num}`,
-          first: fs[0],
-          last: ls.at(-1),
-          ms: vs.reduce((n, v) => n + v.ms, 0),
-          left: vs.reduce((n, v) => n + v.left, 0),
-          ahead: ah.length ? [ah[0][0], ah.at(-1)[1]] : null,
-        },
-      ];
-    };
-    shownRows = [...group(vols.slice(0, pastEnd)), ...vols.slice(pastEnd, aheadStart).map((v) => ({ ...v, name: `Vol. ${v.num}` })), ...group(vols.slice(aheadStart))];
+  for (const v of vols.values()) v.f = v.w > 0 ? v.r / v.w : 0;
+  const perDay = new Map(); // day → [[bookId, words]]
+  const credited = new Map(); // bookId → words credited in all
+  for (const r of m.rows) {
+    if (!(r.words > 0)) continue;
+    (perDay.get(r.day) || perDay.set(r.day, []).get(r.day)).push([r.bookId, r.words]);
+    credited.set(r.bookId, (credited.get(r.bookId) || 0) + r.words);
   }
-
-  const end = Math.max(todayOff, cursor, ...vols.map((v) => v.last).filter(Boolean).map((k) => off(k) + 1));
-  const pc = (x) => `${((x / end) * 100).toFixed(2)}%`;
-  const seg = (a, b, cls) => h("div", { class: "st-tl__seg " + cls, style: `left:${pc(a)};width:${pc(Math.max(b - a, 0.6))}` });
-  const wide = shownRows.some((r) => r.name.includes("–"));
-
-  const grid = h("div", { class: "st-tl" + (wide ? " st-tl--wide" : ""), role: "img", "aria-label": "When each volume was read" });
-  const marks = h("div", { class: "st-tl__marks", "aria-hidden": "true" });
-  marks.append(h("div", { class: "st-tl__today", style: `left:${pc(todayOff)}` }));
-  grid.append(marks);
-  let anyAhead = false;
-  for (const v of shownRows) {
-    const track = h("div", { class: "st-tl__track" });
-    if (v.first) track.append(seg(off(v.first), off(v.last) + 1, "is-tracked"));
-    if (v.ahead) {
-      track.append(seg(v.ahead[0], v.ahead[1], "is-ahead"));
-      anyAhead = true;
+  // More words credited than you're through (re-reading, a chapter counted
+  // long): share what you are through among those days instead.
+  for (const [id, v] of vols) {
+    const c = credited.get(id) || 0;
+    v.scale = c > v.r && c > 0 ? v.r / c : 1;
+  }
+  const n = daysBetween(first, day); // ys[i]: at the start of day first+i; ys[n+1]: now
+  const ys = new Array(n + 2);
+  const level = () => [...vols.values()].reduce((a, v) => a + v.f, 0);
+  ys[n + 1] = level();
+  for (let i = n; i >= 0; i--) {
+    for (const [id, w] of perDay.get(addDays(first, i)) || []) {
+      const v = vols.get(id);
+      if (v && v.w > 0) v.f = Math.max(0, v.f - (w * v.scale) / v.w);
     }
-    const time = v.ms >= MIN_DAY_MS ? formatHoursShort(v.ms) : v.left > 0 ? `+${formatHoursShort(v.left / m.pace)}` : "";
-    grid.append(h("div", { class: "st-tl__row" }, h("span", { class: "st-tl__name" }, v.name), track, h("span", { class: "st-tl__time" + (v.ms >= MIN_DAY_MS ? "" : " is-ahead") }, time)));
+    ys[i] = level();
   }
-  // Month ticks along the bottom.
-  const ticks = h("div", { class: "st-tl__ticks", "aria-hidden": "true" });
-  const d = dayDate(start);
-  d.setDate(1);
-  const monthStarts = [];
-  for (let i = 0; i < 24; i++) {
-    const k = dayKey(d.getTime());
-    const x = off(k);
-    if (x > end) break;
-    if (x >= 0) monthStarts.push({ x, name: monthShort(d.getMonth()) });
-    d.setMonth(d.getMonth() + 1);
+  // Ahead: what's left, in the same units, over the days it'll take.
+  let leftUnits = 0;
+  for (let i = cur; i < list.length; i++) {
+    const v = vols.get(list[i].book.id);
+    if (v.w > 0) leftUnits += (list[i].words * (1 - Math.min(1, list[i].frac))) / v.w;
   }
-  const every = monthStarts.length > 6 ? 2 : 1;
-  monthStarts.forEach((ms, i) => {
-    if (i % every === 0) ticks.append(h("span", { style: `left:${pc(ms.x)}` }, ms.name));
-  });
-  grid.append(h("div", { class: "st-tl__row st-tl__row--ticks" }, h("span"), ticks, h("span")));
+  const ahead = m.finishIn != null && m.finishIn <= 730 && leftUnits > 0 ? m.finishIn : null;
 
-  const legend = h("div", { class: "st-legend" });
-  const item = (cls, text) => h("span", null, h("span", { class: "st-legend__key " + cls, "aria-hidden": "true" }), text);
-  legend.append(item("is-tracked", "read"));
-  if (anyAhead) legend.append(item("is-ahead", "ahead, at your pace"));
-  legend.append(item("is-today", "today"));
-  return h("div", null, grid, legend);
+  const units = scope.books.length;
+  const asVolumes = scope.kind === "series" && units > 1;
+  const W = Math.round(Math.min(600, Math.max(280, (el.statsScreen?.clientWidth || 375) - 40)));
+  const H = 180;
+  const L = asVolumes ? 48 : 36;
+  const R = 8;
+  const T = 10;
+  const B = 20;
+  const span = Math.max(7, n + 1 + (ahead || 0));
+  const X = (i) => L + (i / span) * (W - L - R);
+  const Y = (v) => T + (1 - v / units) * (H - T - B);
+  const f1 = (x) => x.toFixed(1);
+
+  const parts = [];
+  // Rows: one line per volume (or 0 / 50 / 100 %), labelled on the left.
+  if (asVolumes) {
+    const step = Math.ceil(units / 4);
+    const lineStep = units <= 40 ? 1 : step;
+    for (let v = 0; v <= units; v += lineStep) parts.push(`<line class="st-curve__grid" x1="${L}" x2="${W - R}" y1="${f1(Y(v))}" y2="${f1(Y(v))}"/>`);
+    for (let v = 1; v <= units; v += step)
+      parts.push(`<text class="st-curve__axis" x="${L - 6}" y="${f1(Y(v - 0.5) + 3)}" text-anchor="end">Vol. ${volumeNumber(scope.series, scope.books[v - 1])}</text>`);
+  } else {
+    // Words, not the chapter % on the header — so no % on the side either.
+    for (const v of [0, 0.5, 1]) parts.push(`<line class="st-curve__grid" x1="${L}" x2="${W - R}" y1="${f1(Y(v * units))}" y2="${f1(Y(v * units))}"/>`);
+    parts.push(`<text class="st-curve__axis" x="${L - 6}" y="${f1(Y(0) + 3)}" text-anchor="end">start</text>`);
+    parts.push(`<text class="st-curve__axis" x="${L - 6}" y="${f1(Y(units) + 3)}" text-anchor="end">end</text>`);
+  }
+  // Month names along the bottom.
+  const d = dayDate(first);
+  const months = d.getDate() <= 10 ? [[0, monthShort(d.getMonth())]] : [];
+  d.setDate(1);
+  for (let i = 0; i < 40; i++) {
+    d.setMonth(d.getMonth() + 1);
+    const x = daysBetween(first, dayKey(d.getTime()));
+    if (x > span) break;
+    months.push([x, monthShort(d.getMonth())]);
+  }
+  const every = Math.ceil(months.length / 7) || 1;
+  months.forEach(([x, name], i) => {
+    if (i % every === 0) parts.push(`<text class="st-curve__axis" x="${f1(X(x) + 2)}" y="${H - 4}">${name}</text>`);
+  });
+  // The road so far, then ahead.
+  const pts = ys.map((v, i) => `${f1(X(i))} ${f1(Y(v))}`);
+  parts.push(`<path class="st-curve__area" d="M${pts.join(" L")} L${f1(X(n + 1))} ${f1(Y(0))} L${f1(X(0))} ${f1(Y(0))} Z"/>`);
+  parts.push(`<path class="st-curve__line" d="M${pts.join(" L")}"/>`);
+  const nowX = X(n + 1);
+  const nowY = Y(ys[n + 1]);
+  if (ahead != null) {
+    const endX = X(n + 1 + ahead);
+    const endY = Y(ys[n + 1] + leftUnits);
+    const word = scope.kind === "series" ? "caught up" : "done";
+    parts.push(`<line class="st-curve__line st-curve__ahead" x1="${f1(nowX)}" y1="${f1(nowY)}" x2="${f1(endX)}" y2="${f1(endY)}"/>`);
+    parts.push(`<circle class="st-curve__end" cx="${f1(endX)}" cy="${f1(endY)}" r="3.5"/>`);
+    parts.push(`<text class="st-curve__lbl" x="${f1(endX - 8)}" y="${f1(endY + 4)}" text-anchor="end">${word} ~${formatDay(addDays(day, ahead), day)}</text>`);
+  }
+  parts.push(`<circle class="st-curve__dot" cx="${f1(nowX)}" cy="${f1(nowY)}" r="4"/>`);
+  // Above-left of today is always clear (the road so far only climbs);
+  // right at the top, below-right instead.
+  const high = nowY < T + 16;
+  parts.push(`<text class="st-curve__lbl" x="${f1(high ? nowX + 8 : nowX - 8)}" y="${f1(high ? nowY + 15 : nowY - 9)}" text-anchor="${high ? "start" : "end"}">today</text>`);
+
+  const node = h("div", { class: "st-curve" });
+  node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="How far through you were over time${ahead != null ? ", and when you'll reach the end" : ""}">${parts.join("")}</svg>`;
+  return { node, ahead: ahead != null };
 }
 
 // ---- Everything ------------------------------------------------------------------
@@ -609,9 +581,8 @@ function periodBuckets(kind, day, days, off) {
     const sun = addDays(mon, 6);
     const names = ["M", "T", "W", "T", "F", "S", "S"];
     const buckets = names.map((n, i) => make(addDays(mon, i), addDays(mon, i), n, dayName(addDays(mon, i), day)));
-    const sameMonth = dayDate(mon).getMonth() === dayDate(sun).getMonth();
-    const title = off === 0 ? "This week" : off === -1 ? "Last week" : `${formatDay(mon, day)} – ${sameMonth ? dayDate(sun).getDate() : formatDay(sun, day)}`;
-    return { title, buckets, from: mon, to: sun, prevFrom: addDays(mon, -7), unit: "week" };
+    const title = off === 0 ? "This week" : off === -1 ? "Last week" : weekRange(mon, day);
+    return { title, buckets, from: mon, to: sun, unit: "week" };
   }
   const monthBucket = (y, mo, lbl) => {
     const from = dayKey(new Date(y, mo, 1).getTime());
@@ -632,13 +603,13 @@ function periodBuckets(kind, day, days, off) {
       buckets.push(make(k, k, [1, 8, 15, 22, 29].includes(i + 1) ? String(i + 1) : "", dayName(k, day)));
     }
     const title = MONTHS_LONG[mo] + (y !== t.getFullYear() ? ` ${y}` : "");
-    return { title, buckets, from: fk, to: addDays(fk, n - 1), prevFrom: dayKey(new Date(y, mo - 1, 1).getTime()), unit: "month" };
+    return { title, buckets, from: fk, to: addDays(fk, n - 1), unit: "month" };
   }
   if (kind === "year") {
     const y = t.getFullYear() + off;
     const buckets = [];
     for (let mo = 0; mo < 12; mo++) buckets.push(monthBucket(y, mo, monthShort(mo)[0]));
-    return { title: String(y), buckets, from: `${y}-01-01`, to: `${y}-12-31`, prevFrom: `${y - 1}-01-01`, unit: "year" };
+    return { title: String(y), buckets, from: `${y}-01-01`, to: `${y}-12-31`, unit: "year" };
   }
   // All time: one bar per month since the first reading.
   const first = firstDayOf(days) || day;
@@ -653,22 +624,7 @@ function periodBuckets(kind, day, days, off) {
       y++;
     }
   }
-  return { title: "All time", buckets, from: first, to: day, prevFrom: null };
-}
-
-// "12% more than this time last week" / "… than the week before".
-function comparison(p, days, day, off) {
-  if (!p.prevFrom) return null;
-  const end = off === 0 ? day : p.to;
-  const cur = sumRange(days, p.from, end);
-  const prevEnd = addDays(p.from, -1);
-  let prevTo = addDays(p.prevFrom, daysBetween(p.from, end));
-  if (prevTo > prevEnd) prevTo = prevEnd;
-  const prev = sumRange(days, p.prevFrom, prevTo);
-  if (!(prev.ms > 0) || !(cur.ms > 0)) return null;
-  const d = Math.round(((cur.ms - prev.ms) / prev.ms) * 100);
-  const than = off === 0 ? `this time last ${p.unit}` : `the ${p.unit} before`;
-  return d === 0 ? `same as ${than}` : `${Math.abs(d)}% ${d > 0 ? "more" : "less"} than ${than}`;
+  return { title: "All time", buckets, from: first, to: day, unit: "all" };
 }
 
 // The series / book a row belongs to, as one shelf entry.
@@ -731,31 +687,30 @@ function renderOverall(content, scope) {
   // Headline + chart; ‹ › (or a swipe on the chart) step through periods, a
   // tapped bar takes over the headline until it's tapped again.
   const p = periodBuckets(period, day, days, offset);
-  const sum = sumRange(days, p.from, p.to);
-  const bits = [];
-  if (sum.words >= 1) bits.push(`${formatCompactNumber(Math.round(sum.words))} words`);
-  if (sum.chapters >= 1) bits.push(plural(Math.round(sum.chapters), "chapter"));
-  const cmp = comparison(p, days, day, offset);
-  if (cmp) bits.push(cmp);
-  const total = { k: p.title, v: sum.ms ? formatDuration(sum.ms) : "0 min", sub: bits.join(" · ") };
+  const uw = usualWeek(days, day);
+  const um = usualMonth(days, day);
+  const end = p.to < day ? p.to : day;
+  const span = daysBetween(p.from, end) + 1;
+  const sum = sumRange(days, p.from, end);
+  const sub = `${period === "all" ? `since ${formatDay(p.from, day)} · ` : ""}${daysRead(days, p.from, end)} of ${plural(span, "day")} · ${formatDuration(sum.ms / span)} a day`;
+  const total = { k: p.title, v: sum.ms ? formatDuration(sum.ms) : "0 min", sub };
 
   const kEl = h("div", { class: "st-hero__k" });
   const vEl = h("div", { class: "st-hero__v" });
   const subEl = h("div", { class: "st-hero__sub" });
+  const cmpEl = versusUsual(p, sum.ms, day, uw, um);
   const show = (x) => {
     kEl.textContent = x.k;
     vEl.textContent = x.v;
-    subEl.textContent = x.sub || " ";
+    subEl.textContent = x.sub || " ";
+    if (cmpEl) cmpEl.hidden = x !== total;
   };
   show(total);
   const pick = (i) => {
     if (i == null) return show(total);
     const b = p.buckets[i];
-    const sub = [];
-    if (b.chapters >= 1) sub.push(plural(Math.round(b.chapters), "chapter"));
     const top = perShelf(rows, b.from, b.to);
-    if (top.length) sub.push(top.length > 1 ? `${top[0].title} +${top.length - 1}` : top[0].title);
-    show({ k: b.name, v: b.ms ? formatDuration(b.ms) : "Nothing read", sub: sub.join(" · ") });
+    show({ k: b.name, v: b.ms ? formatDuration(b.ms) : "Nothing read", sub: top.length ? (top.length > 1 ? `${top[0].title} +${top.length - 1}` : top[0].title) : "" });
   };
   const firstDay = firstDayOf(days);
   const canPrev = period !== "all" && !!firstDay && firstDay < p.from;
@@ -774,7 +729,10 @@ function renderOverall(content, scope) {
           h("button", { class: "st-navbtn", "aria-label": `Previous ${p.unit}`, disabled: !canPrev, onclick: () => step(-1) }, svg(ICON.back)),
           h("button", { class: "st-navbtn st-navbtn--next", "aria-label": `Next ${p.unit}`, disabled: !canNext, onclick: () => step(1) }, svg(ICON.back))
         );
-  const chart = barChart(p.buckets, { height: 110, aria: `Reading time, ${p.title}. Tap a bar for its details.`, onPick: pick });
+  // The dashed line: your usual day under daily bars, your usual month under monthly ones.
+  const daily = period === "week" || period === "month";
+  const line = daily ? uw && { ms: uw.ms / 7, label: `usual day ${formatDuration(uw.ms / 7)}` } : um && { ms: um.ms, label: `usual month ${formatHoursShort(um.ms)}` };
+  const chart = barChart(p.buckets, { height: 110, aria: `Reading time, ${p.title}. Tap a bar for its details.`, onPick: pick, line });
   // Swipe the chart: right for earlier, left for later.
   let touch = null;
   chart.addEventListener("touchstart", (e) => (touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null), { passive: true });
@@ -785,105 +743,180 @@ function renderOverall(content, scope) {
     touch = null;
     if (Math.abs(dx) > 50 && Math.abs(dx) > 2 * Math.abs(dy)) step(dx > 0 ? -1 : 1);
   });
-  content.append(h("section", { class: "st-hero" }, h("div", { class: "st-hero__head" }, kEl, nav), vEl, subEl, chart));
+  content.append(h("section", { class: "st-hero" }, h("div", { class: "st-hero__head" }, kEl, nav), vEl, subEl, cmpEl, chart));
 
-  // This period: its days, then its books.
-  content.append(periodTiles(days, p.from, p.to, day));
+  // Last · usual · best.
+  content.append(h("div", { class: "st-tiles st-tiles--3" }, ...yardsticks(days, day, uw, um)));
+
+  // The period's books, with how far you got in each.
   const ranked = perShelf(rows, p.from, p.to).slice(0, 8);
   if (ranked.length) {
     const list = h("div", { class: "st-books" });
-    const top = ranked[0].ms;
-    for (const e of ranked) {
-      list.append(
-        h(
-          "button",
-          { class: "st-bookrow", onclick: () => go({ route: "stats", kind: e.kind, id: e.id }) },
-          coverNode(e.cover, "st-bookrow__cover"),
-          h(
-            "span",
-            { class: "st-bookrow__text" },
-            h("span", { class: "st-bookrow__line" }, h("span", { class: "st-bookrow__title" }, e.title), h("span", { class: "st-bookrow__time" }, formatDuration(e.ms))),
-            h("span", { class: "st-bookrow__track" }, h("span", { style: `width:${Math.round((e.ms / top) * 100)}%` }))
-          )
-        )
-      );
-    }
+    for (const e of ranked) list.append(bookRow(e, rows, p.from, p.to, day));
     content.append(h("section", { class: "st-section" }, label("Books", p.title === "All time" ? null : p.title), list));
   }
 
   // Everything else is about you overall, whatever the tab.
   content.append(h("div", { class: "st-divider" }, h("span", null, `Since ${formatDay(firstDay, day)}`)));
-  content.append(heatmapSection(days, day, firstDay));
-  const when = whenYouRead(rows);
-  if (when) content.append(when);
-  content.append(h("section", { class: "st-section" }, label("Records"), records(days, rows, day)));
+  content.append(heatmapSection(days, rows, day, firstDay));
+  content.append(youSection(days, rows, day, uw));
+  const rec = records(days, rows, day);
+  if (rec) content.append(h("section", { class: "st-section" }, label("Records"), rec));
 }
 
-// Days read, average day, chapters a day and best day for [from, to] (up to today).
-function periodTiles(days, from, to, day) {
-  const end = to < day ? to : day;
-  let n = 0;
-  let ms = 0;
-  let ch = 0;
-  let best = null;
-  for (const [k, d] of days) {
-    if (k < from || k > end || d.ms < MIN_DAY_MS) continue;
-    n++;
-    ms += d.ms;
-    ch += d.chapters;
-    if (!best || d.ms > best[1]) best = [k, d.ms];
+// The hero's second line: this week (month) against your usual, at the same
+// point of it — "▲ 2 h 30 more than your usual by Tuesday (2 h 24)".
+function versusUsual(p, ms, day, uw, um) {
+  const usual = p.unit === "week" ? uw : p.unit === "month" ? um : null;
+  if (!usual) return null;
+  const len = daysBetween(p.from, p.to) + 1;
+  const elapsed = p.to > day ? daysBetween(p.from, day) + 1 : len;
+  const expected = (usual.ms * elapsed) / len;
+  const when = elapsed < len ? (p.unit === "week" ? ` by ${DOW_LONG[dayDate(day).getDay()]}` : ` by the ${ordinal(dayDate(day).getDate())}`) : ` ${p.unit}`;
+  const diff = ms - expected;
+  const out = h("div", { class: "st-hero__cmp" });
+  if (Math.abs(diff) < 5 * 60000) out.append(`About your usual${when} (${formatDuration(expected)})`);
+  else
+    out.append(
+      h("span", { class: diff > 0 ? "st-up" : "st-down", "aria-hidden": "true" }, diff > 0 ? "▲" : "▼"),
+      ` ${formatDuration(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than your usual${when} (${formatDuration(expected)})`
+    );
+  return out;
+}
+
+// Three tiles under the hero: last, usual and best for the tab's unit (weeks
+// for Week, months for Month, both for Year and All).
+function yardsticks(days, day, uw, um) {
+  const usualW = tile("Usual week", uw ? formatDuration(uw.ms) : "—", uw ? (uw.n > 1 ? `last ${uw.n} weeks` : "1 full week so far") : "after a full week");
+  const usualM = tile("Usual month", um ? formatDuration(um.ms) : "—", um ? (um.n > 1 ? `last ${um.n} months` : "1 full month so far") : "after a full month");
+  const bm = bestOf(days, monthKeyOf);
+  const bestM = tile("Best month", bm ? formatDuration(bm.ms) : "—", bm ? monthName(bm.from, day) : null);
+  if (period === "week") {
+    const lw = addDays(weekStart(day), -7);
+    const last = sumRange(days, lw, addDays(lw, 6)).ms;
+    const bw = bestOf(days, weekStart);
+    return [tile("Last week", formatDuration(last), weekRange(lw, day)), usualW, tile("Best week", bw ? formatDuration(bw.ms) : "—", bw ? weekRange(bw.from, day) : null)];
   }
-  const span = Math.max(1, daysBetween(from, end) + 1);
+  if (period === "month") {
+    const t = dayDate(day);
+    const lm = new Date(t.getFullYear(), t.getMonth() - 1, 1);
+    const from = monthFrom(lm.getFullYear(), lm.getMonth());
+    const last = sumRange(days, from, monthTo(lm.getFullYear(), lm.getMonth())).ms;
+    return [tile("Last month", formatDuration(last), monthName(from, day)), usualM, bestM];
+  }
+  return [usualW, usualM, bestM];
+}
+
+// One shelf entry for the Books list: its time in the period, and a bar of how
+// far through it you are, the stretch read in the period lit up — worked out
+// from the words read since, so a past period shows where you were then.
+function bookRow(e, rows, from, to, day) {
+  const vols = e.kind === "series" ? seriesVolumes(seriesById(e.id)) : [bookById(e.id)];
+  const ids = new Set(vols.map((b) => b.id));
+  const counted = vols.filter((b) => b.wordCount);
+  const avg = counted.length ? counted.reduce((n, b) => n + b.wordCount, 0) / counted.length : 0;
+  const total = vols.reduce((n, b) => n + (b.wordCount || avg), 0);
+  let inPeriod = 0;
+  let after = 0;
+  const lastDay = new Map(); // bookId → last day with words
+  for (const r of rows) {
+    if (!ids.has(r.bookId) || !(r.words > 0)) continue;
+    if (r.day >= from && r.day <= to) inPeriod += r.words;
+    else if (r.day > to && r.day <= day) after += r.words;
+    if (!lastDay.has(r.bookId) || r.day > lastDay.get(r.bookId)) lastDay.set(r.bookId, r.day);
+  }
+  const nowFrac = total ? vols.reduce((n, b) => n + wordsRead(b), 0) / total : 0;
+  const endFrac = Math.max(0, Math.min(1, nowFrac - after / total || 0));
+  const startFrac = Math.max(0, endFrac - (total ? inPeriod / total : 0));
+  const pc = (x) => `${(x * 100).toFixed(2)}%`;
+
+  // Volumes finished in the period: done now, last read in it.
+  const finished = vols.filter((b) => bookPercent(b) >= 100 && lastDay.get(b.id) >= from && lastDay.get(b.id) <= to);
+  let left;
+  if (finished.length) {
+    const s = e.kind === "series" && seriesById(e.id);
+    left = h(
+      "span",
+      { class: "st-bookrow__done" },
+      !s ? "✓ Finished" : finished.length > 2 ? `✓ Finished ${finished.length} volumes` : `✓ Finished ${finished.map((b) => "Vol. " + volumeNumber(s, b)).join(", ")}`
+    );
+  } else if (e.kind === "series") {
+    const s = seriesById(e.id);
+    const cur = currentVolume(s);
+    left = cur ? `Vol. ${volumeNumber(s, cur)} · ${bookPercent(cur)}%` : "";
+  } else left = `${bookPercent(vols[0])}% read`;
+  const d = (endFrac - startFrac) * 100;
+  const right = d >= 1 ? `+${Math.round(d)}%` : d >= 0.1 ? `+${d.toFixed(1)}%` : "";
+
   return h(
-    "div",
-    { class: "st-tiles st-tiles--2" },
-    tile("Days read", String(n), `of ${plural(span, "day")}`),
-    tile("Average day", n ? formatDuration(ms / n) : "—"),
-    tile("Chapters a day", n ? perDayNum(ch / n) : "—"),
-    tile("Best day", best ? formatDuration(best[1]) : "—", best ? dayName(best[0], day) : null)
+    "button",
+    { class: "st-bookrow", onclick: () => go({ route: "stats", kind: e.kind, id: e.id }) },
+    coverNode(e.cover, "st-bookrow__cover"),
+    h(
+      "span",
+      { class: "st-bookrow__text" },
+      h("span", { class: "st-bookrow__line" }, h("span", { class: "st-bookrow__title" }, e.title), h("span", { class: "st-bookrow__time" }, formatDuration(e.ms))),
+      h(
+        "span",
+        { class: "st-bookrow__track" },
+        h("span", { class: "st-bookrow__was", style: `width:${pc(startFrac)}` }),
+        h("span", { class: "st-bookrow__now", style: `left:${pc(startFrac)};width:${pc(Math.max(endFrac - startFrac, 0.004))}` })
+      ),
+      h("span", { class: "st-bookrow__sub" }, h("span", null, left), h("span", null, right))
+    )
   );
 }
 
-// Personal bests, plus your pace.
+// Personal bests.
 function records(days, rows, day) {
   const table = h("div", { class: "info-table st-table" });
-  const rd = readDaySet(days);
-  const cur = currentStreak(rd, day);
-  const longest = longestStreak(rd);
-  table.append(row("Streak", plural(cur, "day") + (longest > cur ? ` · best ${longest}` : "")));
   let top = null;
-  let chDay = null;
-  const weeks = new Map();
-  for (const [k, d] of days) {
-    if (!(d.ms > 0)) continue;
-    if (!top || d.ms > top[1]) top = [k, d.ms];
-    if (d.chapters >= 1 && (!chDay || d.chapters > chDay[1])) chDay = [k, d.chapters];
-    const w = weekStart(k);
-    weeks.set(w, (weeks.get(w) || 0) + d.ms);
-  }
-  let week = null;
-  for (const [w, ms] of weeks) if (!week || ms > week[1]) week = [w, ms];
-  let session = null;
-  for (const r of rows) if (r.best > 0 && (!session || r.best > session[1])) session = [r.day, r.best];
+  for (const [k, d] of days) if (d.ms > 0 && (!top || d.ms > top[1])) top = [k, d.ms];
+  let sitting = null;
+  for (const r of rows) if (r.best > 0 && (!sitting || r.best > sitting[1])) sitting = [r.day, r.best];
+  const bm = bestOf(days, monthKeyOf);
   if (top) table.append(row("Longest day", `${formatDuration(top[1])} · ${formatDay(top[0], day)}`));
-  if (week && weeks.size > 1) table.append(row("Best week", `${formatDuration(week[1])} · week of ${formatDay(week[0], day)}`));
-  if (chDay) table.append(row("Most chapters in a day", `${Math.round(chDay[1])} · ${formatDay(chDay[0], day)}`));
-  if (session) table.append(row("Longest session", `${formatDuration(session[1])} · ${formatDay(session[0], day)}`));
+  if (sitting) table.append(row("Longest sitting", `${formatDuration(sitting[1])} · ${formatDay(sitting[0], day)}`));
+  if (bm) table.append(row("Best month", `${formatDuration(bm.ms)} · ${monthName(bm.from, day)}`));
+  return table.children.length ? table : null;
+}
+
+// Pace, your usual day, days read this month, and when in the day you read.
+function youSection(days, rows, day, uw) {
+  const table = h("div", { class: "info-table st-table" });
   const pace = trackedPace();
   table.append(row("Pace", pace ? `${wpm(pace)} words / min` : `≈ ${wpm(paceFor(null))} words / min · assumed`));
-  return table;
+  if (uw) table.append(row("Usual day", formatDuration(uw.ms / 7)));
+  const t = dayDate(day);
+  const from = monthFrom(t.getFullYear(), t.getMonth());
+  table.append(row("Days read this month", `${daysRead(days, from, day)} of ${daysBetween(from, day) + 1}`));
+  return h("section", { class: "st-section" }, label("You"), table, whenYouRead(rows));
 }
 
 // The last 20 weeks (or since your first day), Monday first, month names on
-// top; tapping a day shows it underneath.
-function heatmapSection(days, day, firstDay) {
+// top; tapping a day shows its time and books underneath. Shades follow your
+// own days — the quarters of your range — so a long day stands out from a
+// usual one however much you read.
+function heatmapSection(days, rows, day, firstDay) {
   const back = addDays(weekStart(day), -19 * 7);
   const firstWeek = firstDay ? weekStart(firstDay) : back;
   const start = firstWeek > back ? firstWeek : back;
   const weeksN = daysBetween(start, weekStart(day)) / 7 + 1;
+  const vals = [];
+  for (const [k, d] of days) if (k >= start && k <= day && d.ms >= MIN_DAY_MS) vals.push(d.ms);
+  vals.sort((a, b) => a - b);
+  const q = (f) => vals[Math.floor(f * (vals.length - 1))] ?? 0;
+  const [q1, q2, q3] = [q(0.25), q(0.5), q(0.75)];
+  const level = (ms) => (ms < MIN_DAY_MS ? 0 : ms <= q1 ? 1 : ms <= q2 ? 2 : ms <= q3 ? 3 : 4);
   const grid = h("div", { class: "st-cal__grid", role: "group", "aria-label": "Reading days" });
   const months = h("div", { class: "st-cal__months", "aria-hidden": "true" });
   const readout = h("div", { class: "st-cal__readout" }, "Tap a day");
+  const line = (k) => {
+    const d = days.get(k);
+    if (!d || d.ms < MIN_DAY_MS) return "nothing read";
+    const top = perShelf(rows, k, k);
+    return formatDuration(d.ms) + (top.length ? ` · ${top[0].title}${top.length > 1 ? ` +${top.length - 1}` : ""}` : "");
+  };
   let sel = null;
   for (let i = 0; i < weeksN * 7; i++) {
     const k = addDays(start, i);
@@ -899,7 +932,7 @@ function heatmapSection(days, day, firstDay) {
       grid.append(h("span", { class: "st-cal__day is-future" }));
       continue;
     }
-    const cell = h("button", { type: "button", class: `st-cal__day l${level(d ? d.ms : 0)}${k === day ? " is-today" : ""}`, "aria-label": `${dayName(k, day)}: ${dayLine(d)}` });
+    const cell = h("button", { type: "button", class: `st-cal__day l${level(d ? d.ms : 0)}${k === day ? " is-today" : ""}`, "aria-label": `${dayName(k, day)}: ${line(k)}` });
     cell.addEventListener("click", () => {
       if (sel) sel.classList.remove("is-sel");
       if (sel === cell) {
@@ -910,7 +943,7 @@ function heatmapSection(days, day, firstDay) {
       }
       sel = cell;
       cell.classList.add("is-sel");
-      readout.textContent = `${dayName(k, day)} · ${dayLine(d)}`;
+      readout.textContent = `${dayName(k, day)} · ${line(k)}`;
       readout.classList.add("is-on");
     });
     grid.append(cell);
@@ -919,22 +952,23 @@ function heatmapSection(days, day, firstDay) {
   const legend = h(
     "div",
     { class: "st-cal__legend" },
-    h("span", { class: "st-cal__spacer" }),
+    h("span", { class: "st-cal__spacer" }, vals.length >= 4 ? `${formatDuration(q1)} or less` : ""),
     h("span", null, "Less"),
     [0, 1, 2, 3, 4].map((l) => h("span", { class: "st-cal__day l" + l, "aria-hidden": "true" })),
-    h("span", null, "More")
+    h("span", null, "More"),
+    h("span", { class: "st-cal__spacer2" }, vals.length >= 4 ? `over ${formatDuration(q3)}` : "")
   );
   return h(
     "section",
     { class: "st-section" },
-    label(weeksN >= 20 ? "Last 20 weeks" : "Reading days"),
+    label(weeksN >= 20 ? "Last 20 weeks" : "Reading days", "shades follow your own days"),
     h("div", { class: "st-cal" }, h("div", { class: "st-cal__body" }, h("div", { class: "st-cal__side" }, h("span", { class: "st-cal__mspacer" }), dows), h("div", null, months, grid))),
     readout,
     legend
   );
 }
 
-// Share of reading by hour of day; hidden until there's enough of it.
+// Share of reading by hour of day, small; hidden until there's enough of it.
 function whenYouRead(rows) {
   const hours = new Array(24).fill(0);
   for (const r of rows) if (r.hours) r.hours.forEach((ms, i) => (hours[i] += ms));
@@ -955,10 +989,16 @@ function whenYouRead(rows) {
   const bars = h("div", { class: "st-hours", role: "img", "aria-label": `Reading by hour of day, mostly ${hh(at)} to ${hh(at + 3)}` });
   hours.forEach((ms, i) => {
     const inPeak = (i - at + 24) % 24 < 3;
-    bars.append(h("div", { class: "st-hours__bar" + (inPeak ? " is-peak" : ""), style: `height:${Math.max(1, Math.round((ms / max) * 60))}px` }));
+    bars.append(h("div", { class: "st-hours__bar" + (inPeak ? " is-peak" : ""), style: `height:${Math.max(1, Math.round((ms / max) * 40))}px` }));
   });
   const labels = h("div", { class: "st-bars__labels st-hours__labels" }, ["00", "06", "12", "18", "24"].map((x) => h("span", null, x)));
-  return h("section", { class: "st-section" }, label("When you read", `mostly ${hh(at)} – ${hh(at + 3)}`), bars, labels);
+  return h(
+    "div",
+    { class: "st-when" },
+    h("div", { class: "st-when__head" }, h("span", null, "When you read"), h("span", { class: "st-head__aside" }, `mostly ${hh(at)} – ${hh(at + 3)}`)),
+    bars,
+    labels
+  );
 }
 
 // ---- Ways in --------------------------------------------------------------------
@@ -1003,7 +1043,7 @@ function statsCard(kind, id) {
   );
 }
 
-/** The Library's "This week" strip, under Continue. */
+/** The Library's "This week" strip, under Continue: this week, and last week beside it. */
 export function weekStrip() {
   if (!hasAnyStats()) return null;
   const days = byDay(statRows());
@@ -1012,7 +1052,8 @@ export function weekStrip() {
   const week = [];
   for (let i = 0; i < 7; i++) week.push(days.get(addDays(mon, i))?.ms || 0);
   const total = week.reduce((a, b) => a + b, 0);
-  const streak = currentStreak(readDaySet(days), day);
+  const lw = addDays(mon, -7);
+  const last = sumRange(days, lw, addDays(lw, 6)).ms;
   const max = Math.max(...week, 1);
   const bars = h("span", { class: "st-strip__bars", "aria-hidden": "true" });
   week.forEach((ms, i) => {
@@ -1027,7 +1068,7 @@ export function weekStrip() {
       "span",
       { class: "st-strip__text" },
       h("span", { class: "st-strip__k" }, "This week"),
-      h("span", { class: "st-strip__v" }, total >= MIN_DAY_MS ? formatDuration(total) : "Not yet", streak >= 2 ? h("span", { class: "st-strip__streak" }, ` · ${streak}-day streak`) : null)
+      h("span", { class: "st-strip__v" }, total >= MIN_DAY_MS ? formatDuration(total) : "Not yet", last >= MIN_DAY_MS ? h("span", { class: "st-strip__ref" }, ` · last week ${formatDuration(last)}`) : null)
     ),
     bars,
     h("span", { class: "st-strip__chev" }, svg(ICON.chevron))

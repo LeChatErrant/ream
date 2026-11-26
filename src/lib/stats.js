@@ -38,32 +38,6 @@ export function weekStart(key) {
   return addDays(key, -dow);
 }
 
-// Consecutive reading days ending today — or yesterday, so a streak isn't
-// "broken" in the morning before you've read. `days` is a Set of day keys.
-export function currentStreak(days, today) {
-  let d = days.has(today) ? today : addDays(today, -1);
-  let n = 0;
-  while (days.has(d)) {
-    n++;
-    d = addDays(d, -1);
-  }
-  return n;
-}
-export function longestStreak(days) {
-  let best = 0;
-  for (const d of days) {
-    if (days.has(addDays(d, -1))) continue; // not the start of a run
-    let n = 0;
-    let x = d;
-    while (days.has(x)) {
-      n++;
-      x = addDays(x, 1);
-    }
-    best = Math.max(best, n);
-  }
-  return best;
-}
-
 // "3 h 36", "54 min", "256 h" — hours and minutes, the minutes dropped once
 // the hours alone say enough.
 export function formatDuration(ms) {
@@ -114,33 +88,4 @@ export function wordsThrough(chapters, idx, from = 0) {
   let w = 0;
   for (let i = from; i <= idx && i < chapters.length; i++) w += chapters[i].words * (1 - Math.min(1, chapters[i].frac));
   return w;
-}
-
-// The round chapter numbers worth a milestone, ahead of `cur` (the chapter
-// being read) and up to `last`: the next hundred (fifty in shorter books, none
-// under 150 chapters) and the next thousand in very long ones. Plus the last
-// round number already behind you. Returns { behind, ahead: [n…] }.
-export function roundMilestones(cur, last) {
-  const step = last >= 500 ? 100 : last >= 150 ? 50 : 0;
-  if (!step) return { behind: null, ahead: [] };
-  const ahead = new Set();
-  const next = Math.ceil(cur / step) * step;
-  if (next < last) ahead.add(next);
-  if (last >= 2000) {
-    const k = Math.ceil(cur / 1000) * 1000;
-    if (k < last) ahead.add(k);
-  }
-  const prev = Math.floor((cur - 1) / step) * step;
-  return { behind: prev > 0 ? prev : null, ahead: [...ahead].sort((a, b) => a - b) };
-}
-
-// The first day the running total of `perDay` ([[day, chapters]] in day order),
-// shifted by `offset`, reaches `n` — when chapter n was finished — or null.
-export function dayReaching(perDay, n, offset = 0) {
-  let sum = offset;
-  for (const [day, ch] of perDay) {
-    sum += ch;
-    if (sum >= n - 1e-6) return day;
-  }
-  return null;
 }
