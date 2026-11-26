@@ -41,6 +41,14 @@ won't share a JSON file ("Permission denied"), so there it lands in Downloads. S
 matched by paragraph fingerprints (`src/lib/proof-key.js`), so separate volumes,
 a grouped series or renamed files all work.
 
+What was corrected stays visible: the top-bar pill reads `✎ n` while a chapter
+has suggestions left to review and `✓ n` (accepted corrections) once it's done;
+tapping it lists the chapter's corrections, and *Whole book ›* (or
+**Proofreading** → *Corrections in this book*) lists the whole book's, chapter by
+chapter, filtered by status — tap one to jump to it. *Underline accepted
+corrections in the text* (in those lists) marks each applied fix in green; tap
+one to see what it changed, or undo it.
+
 **The review server is a dev tool** (`npm run proofread`): a page listing every
 suggestion with filters and bulk actions, and *Write corrected epubs*. Its
 **Export proofreading** produces the file to import in Ream (also

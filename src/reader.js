@@ -32,7 +32,7 @@ import { dbPut } from "./db.js";
 import { PDF_CHAPTERS_VERSION, remapPdfProgress } from "./lib/pdf.js";
 import { scrollReaderMark } from "./brand.js";
 import {
-  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections,
+  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections, openBookCorrections,
   importProofreading, exportProofreading, removePackage, pickAndImport, canPickFiles, linkedFileName,
   prepareExport, exportVia,
 } from "./proof.js";
@@ -1160,12 +1160,28 @@ function mountProofControls() {
     class: "proof-pill",
     type: "button",
     title: "Corrections in this chapter",
-    onclick: () => openCorrections(rendition?.manager?.container),
+    onclick: () => openCorrections(rendition?.manager?.container, proofNav),
   });
   el.btnPrev.parentElement.prepend(proofPill);
   onProofChange(renderProofControls);
   renderProofControls();
 }
+
+// What the corrections lists need from the reader: where a suggestion's file
+// sits in this book (its chapter name and reading order), and a way to go there.
+const proofNav = {
+  locate(href) {
+    const items = book?.spine?.spineItems || [];
+    const it = items.find((s) => s.href === href || href.endsWith("/" + s.href) || s.href.endsWith("/" + href));
+    return it ? { href: it.href, index: it.index, label: (chapterLabelFor(it.href) || "").trim() } : null;
+  },
+  open(href) {
+    closeDrawer();
+    if (baseHref(currentHref) === baseHref(href)) return Promise.resolve();
+    return Promise.resolve(rendition?.display(baseHref(href))).catch(() => {});
+  },
+  missing: () => toast("That correction doesn't fit this copy's text"),
+};
 
 // Re-draw the chapter(s) on screen after the proofreading source changes.
 function remarkChapters() {
@@ -1236,14 +1252,20 @@ function openProofMenu() {
   const s = proofState();
   // Build the export file now, so tapping Export opens the share sheet at once (iOS).
   if (s.hasFile) prepareExport();
-  const actions = [
+  const actions = [];
+  if (s.bookTotal)
+    actions.push({
+      label: s.bookAccepted ? `Corrections in this book (${s.bookAccepted.toLocaleString()} accepted)` : "Corrections in this book",
+      onClick: () => openBookCorrections(rendition?.manager?.container, proofNav),
+    });
+  actions.push(
     { label: "Import proofreading…", now: true, onClick: pickPackageFile },
     {
       label: s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
       now: true,
       onClick: () => runExport(),
-    },
-  ];
+    }
+  );
   // A remembered file is overwritten in place; this picks another one.
   if (s.hasFile && linkedFileName()) actions.push({ label: "Export to another file…", now: true, onClick: () => runExport({ saveAs: true }) });
   if (s.hasFile)
@@ -1280,7 +1302,11 @@ function renderProofControls() {
   if (!s.enabled) status = "Off — original text";
   else if (!s.hasFile) status = "No proofreading file — tap to import";
   else
-    status = [s.bookPending != null ? `${s.bookPending.toLocaleString()} left in this book` : "Ready", s.toExport ? `${s.toExport} to export` : null]
+    status = [
+      s.bookAccepted ? `${s.bookAccepted.toLocaleString()} accepted` : null,
+      s.bookPending ? `${s.bookPending.toLocaleString()} left to review` : s.bookTotal ? "all reviewed" : "Ready",
+      s.toExport ? `${s.toExport} to export` : null,
+    ]
       .filter(Boolean)
       .join(" · ");
   proofRow.replaceChildren(
@@ -1307,20 +1333,24 @@ function renderProofControls() {
     )
   );
   proofRow.classList.toggle("proof-row--offline", s.enabled && !s.hasFile);
-  // ✎ n while some are left to review; ✎ ✓ once the chapter is done (the list
-  // still shows what was accepted / discarded); a plain ✎ when there are none.
+  // ✎ n while some are left to review; ✓ n once the chapter is done, counting
+  // the accepted corrections (the list shows them); a plain ✎ when there are none.
   // Between chapters (old one unloaded, next not matched yet) keep the pill as
   // it was, or it flashes the empty "✎" on every chapter change.
   if (s.enabled && s.hasFile && !s.chapterLoaded && !proofPill.hidden) return;
   const n = s.chapterPending;
   proofPill.hidden = !(s.enabled && s.hasFile);
-  proofPill.textContent = n ? `✎ ${n}` : s.chapterTotal ? "✎ ✓" : "✎";
-  proofPill.classList.toggle("proof-pill--clear", !n);
+  const done = s.chapterAccepted;
+  proofPill.textContent = n ? `✎ ${n}` : done ? `✓ ${done}` : s.chapterTotal ? "✓" : "✎";
+  proofPill.classList.toggle("proof-pill--clear", !n && !done);
+  proofPill.classList.toggle("proof-pill--done", !n && !!done);
   proofPill.title = n
     ? `${n} correction${n > 1 ? "s" : ""} to review in this chapter`
-    : s.chapterTotal
-      ? "Chapter reviewed — see its corrections"
-      : "No corrections in this chapter";
+    : done
+      ? `${done} correction${done > 1 ? "s" : ""} applied in this chapter — see them`
+      : s.chapterTotal
+        ? "Chapter reviewed — see its corrections"
+        : "No corrections in this chapter";
 }
 
 // -------------------------------------------------------------------------

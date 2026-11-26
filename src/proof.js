@@ -14,6 +14,10 @@
 // accepted fixes either (the Soul Sea included), so the uncorrected text is
 // always one tap away.
 //
+// What was accepted stays findable: the chapter's and the whole book's
+// corrections lists, and an optional green underline on every applied fix
+// (tap it to see what it changed, or undo it).
+//
 // Suggestions are matched by the fingerprint of the paragraph text they were
 // made for (lib/proof-key.js), never by file name or library id — so separate
 // volumes, a grouped series or a renamed file all work, and a fix never lands
@@ -29,22 +33,26 @@ import { kvGet, kvSet, kvDelete } from "./db.js";
 import { textKey } from "./lib/proof-key.js";
 
 const KEY = "ream-proofread"; // localStorage: the on/off switch
+const SHOW_KEY = "ream-proof-show"; // localStorage: highlight the accepted corrections in the text
+const BOOKS_KEY = "proof-book-of-lib"; // kv: library book id → its book key in the file, learned from matches
 const PKG_KEY = "proof-package"; // kv: the imported proofreading file
 const LOCAL_KEY = "proof-decisions"; // kv: decisions taken on this device { decisions: { id: { status, replacement?, at } }, exportedAt }
 const PACKAGE_FORMAT = "ream-proofreading";
 const DECISIONS_FORMAT = "ream-proofreading-decisions"; // older decisions-only exports
 
 let enabled = false;
+let showApplied = false;
 try {
   enabled = localStorage.getItem(KEY) === "1";
+  showApplied = localStorage.getItem(SHOW_KEY) === "1";
 } catch (_) {
   /* storage blocked: stays off */
 }
 let pkg = null; // the imported proofreading file, if any
 let byFile = new Map(); // "page-12.html" → that file's suggestions (across every book)
 let local = { decisions: {}, exportedAt: null };
-const bookOfLib = new Map(); // library book id → book key in the file, learned from matches
-let bookPending = null; // open suggestions left in the current book
+let bookOfLib = new Map(); // library book id → book key in the file, learned from matches
+let currentLib = null; // the library book the reader has open
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn());
 
@@ -56,6 +64,8 @@ export const proofReady = (async () => {
     pkg = p?.format === PACKAGE_FORMAT && Array.isArray(p.findings) ? p : null;
     const l = await kvGet(LOCAL_KEY);
     if (l?.decisions && typeof l.decisions === "object") local = l;
+    const b = await kvGet(BOOKS_KEY);
+    if (b && typeof b === "object") bookOfLib = new Map(Object.entries(b));
   } catch (_) {
     /* no IndexedDB: proofreading unavailable */
   }
@@ -74,17 +84,39 @@ function indexPackage() {
 const unexported = () => Object.values(local.decisions).filter((d) => !local.exportedAt || d.at > local.exportedAt).length;
 
 export const proofEnabled = () => enabled;
-export const proofState = () => ({
-  enabled,
-  hasFile: !!pkg,
-  bookPending,
-  chapterLoaded: onScreen().length > 0,
-  chapterPending: pendingMarks().length,
-  chapterTotal: onScreen().reduce((n, c) => n + c.findings.length, 0),
-  fileDate: pkg?.createdAt || null,
-  toExport: unexported(),
-});
+export function proofState() {
+  const shown = onScreen().flatMap((c) => c.findings);
+  const book = bookCounts(bookKeyFor(currentLib));
+  return {
+    enabled,
+    hasFile: !!pkg,
+    bookPending: book?.pending ?? null,
+    bookAccepted: book?.accepted ?? null,
+    bookTotal: book?.total ?? null,
+    chapterLoaded: onScreen().length > 0,
+    chapterPending: shown.filter((f) => f.status === "pending").length,
+    chapterAccepted: shown.filter((f) => f.status === "accepted").length,
+    chapterTotal: shown.length,
+    fileDate: pkg?.createdAt || null,
+    toExport: unexported(),
+  };
+}
 export const onProofChange = (fn) => listeners.add(fn);
+
+// Accepted corrections read like the rest of the text unless this is on: then
+// each one is underlined (green, where the marks to review are blue) and can be
+// tapped to see what it changed — or to undo it.
+export const proofShowApplied = () => showApplied;
+export function setProofShowApplied(on) {
+  showApplied = on;
+  try {
+    localStorage.setItem(SHOW_KEY, on ? "1" : "0");
+  } catch (_) {
+    /* best effort */
+  }
+  for (const c of onScreen()) c.doc.body.classList.toggle("proof-show-applied", on);
+  notify();
+}
 
 export function setProofEnabled(on) {
   enabled = on;
@@ -130,8 +162,6 @@ export async function importProofreading(file) {
     for (const [id, d] of Object.entries(incoming)) merged[id] = newer(merged[id], d);
     pkg = { ...data, decisions: merged };
     indexPackage();
-    bookOfLib.clear();
-    bookPending = null;
     await kvSet(PKG_KEY, pkg);
     setProofEnabled(true);
     const pending = pkg.findings.filter((f) => !isDecided(decisionOf(f.id, pkg.decisions))).length;
@@ -302,10 +332,10 @@ export async function removePackage() {
   pkg = null;
   indexPackage();
   local = { decisions: {}, exportedAt: null };
-  bookOfLib.clear();
-  bookPending = null;
+  bookOfLib = new Map();
   await kvDelete(PKG_KEY);
   await kvDelete(LOCAL_KEY);
+  await kvDelete(BOOKS_KEY);
   await linkFile(null);
   for (const c of onScreen()) hideChapter(c);
   chapters.clear();
@@ -402,7 +432,47 @@ function withDecision(f, d) {
 // older accept / discard (from the file or another device) when merging.
 const decisionOf = (id, base) => newer(local.decisions[id], base?.[id]);
 const isDecided = (d) => !!d && d.status !== "pending";
-const pendingInBook = (key) => (pkg?.findings || []).filter((f) => f.book === key && !isDecided(decisionOf(f.id, pkg.decisions))).length;
+
+// ---- the open book ------------------------------------------------------------
+
+const looseName = (s) => slugify(String(s || "").replace(/\.(epub|pdf)$/i, ""));
+
+/**
+ * The book key (in the file) of a library book: the one learned from a chapter
+ * that matched, else the one named like its file, else the one titled like it.
+ */
+function bookKeyFor(lib) {
+  if (!lib || !pkg) return null;
+  const books = pkg.books || {};
+  const known = bookOfLib.get(lib.id);
+  if (known && (known in books || pkg.findings.some((f) => f.book === known))) return known;
+  const slug = slugify(lib.fileName);
+  if (slug in books) return slug;
+  const title = looseName(lib.title);
+  for (const [k, name] of Object.entries(books)) if (title && (looseName(name) === title || looseName(k) === title)) return k;
+  return null;
+}
+function learnBook(lib, key) {
+  if (!lib?.id || !key || bookOfLib.get(lib.id) === key) return;
+  bookOfLib.set(lib.id, key);
+  kvSet(BOOKS_KEY, Object.fromEntries(bookOfLib)).catch(() => {});
+}
+
+/** A book's suggestions as they stand here (each with its decision folded in). */
+function bookFindings(key) {
+  if (!key || !pkg) return [];
+  return pkg.findings.filter((f) => f.book === key).map((f) => withDecision(f, decisionOf(f.id, pkg.decisions)));
+}
+function bookCounts(key) {
+  if (!key || !pkg) return null;
+  const n = { pending: 0, accepted: 0, discarded: 0, total: 0 };
+  for (const f of pkg.findings) {
+    if (f.book !== key) continue;
+    n[decisionOf(f.id, pkg.decisions)?.status || "pending"]++;
+    n.total++;
+  }
+  return n;
+}
 
 /**
  * Content hook (registered before the chapter-end card is injected): find this
@@ -436,9 +506,8 @@ export async function proofChapter(contents, lib, href) {
     return true;
   });
   if (lib) {
-    if (matched[0]) bookOfLib.set(lib.id, matched[0].book);
-    const key = bookOfLib.get(lib.id) || (pkg.books && slugify(lib.fileName) in pkg.books ? slugify(lib.fileName) : null);
-    bookPending = key ? pendingInBook(key) : null;
+    currentLib = lib;
+    if (matched[0]) learnBook(lib, matched[0].book);
   }
 
   const c = { doc, paras, heading, headingText: heading?.textContent ?? "", findings: [], base, joins: new Map(), blocks, shown: true };
@@ -447,6 +516,7 @@ export async function proofChapter(contents, lib, href) {
   doc.defaultView.addEventListener("pagehide", gone);
   doc.defaultView.addEventListener("unload", gone);
   injectStyle(doc);
+  doc.body.classList.toggle("proof-show-applied", showApplied);
   for (const f of matched) {
     const v = withDecision(f, decisionOf(f.id, base));
     c.findings.push(v);
@@ -457,11 +527,12 @@ export async function proofChapter(contents, lib, href) {
   doc.addEventListener(
     "click",
     (e) => {
-      const m = e.target.closest?.("[data-proof]");
+      const m = e.target.closest?.("[data-proof]") || (showApplied ? e.target.closest?.(".proof-applied, .proof-applied-block") : null);
       if (!m) return;
       e.preventDefault();
       e.stopPropagation();
-      const f = c.findings.find((x) => x.id === m.dataset.proof);
+      const id = m.dataset.proof || m.dataset.proofRef;
+      const f = c.findings.find((x) => x.id === id);
       if (f) openSheet(c, f);
     },
     true
@@ -490,6 +561,10 @@ function injectStyle(doc) {
     .proof-joined { display: inline !important; }
     .proof-joined + .proof-joined::before { content: " "; }
     .proof-join-head::before { content: ""; display: block; height: var(--proof-gap-top, 0); }
+    .proof-show-applied .proof-applied { background: rgba(111, 207, 151, 0.1); border-bottom: 1.5px dotted rgba(111, 207, 151, 0.8); border-radius: 2px; cursor: pointer; }
+    .proof-show-applied .proof-applied:empty { display: inline-block; min-width: 0.5em; }
+    .proof-show-applied .proof-applied-block { background: rgba(111, 207, 151, 0.06); box-shadow: -8px 0 0 -5px rgba(111, 207, 151, 0.7); border-radius: 3px; cursor: pointer; }
+    .proof-show-applied .proof-applied.is-active, .proof-show-applied .proof-applied-block.is-active { background: rgba(111, 207, 151, 0.22); }
     .proof-flash { animation: proof-flash 1.8s ease-out; border-radius: 3px; }
     @keyframes proof-flash { 0%, 35% { background: rgba(143, 179, 255, 0.34); } 100% { background: transparent; } }
   `;
@@ -606,6 +681,13 @@ const hide = (p) => p.style.setProperty("display", "none", "important");
 // Decided findings leave no visible trace, only an invisible anchor
 // (data-proof-ref) so the corrections list can jump back to them.
 const anchor = (node, f) => node && (node.dataset.proofRef = f.id);
+// An accepted fix that shows in the text: anchored, and underlined (a span) or
+// barred (a block) while "highlight corrections" is on.
+const applied = (node, f, block = node?.tagName !== "SPAN") => {
+  if (!node) return;
+  anchor(node, f);
+  node.classList.add(block ? "proof-applied-block" : "proof-applied");
+};
 
 /** Show the corrected text in the rendered chapter. */
 function applyFix(c, f) {
@@ -621,7 +703,7 @@ function applyFix(c, f) {
     const gap = ref ? c.doc.defaultView.getComputedStyle(ref).marginBottom : "1em";
     const span = c.doc.createElement("span");
     span.className = "proof-done";
-    span.dataset.proofRef = f.id;
+    applied(span, f, true);
     span.textContent = f.replacement;
     span.style.cssText = `display: block; margin: ${gap} 0`;
     if (!f.replacement.trim()) hide(span);
@@ -630,7 +712,7 @@ function applyFix(c, f) {
   }
   if (f.op === "title") {
     if (c.heading) c.heading.textContent = f.replacement;
-    return anchor(c.heading, f);
+    return applied(c.heading, f, true);
   }
   if (f.op === "delete-paras" || f.op === "replace-chapter") {
     for (const p of parasOf(c, f)) {
@@ -641,7 +723,7 @@ function applyFix(c, f) {
       // The real chapter, after the hidden copy (so reading spots before it stay put).
       const box = c.doc.createElement("div");
       box.className = "proof-done proof-chapter";
-      box.dataset.proofRef = f.id;
+      applied(box, f, true);
       const cls = c.paras[f.para].getAttribute("class") || null; // styled like the book's paragraphs
       for (const t of f.replacement.split("\n\n")) box.append(h("p", { class: cls }, t));
       c.paras[f.paraEnd].after(box);
@@ -663,16 +745,16 @@ function applyFix(c, f) {
       br.style.cssText = `display: block; height: ${gap}`;
       r.insertNode(br);
     }
-    return anchor(p, f);
+    return applied(p, f, true);
   }
   if (f.op === "split-para") {
     p.replaceChildren(...f.replacement.split("\n\n").map((t) => h("span", { class: "proof-split" }, t)));
-    return anchor(p, f);
+    return applied(p, f, true);
   }
   if (isJoin(f)) {
     c.joins.set(f.para, f.alsoDelete);
     layoutJoins(c);
-    return anchor(p, f);
+    return applied(p, f, true);
   }
   if (f.alsoDelete != null && c.paras[f.alsoDelete]) {
     hide(c.paras[f.alsoDelete]);
@@ -683,7 +765,7 @@ function applyFix(c, f) {
   r.deleteContents();
   const span = c.doc.createElement("span");
   span.className = "proof-done";
-  span.dataset.proofRef = f.id;
+  applied(span, f, false);
   span.textContent = f.replacement;
   r.insertNode(span);
 }
@@ -762,6 +844,7 @@ function revert(c, f) {
   const applied = f.status === "accepted";
   for (const n of [...c.doc.querySelectorAll(`[data-proof-ref="${CSS.escape(f.id)}"]`)]) {
     delete n.dataset.proofRef;
+    n.classList.remove("proof-applied", "proof-applied-block", "is-active");
     if (n.classList.contains("proof-chapter") || n.classList.contains("proof-break")) {
       n.remove();
     } else if (n.classList.contains("proof-done")) {
@@ -825,38 +908,178 @@ export function nextSuggestion(container) {
   return true;
 }
 
-/** The chapter's corrections — to review, accepted and discarded — as a list sheet. */
-export function openCorrections(container) {
-  const rows = [];
-  for (const c of onScreen())
-    for (const f of c.findings) rows.push({ c, f, order: f.op === "title" ? -1 : (f.para ?? f.pos ?? 0) });
-  rows.sort((a, b) => a.order - b.order);
-  const n = (st) => rows.filter((r) => r.f.status === st).length;
-  const root = sheetEl();
-  const card = root.querySelector(".proof-card");
-  const summary = [n("pending") && `${n("pending")} to review`, n("accepted") && `${n("accepted")} accepted`, n("discarded") && `${n("discarded")} discarded`]
+/** "12 to review · 340 accepted · 3 discarded" */
+const countsLine = (n) =>
+  [n.pending && `${n.pending.toLocaleString()} to review`, n.accepted && `${n.accepted.toLocaleString()} accepted`, n.discarded && `${n.discarded.toLocaleString()} discarded`]
     .filter(Boolean)
     .join(" · ");
+const tally = (list) => {
+  const n = { pending: 0, accepted: 0, discarded: 0 };
+  for (const f of list) n[f.status]++;
+  return n;
+};
+const orderOf = (f) => (f.op === "title" ? -1 : (f.para ?? f.pos ?? 0));
+
+/** One row of a corrections list. */
+const itemRow = (f, onclick) =>
+  h(
+    "button",
+    { class: "proof-item", type: "button", onclick },
+    h("span", { class: `proof-status proof-status--${f.status}` }, STATUS_LABEL[f.status]),
+    h("span", { class: "proof-item__body" }, h("span", { class: "proof-item__kind" }, KIND_LABEL[f.kind] || f.kind), h("span", { class: "proof-item__text" }, summaryOf(f)))
+  );
+
+/** The "highlight accepted corrections in the text" switch, as a row of a list sheet. */
+function highlightRow() {
+  const knob = h("span", { class: "proof-switch" + (showApplied ? " proof-switch--on" : ""), "aria-hidden": "true" });
+  const btn = h(
+    "button",
+    {
+      class: "proof-list__toggle",
+      type: "button",
+      role: "switch",
+      "aria-checked": String(showApplied),
+      onclick: () => {
+        setProofShowApplied(!showApplied);
+        btn.setAttribute("aria-checked", String(showApplied));
+        knob.classList.toggle("proof-switch--on", showApplied);
+      },
+    },
+    h("span", null, "Underline accepted corrections in the text"),
+    knob
+  );
+  return btn;
+}
+
+function showList(children) {
+  const root = sheetEl();
   // Native replaceChildren would print a null slot as "null" — drop the empty ones.
-  card.replaceChildren(...[
-    h("h2", { class: "sheet-title" }, "Corrections in this chapter"),
-    h("p", { class: "proof-list__summary" }, rows.length ? summary : "No corrections in this chapter."),
-    n("pending") ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
-    h(
-      "div",
-      { class: "proof-list" },
-      ...rows.map(({ c, f }) =>
-        h(
-          "button",
-          { class: "proof-item", type: "button", onclick: () => closeOverlay(() => focusFinding(container, c, f)) },
-          h("span", { class: `proof-status proof-status--${f.status}` }, STATUS_LABEL[f.status]),
-          h("span", { class: "proof-item__body" }, h("span", { class: "proof-item__kind" }, KIND_LABEL[f.kind] || f.kind), h("span", { class: "proof-item__text" }, summaryOf(f)))
-        )
-      )
-    )
-  ].filter(Boolean));
+  root.querySelector(".proof-card").replaceChildren(...children.filter(Boolean));
   root.hidden = false;
   armOverlay(() => (root.hidden = true));
+}
+
+/**
+ * The chapter's corrections — to review, accepted and discarded — as a list sheet.
+ * `nav` (from the reader) lets it switch to the whole book's list.
+ */
+export function openCorrections(container, nav) {
+  const rows = [];
+  for (const c of onScreen()) for (const f of c.findings) rows.push({ c, f });
+  rows.sort((a, b) => orderOf(a.f) - orderOf(b.f));
+  const n = tally(rows.map((r) => r.f));
+  const hasBook = !!nav && !!bookKeyFor(currentLib);
+  showList([
+    h(
+      "div",
+      { class: "proof-list__head" },
+      h("h2", { class: "sheet-title" }, "Corrections in this chapter"),
+      hasBook ? h("button", { class: "text-btn", type: "button", onclick: () => closeOverlay(() => openBookCorrections(container, nav)) }, "Whole book ›") : null
+    ),
+    h("p", { class: "proof-list__summary" }, rows.length ? countsLine(n) : "No corrections in this chapter."),
+    n.pending ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
+    n.accepted ? highlightRow() : null,
+    h("div", { class: "proof-list" }, ...rows.map(({ c, f }) => itemRow(f, () => closeOverlay(() => focusFinding(container, c, f))))),
+  ]);
+}
+
+const FILTERS = [
+  ["accepted", "Accepted"],
+  ["pending", "To review"],
+  ["discarded", "Discarded"],
+  ["all", "All"],
+];
+let bookFilter = null; // the list's last filter, kept while the app is open
+
+/**
+ * Every correction in the open book, chapter by chapter, filtered by status.
+ * `nav.locate(href)` → { href, index, label } of that spine document (null when
+ * the book has none such); `nav.open(href)` shows it in the reader.
+ */
+export function openBookCorrections(container, nav) {
+  const key = bookKeyFor(currentLib);
+  const all = bookFindings(key);
+  const n = tally(all);
+  let filter = bookFilter && (bookFilter === "all" || n[bookFilter]) ? bookFilter : n.accepted ? "accepted" : n.pending ? "pending" : "all";
+
+  // Group by chapter (in reading order); suggestions for documents this copy
+  // doesn't have go last.
+  const groups = new Map();
+  for (const f of all) {
+    const at = nav.locate(f.href);
+    const k = at ? at.href : "";
+    if (!groups.has(k)) groups.set(k, { at, label: at ? at.label || `Section ${at.index + 1}` : "Not in this copy", list: [] });
+    groups.get(k).list.push(f);
+  }
+  const ordered = [...groups.values()].sort((a, b) => (a.at ? a.at.index : 1e9) - (b.at ? b.at.index : 1e9));
+  for (const g of ordered) g.list.sort((a, b) => orderOf(a) - orderOf(b));
+
+  const go = (g, f) =>
+    closeOverlay(async () => {
+      if (!g.at) return;
+      await nav.open(g.at.href);
+      if (!(await focusWhenShown(container, f.id))) nav.missing?.();
+    });
+
+  const listBox = h("div", { class: "proof-list proof-list--book" });
+  const chips = h("div", { class: "proof-filters", role: "tablist" });
+  const render = () => {
+    chips.replaceChildren(
+      ...FILTERS.filter(([k]) => k === "all" || n[k]).map(([k, label]) =>
+        h(
+          "button",
+          {
+            class: "proof-filter" + (k === filter ? " is-on" : ""),
+            type: "button",
+            role: "tab",
+            "aria-selected": String(k === filter),
+            onclick: () => {
+              filter = bookFilter = k;
+              render();
+            },
+          },
+          `${label} ${(k === "all" ? all.length : n[k]).toLocaleString()}`
+        )
+      )
+    );
+    const out = [];
+    for (const g of ordered) {
+      const list = filter === "all" ? g.list : g.list.filter((f) => f.status === filter);
+      if (!list.length) continue;
+      out.push(h("div", { class: "proof-group" }, h("span", { class: "proof-group__label" }, g.label), h("span", { class: "proof-group__count" }, list.length.toLocaleString())));
+      for (const f of list) out.push(itemRow(f, () => go(g, f)));
+    }
+    listBox.replaceChildren(...out);
+  };
+  render();
+
+  showList([
+    h("h2", { class: "sheet-title" }, "Corrections in this book"),
+    h("p", { class: "proof-list__summary" }, all.length ? countsLine(n) : "No corrections for this book in the proofreading file."),
+    n.accepted ? highlightRow() : null,
+    all.length ? chips : null,
+    listBox,
+  ]);
+  sheetEl().querySelector(".proof-card").scrollTop = 0;
+}
+
+/**
+ * Focus a suggestion once its chapter is on screen and matched (after the reader
+ * was sent there). False when it never shows — this copy's text differs.
+ */
+async function focusWhenShown(container, id) {
+  for (let t = 0; t < 60; t++) {
+    for (const c of onScreen()) {
+      const f = c.findings.find((x) => x.id === id);
+      if (f && topOf(c, f) != null) {
+        await new Promise((r) => setTimeout(r, 120)); // let the chapter settle where it landed
+        focusFinding(container, c, f);
+        return true;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return false;
 }
 
 /** One line describing a finding's change. */
@@ -933,7 +1156,8 @@ function diffView(a, b) {
 function openSheet(c, f) {
   const root = sheetEl();
   const card = root.querySelector(".proof-card");
-  const marks = [...c.doc.querySelectorAll(`[data-proof="${CSS.escape(f.id)}"]`)];
+  const id = CSS.escape(f.id);
+  const marks = [...c.doc.querySelectorAll(`[data-proof="${id}"], .proof-applied[data-proof-ref="${id}"], .proof-applied-block[data-proof-ref="${id}"]`)];
   marks.forEach((m) => m.classList.add("is-active"));
 
   let body;
@@ -977,7 +1201,6 @@ function openSheet(c, f) {
     if (status === "accepted") applyFix(c, f);
     else if (status === "pending") mark(c, f);
     else anchorOriginal(c, f);
-    if (bookPending != null && (was === "pending") !== (status === "pending")) bookPending = Math.max(0, bookPending + (status === "pending" ? 1 : -1));
     closeOverlay();
     notify();
   };

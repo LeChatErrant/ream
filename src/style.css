@@ -1991,6 +1991,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-pill:hover { background: rgba(143, 179, 255, 0.24); }
 .proof-pill[hidden] { display: none; }
 .proof-pill--clear { background: transparent; color: var(--text-dim); }
+.proof-pill--done { background: rgba(111, 207, 151, 0.12); color: #9fe0b8; }
+.proof-pill--done:hover { background: rgba(111, 207, 151, 0.2); }
 
 .proof-head { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .proof-kind, .proof-conf, .proof-src {
@@ -2039,6 +2041,48 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-list__summary { margin: 0 0 14px; font: 400 13px var(--font-ui); color: var(--text-muted2); }
 .proof-list__next { margin-bottom: 14px; }
 .proof-list { display: flex; flex-direction: column; margin: 0 -22px; }
+.proof-list__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.proof-list__head .text-btn { flex: none; }
+.proof-list__toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 13.5px var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 0 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.proof-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.proof-filter {
+  appearance: none;
+  border: 1px solid var(--border-2f);
+  background: transparent;
+  color: var(--text-dim);
+  font: 600 12px var(--font-ui);
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.proof-filter.is-on { color: var(--text-primary); background: var(--pill); border-color: transparent; }
+.proof-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px 6px;
+  border-top: 1px solid var(--border-hair);
+  font: 600 11px var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.proof-group__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proof-list--book .proof-item { content-visibility: auto; contain-intrinsic-size: auto 64px; }
 .proof-item {
   appearance: none;
   border: 0;

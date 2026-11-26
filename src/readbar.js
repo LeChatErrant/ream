@@ -68,7 +68,7 @@ export function applyChromeInsets(doc) {
 // shows or hides the bottom bar.
 export function chromeTap(e) {
   if (!phone() || e.defaultPrevented) return;
-  if (e.target?.closest?.("a, button, input, label, [data-proof], .proof-para, .chapter-end")) return;
+  if (e.target?.closest?.("a, button, input, label, [data-proof], .proof-para, .proof-show-applied .proof-applied, .proof-show-applied .proof-applied-block, .chapter-end")) return;
   const sel = e.target?.ownerDocument?.getSelection?.();
   if (sel && !sel.isCollapsed) return;
   setChrome(!chromeShown());
