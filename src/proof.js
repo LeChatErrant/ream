@@ -7,7 +7,8 @@
 // importing always merges (per correction, the newest decision wins). It all
 // works offline; no server is involved.
 //
-// Switched on from the reader drawer, each chapter's open suggestions are
+// Switched on from the proofreading panel (the reader drawer's Proofreading
+// row opens it), each chapter's open suggestions are
 // marked in the text, accepted ones are shown applied and discarded ones are
 // left alone; tapping a mark opens a sheet to accept / edit / discard.
 // Switched off, the book reads exactly as the epub has it — no marks and no
@@ -931,28 +932,6 @@ const itemRow = (f, onclick) =>
     h("span", { class: "proof-item__body" }, h("span", { class: "proof-item__kind" }, KIND_LABEL[f.kind] || f.kind), h("span", { class: "proof-item__text" }, summaryOf(f)))
   );
 
-/** The "highlight accepted corrections in the text" switch, as a row of a list sheet. */
-function highlightRow() {
-  const knob = h("span", { class: "proof-switch" + (showApplied ? " proof-switch--on" : ""), "aria-hidden": "true" });
-  const btn = h(
-    "button",
-    {
-      class: "proof-list__toggle",
-      type: "button",
-      role: "switch",
-      "aria-checked": String(showApplied),
-      onclick: () => {
-        setProofShowApplied(!showApplied);
-        btn.setAttribute("aria-checked", String(showApplied));
-        knob.classList.toggle("proof-switch--on", showApplied);
-      },
-    },
-    h("span", null, "Underline accepted corrections in the text"),
-    knob
-  );
-  return btn;
-}
-
 function showList(children) {
   const root = sheetEl();
   // Native replaceChildren would print a null slot as "null" — drop the empty ones.
@@ -976,7 +955,10 @@ const PANEL_ICON = {
   saveAs: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M13.5 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.5L13.5 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13.5 4v5.5H19M12 12.5v5M9.5 15h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   file: '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M13.5 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-5.5-5.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.5 3.5V9H19M8.5 13.5h4M8.5 16.5h7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4.5 19.5h4L18.6 9.4a2.1 2.1 0 0 0-3-3L5.5 16.5v3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 8l3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  underline: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7.5 4.5V11a4.5 4.5 0 0 0 9 0V4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5.5 19.5h13" fill="none" stroke="#7fb7a4" stroke-width="1.8" stroke-linecap="round"/></svg>',
 };
+export const PROOF_ICON = PANEL_ICON;
 const icon = (name, cls) => h("span", { class: cls, "aria-hidden": "true", html: PANEL_ICON[name] });
 const plural = (n, one, many = one + "s") => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 const shortDate = (iso) => {
@@ -998,11 +980,29 @@ function panelRow({ glyph, label, detail, onclick, chevron = false, accent = nul
   );
 }
 
+/** A switch row of the panel: icon · label over its detail · the switch. */
+function switchRow({ glyph, label, detail, on, disabled = false, onclick }) {
+  return h(
+    "button",
+    { class: "proof-panel__row" + (disabled ? " is-disabled" : ""), type: "button", role: "switch", "aria-checked": String(on), disabled, onclick },
+    icon(glyph, "proof-panel__icon"),
+    h("span", { class: "proof-panel__rtext" }, h("span", { class: "proof-panel__rlabel" }, label), h("span", { class: "proof-panel__rdetail" }, detail)),
+    h("span", { class: "proof-switch" + (on ? " proof-switch--on" : ""), "aria-hidden": "true" })
+  );
+}
+
 /**
- * `act`: { title, corrections(), importFile(), exportFile(), exportAs(), remove() }
+ * `act`: { title, setEnabled(on), corrections(), importFile(), exportFile(), exportAs(), remove() }
  * — `title` is the open book's, for when the file names it differently or not at all.
+ * The two switches repaint the panel in place; every other action closes it.
  */
 export function openProofPanel(act) {
+  const repaint = () => sheetEl().querySelector(".proof-card").replaceChildren(...panelContent(act, repaint).filter(Boolean));
+  showList(panelContent(act, repaint));
+  sheetEl().querySelector(".proof-card").scrollTop = 0;
+}
+
+function panelContent(act, repaint) {
   const s = proofState();
   const now = (fn) => () => {
     fn();
@@ -1012,7 +1012,7 @@ export function openProofPanel(act) {
     h("div", { class: "proof-panel__head" }, h("div", { class: "lib-label" }, "Proofreading"), h("h2", { class: "proof-panel__title" }, title), sub ? h("div", { class: "proof-panel__sub" }, sub) : null);
 
   if (!s.hasFile) {
-    showList([
+    return [
       h("div", { class: "vsheet__handle" }),
       h(
         "div",
@@ -1026,8 +1026,7 @@ export function openProofPanel(act) {
         ),
         h("button", { class: "pill-btn proof-panel__primary", type: "button", onclick: now(act.importFile) }, "Import proofreading file…")
       ),
-    ]);
-    return;
+    ];
   }
 
   const total = s.bookTotal || 0;
@@ -1045,7 +1044,7 @@ export function openProofPanel(act) {
     ];
     standing = h(
       "div",
-      { class: "proof-panel__standing" },
+      { class: "proof-panel__standing" + (s.enabled ? "" : " is-off") },
       h(
         "div",
         { class: "proof-panel__bar", role: "img", "aria-label": parts.map(([, n, l]) => `${n} ${l}`).join(", ") },
@@ -1070,20 +1069,47 @@ export function openProofPanel(act) {
     .filter(Boolean)
     .join(" · ");
 
-  showList([
+  return [
     h("div", { class: "vsheet__handle" }),
     h(
       "div",
       { class: "proof-panel" },
       head(s.bookName || act.title || "This book", sub),
       standing,
-      total
+      // Reviewing needs the marks on screen, so the way in only shows while it's on.
+      total && s.enabled
         ? h(
             "button",
             { class: "pill-btn proof-panel__primary", type: "button", onclick: () => closeOverlay(act.corrections) },
             s.bookPending ? "Review corrections" : "See corrections"
           )
         : null,
+      h("div", { class: "lib-label proof-panel__section" }, "In the text"),
+      h(
+        "div",
+        { class: "proof-panel__rows" },
+        switchRow({
+          glyph: "pen",
+          label: "Show corrections",
+          detail: s.enabled ? "Marks to review, fixes applied" : "Off — the book's original text",
+          on: s.enabled,
+          onclick: () => {
+            act.setEnabled(!s.enabled);
+            repaint();
+          },
+        }),
+        switchRow({
+          glyph: "underline",
+          label: "Underline accepted",
+          detail: "Tap one to see what it changed",
+          on: s.enabled && showApplied,
+          disabled: !s.enabled,
+          onclick: () => {
+            setProofShowApplied(!showApplied);
+            repaint();
+          },
+        })
+      ),
       h("div", { class: "lib-label proof-panel__section" }, "Proofreading file"),
       h(
         "div",
@@ -1098,8 +1124,7 @@ export function openProofPanel(act) {
         h("button", { class: "text-btn text-btn--danger", type: "button", onclick: () => closeOverlay(act.remove) }, "Remove proofreading file")
       )
     ),
-  ]);
-  sheetEl().querySelector(".proof-card").scrollTop = 0;
+  ];
 }
 
 /**
@@ -1121,7 +1146,6 @@ export function openCorrections(container, nav) {
     ),
     h("p", { class: "proof-list__summary" }, rows.length ? countsLine(n) : "No corrections in this chapter."),
     n.pending ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
-    n.accepted ? highlightRow() : null,
     h("div", { class: "proof-list" }, ...rows.map(({ c, f }) => itemRow(f, () => closeOverlay(() => focusFinding(container, c, f))))),
   ]);
 }
@@ -1199,7 +1223,6 @@ export function openBookCorrections(container, nav) {
   showList([
     h("h2", { class: "sheet-title" }, "Corrections in this book"),
     h("p", { class: "proof-list__summary" }, all.length ? countsLine(n) : "No corrections for this book in the proofreading file."),
-    n.accepted ? highlightRow() : null,
     all.length ? chips : null,
     listBox,
   ]);

@@ -28,9 +28,10 @@ fused with line breaks, sentences split across two paragraphs, `‘` used as an
 apostrophe, doubled words, chapter-title clean-up (missing colon, `lnferno` → `Inferno`).
 
 **Ream works from a proofreading file alone** — every suggestion plus every
-decision — with no server. In the reader drawer → **Proofreading** → *Import
-proofreading…* on any device (computer or phone), review while reading, then
-*Export proofreading* to save the file with the latest decisions (share sheet →
+decision — with no server. In the reader drawer → **Proofreading** (it opens the
+proofreading panel, which also holds the on/off switch) → *Import…* on any
+device (computer or phone), review while reading, then *Export* to save the
+file with the latest decisions (share sheet →
 AirDrop on the phone). Importing always merges: per suggestion the most recent
 decision wins, so importing twice or from several devices is safe.
 The file is always called `ream-proofreading.json`. On a computer with Chrome /

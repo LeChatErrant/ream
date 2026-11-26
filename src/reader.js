@@ -32,8 +32,8 @@ import { dbPut } from "./db.js";
 import { PDF_CHAPTERS_VERSION, remapPdfProgress } from "./lib/pdf.js";
 import { scrollReaderMark } from "./brand.js";
 import {
-  proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections, openBookCorrections,
-  importProofreading, exportProofreading, removePackage, openProofPanel, pickAndImport, canPickFiles,
+  proofChapter, proofState, onProofChange, setProofEnabled, openCorrections, openBookCorrections,
+  importProofreading, exportProofreading, removePackage, openProofPanel, PROOF_ICON, pickAndImport, canPickFiles,
   prepareExport, exportVia,
 } from "./proof.js";
 import { showConfirmSheet } from "./sheets.js";
@@ -1145,9 +1145,9 @@ function readingPoint() {
   return { num: parseChapterLabel(chapterLabelFor(currentHref || saved?.href) || saved?.chapterLabel).num ?? 0 };
 }
 
-// Proofreading mode controls (see proof.js): a switch at the top of the drawer
-// and, while it's on, a top-bar pill counting this chapter's open suggestions
-// (tap → jump to the next one).
+// Proofreading mode controls (see proof.js): a row at the top of the drawer
+// that opens the proofreading panel (the on/off switch lives there), and, while
+// it's on, a top-bar pill counting this chapter's open suggestions.
 // -------------------------------------------------------------------------
 const spineHref = (contents) =>
   book?.spine?.get?.(typeof contents?.sectionIndex === "number" ? contents.sectionIndex : -1)?.href || null;
@@ -1156,8 +1156,8 @@ let proofRow = null;
 let proofPill = null;
 function mountProofControls() {
   if (proofRow) return renderProofControls();
-  // The label opens the Import / Export menu; the switch alone turns it on/off.
-  proofRow = h("div", { class: "proof-row" });
+  // One tap target: it opens the panel, where the switches and the file live.
+  proofRow = h("button", { class: "proof-row", type: "button", "aria-haspopup": "dialog", onclick: () => openProofMenu() });
   el.drawer.insertBefore(proofRow, el.drawer.querySelector(".drawer-label"));
   proofPill = h("button", {
     class: "proof-pill",
@@ -1257,6 +1257,10 @@ function openProofMenu() {
   if (s.hasFile) prepareExport();
   openProofPanel({
     title: currentBook?.title,
+    setEnabled: (on) => {
+      setProofEnabled(on);
+      if (on) remarkChapters();
+    },
     corrections: () => openBookCorrections(rendition?.manager?.container, proofNav),
     importFile: pickPackageFile,
     exportFile: () => runExport(),
@@ -1288,8 +1292,8 @@ function renderProofControls() {
   }
   const s = proofState();
   let status;
-  if (!s.enabled) status = "Off — original text";
-  else if (!s.hasFile) status = "No proofreading file";
+  if (!s.hasFile) status = "No proofreading file";
+  else if (!s.enabled) status = "Off — original text";
   else
     status = [
       s.bookAccepted ? `${s.bookAccepted.toLocaleString()} accepted` : null,
@@ -1297,28 +1301,16 @@ function renderProofControls() {
     ]
       .filter(Boolean)
       .join(" · ");
+  const due = s.enabled && s.hasFile && s.bookPending > 0;
   proofRow.replaceChildren(
+    h("span", { class: "proof-row__icon" + (s.enabled && s.hasFile ? " is-on" : ""), "aria-hidden": "true", html: PROOF_ICON.pen }),
     h(
-      "button",
-      { class: "proof-row__text", type: "button", "aria-haspopup": "menu", onclick: () => openProofMenu() },
-      h("span", { class: "proof-row__label" }, "Proofreading", h("span", { class: "proof-row__chev", html: ICON.chevron, "aria-hidden": "true" })),
+      "span",
+      { class: "proof-row__text" },
+      h("span", { class: "proof-row__label" }, "Proofreading", due ? h("span", { class: "proof-row__dot", "aria-hidden": "true" }) : null),
       h("span", { class: "proof-row__status" }, status)
     ),
-    h(
-      "button",
-      {
-        class: "proof-switch-btn",
-        type: "button",
-        role: "switch",
-        "aria-checked": String(s.enabled),
-        "aria-label": "Proofreading",
-        onclick: () => {
-          setProofEnabled(!s.enabled);
-          if (proofEnabled()) remarkChapters();
-        },
-      },
-      h("span", { class: "proof-switch" + (s.enabled ? " proof-switch--on" : ""), "aria-hidden": "true" })
-    )
+    h("span", { class: "proof-row__chev", "aria-hidden": "true", html: ICON.chevron })
   );
   proofRow.classList.toggle("proof-row--offline", s.enabled && !s.hasFile);
   // ✎ n while some are left to review; ✓ n once the chapter is done, counting
