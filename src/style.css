@@ -2144,6 +2144,21 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-list { display: flex; flex-direction: column; margin: 0 -22px; }
 .proof-list__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .proof-list__head .text-btn { flex: none; }
+.proof-list__toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 13.5px var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 0 14px;
+  text-align: left;
+  cursor: pointer;
+}
 .proof-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .proof-filter {
   appearance: none;

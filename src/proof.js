@@ -940,6 +940,28 @@ const itemRow = (f, onclick) =>
     h("span", { class: "proof-item__body" }, h("span", { class: "proof-item__kind" }, KIND_LABEL[f.kind] || f.kind), h("span", { class: "proof-item__text" }, summaryOf(f)))
   );
 
+/** The "highlight accepted corrections in the text" switch, as a row of a list sheet. */
+function highlightRow() {
+  const knob = h("span", { class: "proof-switch" + (showApplied ? " proof-switch--on" : ""), "aria-hidden": "true" });
+  const btn = h(
+    "button",
+    {
+      class: "proof-list__toggle",
+      type: "button",
+      role: "switch",
+      "aria-checked": String(showApplied),
+      onclick: () => {
+        setProofShowApplied(!showApplied);
+        btn.setAttribute("aria-checked", String(showApplied));
+        knob.classList.toggle("proof-switch--on", showApplied);
+      },
+    },
+    h("span", null, "Underline accepted corrections in the text"),
+    knob
+  );
+  return btn;
+}
+
 function showList(children) {
   const root = sheetEl();
   // Native replaceChildren would print a null slot as "null" — drop the empty ones.
@@ -1154,6 +1176,7 @@ export function openCorrections(container, nav) {
     ),
     h("p", { class: "proof-list__summary" }, rows.length ? countsLine(n) : "No corrections in this chapter."),
     n.pending ? h("button", { class: "pill-btn proof-list__next", onclick: () => closeOverlay(() => nextSuggestion(container)) }, "Review next") : null,
+    n.accepted ? highlightRow() : null,
     h("div", { class: "proof-list" }, ...rows.map(({ c, f }) => itemRow(f, () => closeOverlay(() => focusFinding(container, c, f))))),
   ]);
 }
@@ -1231,6 +1254,7 @@ export function openBookCorrections(container, nav) {
   showList([
     h("h2", { class: "sheet-title" }, "Corrections in this book"),
     h("p", { class: "proof-list__summary" }, all.length ? countsLine(n) : "No corrections for this book in the proofreading file."),
+    n.accepted ? highlightRow() : null,
     all.length ? chips : null,
     listBox,
   ]);
