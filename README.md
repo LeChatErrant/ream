@@ -18,9 +18,11 @@ Everything runs locally in the browser — no book ever leaves your device.
   tap, or the chapter's top / end. After a jump, that button offers the way
   back ("↩ 38 %"); a jump never counts as reading.
 - Resumes the last book and reading position automatically (IndexedDB)
-- **Reading stats** — time read, pace, time left and an estimated finish date
-  per book or series (a card on its info page), plus weekly / monthly / yearly
-  totals, streaks and a reading calendar (the Library's "This week" strip).
+- **Reading stats** — time read, time left, chapters a day and milestones
+  (next round chapters, end of the volume, caught up — each dated at your
+  recent pace) per book or series (a card on its info page), plus week /
+  month / year totals you can step back through and tap bar by bar, records,
+  streaks and a reading calendar (the Library's "This week" strip).
   Time counts while you scroll or tap and pauses after 3 idle minutes; reading
   from before stats existed is estimated from your progress and shown striped
   (`src/stats.js`, `src/statsview.js`)

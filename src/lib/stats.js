@@ -134,3 +134,41 @@ export function formatDay(key, today) {
   const s = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
   return today && d.getFullYear() !== dayDate(today).getFullYear() ? `${s}, ${d.getFullYear()}` : s;
 }
+
+// Words still to read from the chapter at `from` through the one at `idx`
+// (inclusive), over a reading-order list of chapters [{ words, frac }] (frac:
+// share already read).
+export function wordsThrough(chapters, idx, from = 0) {
+  let w = 0;
+  for (let i = from; i <= idx && i < chapters.length; i++) w += chapters[i].words * (1 - Math.min(1, chapters[i].frac));
+  return w;
+}
+
+// The round chapter numbers worth a milestone, ahead of `cur` (the chapter
+// being read) and up to `last`: the next hundred (fifty in shorter books, none
+// under 150 chapters) and the next thousand in very long ones. Plus the last
+// round number already behind you. Returns { behind, ahead: [n…] }.
+export function roundMilestones(cur, last) {
+  const step = last >= 500 ? 100 : last >= 150 ? 50 : 0;
+  if (!step) return { behind: null, ahead: [] };
+  const ahead = new Set();
+  const next = Math.ceil(cur / step) * step;
+  if (next < last) ahead.add(next);
+  if (last >= 2000) {
+    const k = Math.ceil(cur / 1000) * 1000;
+    if (k < last) ahead.add(k);
+  }
+  const prev = Math.floor((cur - 1) / step) * step;
+  return { behind: prev > 0 ? prev : null, ahead: [...ahead].sort((a, b) => a - b) };
+}
+
+// The first day the running total of `perDay` ([[day, chapters]] in day order),
+// shifted by `offset`, reaches `n` — when chapter n was finished — or null.
+export function dayReaching(perDay, n, offset = 0) {
+  let sum = offset;
+  for (const [day, ch] of perDay) {
+    sum += ch;
+    if (sum >= n - 1e-6) return day;
+  }
+  return null;
+}

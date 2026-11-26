@@ -10,6 +10,9 @@ import {
   longestStreak,
   formatDuration,
   formatHoursShort,
+  wordsThrough,
+  roundMilestones,
+  dayReaching,
 } from "../src/lib/stats.js";
 
 const at = (y, m, d, hh = 12) => new Date(y, m - 1, d, hh).getTime();
@@ -121,5 +124,40 @@ describe("durations", () => {
     expect(formatHoursShort(0)).toBe("");
     expect(formatHoursShort(19.4 * 3600000)).toBe("19 h");
     expect(formatHoursShort(45 * 60000)).toBe("45 m");
+  });
+});
+
+describe("milestones", () => {
+  it("counts the unread words up to a chapter", () => {
+    const ch = [
+      { abs: 1, words: 100, frac: 1 },
+      { abs: 2, words: 200, frac: 0.5 },
+      { abs: 3, words: 300, frac: 0 },
+    ];
+    expect(wordsThrough(ch, 0)).toBe(0);
+    expect(wordsThrough(ch, 1)).toBe(100);
+    expect(wordsThrough(ch, 2)).toBe(400);
+    expect(wordsThrough(ch, 9)).toBe(400);
+    expect(wordsThrough(ch, 2, 2)).toBe(300);
+  });
+  it("picks round chapters by length", () => {
+    expect(roundMilestones(2140, 2789)).toEqual({ behind: 2100, ahead: [2200] });
+    expect(roundMilestones(1950, 2789)).toEqual({ behind: 1900, ahead: [2000] });
+    expect(roundMilestones(1820, 2789)).toEqual({ behind: 1800, ahead: [1900, 2000] });
+    expect(roundMilestones(120, 278)).toEqual({ behind: 100, ahead: [150] });
+    expect(roundMilestones(8, 30)).toEqual({ behind: null, ahead: [] });
+    // Never the last chapter itself — that has its own milestone.
+    expect(roundMilestones(2750, 2800).ahead).toEqual([]);
+  });
+  it("finds the day a running total reaches a chapter", () => {
+    const per = [
+      ["2026-11-01", 3],
+      ["2026-11-02", 4],
+      ["2026-11-03", 2],
+    ];
+    expect(dayReaching(per, 5)).toBe("2026-11-02");
+    expect(dayReaching(per, 9)).toBe("2026-11-03");
+    expect(dayReaching(per, 10)).toBe(null);
+    expect(dayReaching(per, 10, 100)).toBe("2026-11-01");
   });
 });

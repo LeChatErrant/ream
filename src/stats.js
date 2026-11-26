@@ -8,7 +8,7 @@
 // progress rises (its share of the chapter's own word count), so a jump never
 // counts and neither does "Mark as read". Everything lands in one row per book
 // per local day in the `stats` store: { id: "day|bookId", day, bookId, ms,
-// words, chapters, sessions, hours[24] }.
+// words, chapters, sessions, best (longest session, ms), hours[24] }.
 //
 // Estimated: reading done before tracking existed. On the first run a
 // baseline snapshots each started book (how much of it was read). At query
@@ -105,6 +105,7 @@ function creditTime(ms, now) {
   r.ms += ms;
   r.hours[new Date(now).getHours()] += ms;
   live.ms += ms;
+  if (live.ms > (r.best || 0)) r.best = live.ms; // longest session that day
   if (!live.counted && live.ms >= SESSION_MIN) {
     live.counted = true;
     r.sessions++;
