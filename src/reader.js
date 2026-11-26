@@ -1301,13 +1301,12 @@ function renderProofControls() {
     ]
       .filter(Boolean)
       .join(" · ");
-  const due = s.enabled && s.hasFile && s.bookPending > 0;
   proofRow.replaceChildren(
     h("span", { class: "proof-row__icon" + (s.enabled && s.hasFile ? " is-on" : ""), "aria-hidden": "true", html: PROOF_ICON.pen }),
     h(
       "span",
       { class: "proof-row__text" },
-      h("span", { class: "proof-row__label" }, "Proofreading", due ? h("span", { class: "proof-row__dot", "aria-hidden": "true" }) : null),
+      h("span", { class: "proof-row__label" }, "Proofreading"),
       h("span", { class: "proof-row__status" }, status)
     ),
     h("span", { class: "proof-row__chev", "aria-hidden": "true", html: ICON.chevron })

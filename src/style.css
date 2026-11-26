@@ -1941,7 +1941,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .proof-row:hover .proof-row__label { color: var(--text-primary); }
 .proof-row__label { display: inline-flex; align-items: center; gap: 7px; font: 600 13px var(--font-ui); color: var(--text-secondary); }
-.proof-row__dot { width: 6px; height: 6px; border-radius: 50%; background: #8fb3ff; }
 .proof-row__status { font: 400 12px var(--font-ui); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proof-row--offline .proof-row__status { color: var(--danger); }
 .proof-row__chev { flex: none; display: inline-flex; color: var(--text-dimmest); }
