@@ -1305,7 +1305,6 @@ function renderProofControls() {
     status = [
       s.bookAccepted ? `${s.bookAccepted.toLocaleString()} accepted` : null,
       s.bookPending ? `${s.bookPending.toLocaleString()} left to review` : s.bookTotal ? "all reviewed" : "Ready",
-      s.toExport ? `${s.toExport} to export` : null,
     ]
       .filter(Boolean)
       .join(" · ");
