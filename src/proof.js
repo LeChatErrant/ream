@@ -711,6 +711,14 @@ function applyFix(c, f) {
     span.style.cssText = `display: block; margin: ${gap} 0`;
     if (!f.replacement.trim()) hide(span);
     n.replaceWith(span);
+    // The <br> that ended this loose line would add an empty line on top of the
+    // paragraph spacing: hidden while the fix is in (revert shows it again).
+    let next = span.nextSibling;
+    while (next?.nodeType === Node.TEXT_NODE && !next.data.trim()) next = next.nextSibling;
+    if (next?.nodeName === "BR") {
+      next.dataset.proofRef = f.id;
+      hide(next);
+    }
     return;
   }
   if (f.op === "title") {
