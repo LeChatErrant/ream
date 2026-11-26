@@ -92,7 +92,9 @@ export function proofState() {
     hasFile: !!pkg,
     bookPending: book?.pending ?? null,
     bookAccepted: book?.accepted ?? null,
+    bookDiscarded: book?.discarded ?? null,
     bookTotal: book?.total ?? null,
+    bookName: (pkg?.books || {})[bookKeyFor(currentLib)] || null,
     chapterLoaded: onScreen().length > 0,
     chapterPending: shown.filter((f) => f.status === "pending").length,
     chapterAccepted: shown.filter((f) => f.status === "accepted").length,
@@ -957,6 +959,147 @@ function showList(children) {
   root.querySelector(".proof-card").replaceChildren(...children.filter(Boolean));
   root.hidden = false;
   armOverlay(() => (root.hidden = true));
+}
+
+// ---- the proofreading panel -------------------------------------------------
+// What the drawer's Proofreading row opens: where this book stands (a bar split
+// into accepted / discarded / to review), the way into its corrections, and the
+// file itself — import, export, remove. Without a file it's an empty state whose
+// one action is the import. The reader supplies the actions (`act`): import and
+// export run inside the tap itself (a file picker or share sheet must open from
+// a user gesture — iOS refuses it once the sheet has closed).
+
+const PANEL_ICON = {
+  list: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 6.5h10M9 12h10M9 17.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4.6 6.5l.9.9 1.7-1.9M4.6 12l.9.9 1.7-1.9M4.6 17.5l.9.9 1.7-1.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  import: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 4v10.5M7.5 10l4.5 4.5 4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 15v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  export: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 14.5V4M7.5 8.5L12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 15v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  saveAs: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M13.5 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.5L13.5 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13.5 4v5.5H19M12 12.5v5M9.5 15h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  file: '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M13.5 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-5.5-5.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.5 3.5V9H19M8.5 13.5h4M8.5 16.5h7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+const icon = (name, cls) => h("span", { class: cls, "aria-hidden": "true", html: PANEL_ICON[name] });
+const plural = (n, one, many = one + "s") => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+const shortDate = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) return null;
+  const opts = { month: "short", day: "numeric" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString(undefined, opts);
+};
+
+/** One tappable row of the panel: icon · label over a quiet detail line · chevron. */
+function panelRow({ glyph, label, detail, onclick, chevron = false, accent = null }) {
+  return h(
+    "button",
+    { class: "proof-panel__row", type: "button", onclick },
+    icon(glyph, "proof-panel__icon"),
+    h("span", { class: "proof-panel__rtext" }, h("span", { class: "proof-panel__rlabel" }, label), detail ? h("span", { class: "proof-panel__rdetail" + (accent ? ` is-${accent}` : "") }, detail) : null),
+    chevron ? icon("chevron", "proof-panel__chev") : null
+  );
+}
+
+/**
+ * `act`: { title, corrections(), importFile(), exportFile(), exportAs(), remove() }
+ * — `title` is the open book's, for when the file names it differently or not at all.
+ */
+export function openProofPanel(act) {
+  const s = proofState();
+  const now = (fn) => () => {
+    fn();
+    closeOverlay();
+  };
+  const head = (title, sub) =>
+    h("div", { class: "proof-panel__head" }, h("div", { class: "lib-label" }, "Proofreading"), h("h2", { class: "proof-panel__title" }, title), sub ? h("div", { class: "proof-panel__sub" }, sub) : null);
+
+  if (!s.hasFile) {
+    showList([
+      h("div", { class: "vsheet__handle" }),
+      h(
+        "div",
+        { class: "proof-panel proof-panel--empty" },
+        icon("file", "proof-panel__empty-icon"),
+        h("h2", { class: "proof-panel__title" }, "No proofreading file"),
+        h(
+          "p",
+          { class: "proof-panel__lead" },
+          "Import the file made by the review tool to see its suggested corrections marked in the text — accept, edit or discard them as you read."
+        ),
+        h("button", { class: "pill-btn proof-panel__primary", type: "button", onclick: now(act.importFile) }, "Import proofreading file…")
+      ),
+    ]);
+    return;
+  }
+
+  const total = s.bookTotal || 0;
+  const linked = linkedFileName();
+  const made = shortDate(s.fileDate);
+  const sub = total ? [plural(total, "suggestion"), made && `file from ${made}`].filter(Boolean).join(" · ") : made ? `File from ${made}` : null;
+
+  // Where this book stands: one bar, three parts, and their legend.
+  let standing;
+  if (total) {
+    const parts = [
+      ["accepted", s.bookAccepted, "accepted"],
+      ["discarded", s.bookDiscarded, "discarded"],
+      ["pending", s.bookPending, "to review"],
+    ];
+    standing = h(
+      "div",
+      { class: "proof-panel__standing" },
+      h(
+        "div",
+        { class: "proof-panel__bar", role: "img", "aria-label": parts.map(([, n, l]) => `${n} ${l}`).join(", ") },
+        ...parts.filter(([, n]) => n).map(([k, n]) => h("span", { class: `proof-panel__seg is-${k}`, style: `flex-grow: ${n}` }))
+      ),
+      h(
+        "div",
+        { class: "proof-panel__legend" },
+        ...parts.map(([k, n, l]) =>
+          h("span", { class: `proof-panel__key is-${k}` + (n ? "" : " is-zero") }, h("span", { class: "proof-panel__dot" }), h("b", null, n.toLocaleString()), ` ${l}`)
+        )
+      )
+    );
+  } else {
+    standing = h("p", { class: "proof-panel__lead proof-panel__lead--quiet" }, "This book has no suggestions in the proofreading file.");
+  }
+
+  const exportDetail = [
+    s.toExport ? `${plural(s.toExport, "new decision")} to send` : "Up to date",
+    linked && `saves over ${linked}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  showList([
+    h("div", { class: "vsheet__handle" }),
+    h(
+      "div",
+      { class: "proof-panel" },
+      head(s.bookName || act.title || "This book", sub),
+      standing,
+      total
+        ? h(
+            "button",
+            { class: "pill-btn proof-panel__primary", type: "button", onclick: () => closeOverlay(act.corrections) },
+            s.bookPending ? "Review corrections" : "See corrections"
+          )
+        : null,
+      h("div", { class: "lib-label proof-panel__section" }, "Proofreading file"),
+      h(
+        "div",
+        { class: "proof-panel__rows" },
+        panelRow({ glyph: "export", label: "Export", detail: exportDetail, accent: s.toExport ? "due" : null, onclick: now(act.exportFile) }),
+        linked ? panelRow({ glyph: "saveAs", label: "Export to another file…", detail: "Pick where the next exports go", onclick: now(act.exportAs) }) : null,
+        panelRow({ glyph: "import", label: "Import…", detail: "Merge decisions from another device", onclick: now(act.importFile) })
+      ),
+      h(
+        "div",
+        { class: "proof-panel__foot" },
+        h("button", { class: "text-btn text-btn--danger", type: "button", onclick: () => closeOverlay(act.remove) }, "Remove proofreading file")
+      )
+    ),
+  ]);
+  sheetEl().querySelector(".proof-card").scrollTop = 0;
 }
 
 /**

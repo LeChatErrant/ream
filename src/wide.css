@@ -325,6 +325,10 @@
 
   .action-item { padding: 13px 22px; font-size: 14px; }
 
+  /* Proofreading panel: its full-bleed rows follow the dialog's 24px sides. */
+  .proof-panel__rows { margin: 0 -24px; }
+  .proof-panel__row { padding: 10px 24px; }
+
   /* Popover menu — the action sheet opened from a button or a right-click
      (sheets.js sets left/top). No scrim tint, no Cancel row. */
   .sheet--popover .sheet-scrim { background: transparent; animation: none; }

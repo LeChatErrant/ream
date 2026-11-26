@@ -2026,6 +2026,89 @@ html { -webkit-tap-highlight-color: transparent; }
 .proof-actions .pill-btn { display: inline-block; width: auto; height: 38px; padding: 0 22px; font-size: 14px; }
 .proof-later { margin-left: auto; }
 
+/* Proofreading panel — the drawer row's sheet: this book's standing, the way
+   into its corrections, and the file (export / import / remove). */
+.proof-card:has(> .vsheet__handle) { padding-top: 14px; }
+.proof-panel__head { margin-bottom: 18px; }
+.proof-panel__title { margin: 6px 0 0; font: 500 21px/1.2 var(--font-serif); color: #eef1f5; overflow-wrap: anywhere; }
+.proof-panel__sub { margin-top: 5px; font: 400 12.5px var(--font-ui); color: var(--text-dim); }
+.proof-panel__standing { margin-bottom: 18px; }
+.proof-panel__bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--track);
+}
+.proof-panel__seg { flex: 1 1 0; min-width: 4px; }
+.proof-panel__seg.is-accepted { background: #7fb7a4; }
+.proof-panel__seg.is-discarded { background: #4a5262; }
+.proof-panel__seg.is-pending { background: #8fb3ff; }
+.proof-panel__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 11px; font: 400 12.5px var(--font-ui); color: var(--text-dim); }
+.proof-panel__key { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.proof-panel__key b { font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.proof-panel__key.is-zero { opacity: 0.55; }
+.proof-panel__dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.is-accepted > .proof-panel__dot { background: #7fb7a4; }
+.is-discarded > .proof-panel__dot { background: #4a5262; }
+.is-pending > .proof-panel__dot { background: #8fb3ff; }
+.proof-panel__lead { margin: 0 0 20px; font: 400 14px/1.55 var(--font-ui); color: var(--text-muted); }
+.proof-panel__lead--quiet { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+.proof-panel__section { margin: 24px 0 6px; }
+.proof-panel__rows { display: flex; flex-direction: column; margin: 0 -22px; }
+.proof-panel__row {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 22px;
+  text-align: left;
+  cursor: pointer;
+}
+.proof-panel__row:hover { background: var(--row-current); }
+.proof-panel__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pill);
+  color: var(--text-muted);
+}
+.proof-panel__icon svg { display: block; }
+.proof-panel__row:hover .proof-panel__icon { color: var(--text-secondary); }
+.proof-panel__rtext { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.proof-panel__rlabel { font: 500 14.5px var(--font-ui); color: var(--text-secondary); }
+.proof-panel__rdetail { font: 400 12px var(--font-ui); color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proof-panel__rdetail.is-due { color: #b9cdf7; }
+.proof-panel__chev { flex: none; color: var(--text-dimmest); display: inline-flex; }
+.proof-panel__foot { margin-top: 16px; padding-top: 6px; border-top: 1px solid var(--border-hair); }
+.proof-panel__foot .text-btn { padding: 10px 0 0; }
+.proof-panel--empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 4px 0; }
+.proof-panel__empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(143, 179, 255, 0.1);
+  color: #b9cdf7;
+  margin-bottom: 14px;
+}
+.proof-panel__empty-icon svg { display: block; }
+.proof-panel--empty .proof-panel__title { margin: 0 0 8px; }
+.proof-panel--empty .proof-panel__lead { max-width: 320px; }
+.proof-row__chev { display: inline-flex; vertical-align: -3px; margin-left: 2px; color: var(--text-dimmest); }
+.proof-row__chev svg { width: 14px; height: 14px; }
+
 /* Proofreading — status chips and the chapter's corrections list. */
 .proof-status {
   font: 600 10.5px var(--font-ui);

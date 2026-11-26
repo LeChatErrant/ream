@@ -33,10 +33,10 @@ import { PDF_CHAPTERS_VERSION, remapPdfProgress } from "./lib/pdf.js";
 import { scrollReaderMark } from "./brand.js";
 import {
   proofChapter, proofState, onProofChange, setProofEnabled, proofEnabled, openCorrections, openBookCorrections,
-  importProofreading, exportProofreading, removePackage, pickAndImport, canPickFiles, linkedFileName,
+  importProofreading, exportProofreading, removePackage, openProofPanel, pickAndImport, canPickFiles,
   prepareExport, exportVia,
 } from "./proof.js";
-import { showActionSheet, showConfirmSheet } from "./sheets.js";
+import { showConfirmSheet } from "./sheets.js";
 import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
 import {
   setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap,
@@ -1255,40 +1255,26 @@ function openProofMenu() {
   const s = proofState();
   // Build the export file now, so tapping Export opens the share sheet at once (iOS).
   if (s.hasFile) prepareExport();
-  const actions = [];
-  if (s.bookTotal)
-    actions.push({
-      label: s.bookAccepted ? `Corrections in this book (${s.bookAccepted.toLocaleString()} accepted)` : "Corrections in this book",
-      onClick: () => openBookCorrections(rendition?.manager?.container, proofNav),
-    });
-  actions.push(
-    { label: "Import proofreading…", now: true, onClick: pickPackageFile },
-    {
-      label: s.toExport ? `Export proofreading (${s.toExport} new)` : "Export proofreading",
-      now: true,
-      onClick: () => runExport(),
-    }
-  );
-  // A remembered file is overwritten in place; this picks another one.
-  if (s.hasFile && linkedFileName()) actions.push({ label: "Export to another file…", now: true, onClick: () => runExport({ saveAs: true }) });
-  if (s.hasFile)
-    actions.push({
-      label: "Remove proofreading file",
-      danger: true,
-      onClick: async () => {
-        const ok = await showConfirmSheet(
-          "Remove proofreading?",
-          s.toExport
-            ? `${s.toExport} decision${s.toExport > 1 ? "s haven't" : " hasn't"} been exported yet and will be lost.`
-            : "The proofreading file and this device's decisions are removed. Your books are not touched.",
-          "Remove"
-        );
-        if (!ok) return;
-        await removePackage();
-        reopenAtPosition();
-      },
-    });
-  showActionSheet(actions);
+  openProofPanel({
+    title: currentBook?.title,
+    corrections: () => openBookCorrections(rendition?.manager?.container, proofNav),
+    importFile: pickPackageFile,
+    exportFile: () => runExport(),
+    // A remembered file is overwritten in place; this picks another one.
+    exportAs: () => runExport({ saveAs: true }),
+    remove: async () => {
+      const ok = await showConfirmSheet(
+        "Remove proofreading?",
+        s.toExport
+          ? `${s.toExport} decision${s.toExport > 1 ? "s haven't" : " hasn't"} been exported yet and will be lost.`
+          : "The proofreading file and this device's decisions are removed. Your books are not touched.",
+        "Remove"
+      );
+      if (!ok) return;
+      await removePackage();
+      reopenAtPosition();
+    },
+  });
 }
 
 function renderProofControls() {
@@ -1303,7 +1289,7 @@ function renderProofControls() {
   const s = proofState();
   let status;
   if (!s.enabled) status = "Off — original text";
-  else if (!s.hasFile) status = "No proofreading file — tap to import";
+  else if (!s.hasFile) status = "No proofreading file";
   else
     status = [
       s.bookAccepted ? `${s.bookAccepted.toLocaleString()} accepted` : null,
@@ -1315,7 +1301,7 @@ function renderProofControls() {
     h(
       "button",
       { class: "proof-row__text", type: "button", "aria-haspopup": "menu", onclick: () => openProofMenu() },
-      h("span", { class: "proof-row__label" }, "Proofreading"),
+      h("span", { class: "proof-row__label" }, "Proofreading", h("span", { class: "proof-row__chev", html: ICON.chevron, "aria-hidden": "true" })),
       h("span", { class: "proof-row__status" }, status)
     ),
     h(
