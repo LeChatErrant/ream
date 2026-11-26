@@ -5,18 +5,26 @@
 // since Aug 24. Rather than keep an "estimated" mode around forever, the app
 // writes that past once as ordinary day rows (see stats.js): the words and
 // chapters each book had been read up to on the day tracking began, laid out
-// day by day in reading order at your pace. Days vary like real ones — some
-// off, weekends longer, sessions in the evening — but the totals are exact.
+// day by day in reading order. The totals are exact; the days are made to
+// read like a real reader's, not noise around a mean:
+//   - momentum: good and bad stretches (an AR(1) mood carried day to day)
+//   - the week: Fridays a little more, weekends more
+//   - breaks: the odd day off, and now and then a few in a row
+//   - binges: some days you just don't stop
+//   - sittings: one to four a day, at your usual hours (mornings, lunch,
+//     evenings, past midnight), of uneven lengths
+//   - pace: a little faster or slower from one day to the next
 // -------------------------------------------------------------------------
 import { addDays, dayDate } from "./stats.js";
 
 const MAX_DAY_MS = 9 * 3600000; // nobody reads more than this in a day
-const SESSION_MS = 50 * 60000; // a typical sitting
+const MIN_SITTING = 8 * 60000;
 // When people read, by clock hour, when you haven't been tracked long enough
 // to say: mornings and lunch a little, evenings a lot, a bit past midnight.
 export const DEFAULT_HOURS = [
   0.7, 0.3, 0.1, 0, 0, 0, 0.1, 0.5, 0.6, 0.2, 0.1, 0.2, 0.7, 0.6, 0.2, 0.2, 0.3, 0.4, 0.5, 0.8, 1.3, 2, 2.2, 1.6,
 ];
+const WEEKDAY = [1.25, 0.95, 1, 0.95, 1, 1.1, 1.35]; // Sun … Sat
 
 // Small seeded PRNG (mulberry32): the same input always backfills the same way.
 function rng(seed) {
@@ -28,6 +36,8 @@ function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+// A standard normal draw (Box–Muller).
+const gauss = (rand) => Math.sqrt(-2 * Math.log(1 - rand())) * Math.cos(2 * Math.PI * rand());
 function pick(weights, r) {
   const total = weights.reduce((a, b) => a + b, 0);
   let x = r * total;
@@ -35,58 +45,84 @@ function pick(weights, r) {
   return weights.length - 1;
 }
 
-// Per-day share of the reading: ~1 day in 10 off, weekends a bit longer, the
-// rest log-normal-ish around the mean — modestly, so your real days set the
-// records — capped at MAX_DAY_MS, the excess spread over the other days.
-function dayWeights(days, rand, capShare) {
-  const w = days.map((d) => {
-    if (rand() < 0.1) return 0;
+// How much each day reads, relative to the others (0 = a day off).
+// Breaks keep their distance from each other, and the last days before
+// tracking began are read (you were mid-book when it did).
+function dayIntensity(days, rand) {
+  let mood = 0;
+  let breakLeft = 0;
+  let sinceBreak = 10;
+  return days.map((d, i) => {
+    mood = 0.75 * mood + 0.32 * gauss(rand); // carries over: good weeks, slow weeks
+    const nearEnd = i >= days.length - 3;
+    if (breakLeft > 0 && !nearEnd) {
+      breakLeft--;
+      return 0;
+    }
+    breakLeft = 0;
+    sinceBreak++;
+    if (!nearEnd && sinceBreak > 14 && i < days.length - 6 && rand() < 0.02) {
+      breakLeft = 1 + Math.floor(rand() * 3); // a few days away
+      sinceBreak = 0;
+      return 0;
+    }
+    if (!nearEnd && rand() < 0.06) return 0; // just not today
     const dow = dayDate(d).getDay();
-    const weekend = dow === 0 || dow === 6 ? 1.3 : 1;
-    return weekend * Math.exp((rand() + rand() + rand() - 1.5) * 0.55);
+    const binge = rand() < (dow === 0 || dow === 6 ? 0.09 : 0.04) ? 1.8 + rand() * 0.9 : 1;
+    return WEEKDAY[dow] * Math.exp(mood) * binge;
   });
-  if (!w.some((x) => x > 0)) w[w.length - 1] = 1;
-  let sum = w.reduce((a, b) => a + b, 0);
+}
+
+// Shares summing to 1, none above `cap` (the excess goes to the days that
+// read, in proportion).
+function capShares(w, cap) {
+  const sum = w.reduce((a, b) => a + b, 0);
   let share = w.map((x) => x / sum);
-  for (let round = 0; round < 8; round++) {
+  for (let round = 0; round < 10; round++) {
     let excess = 0;
-    let free = 0;
     share = share.map((x) => {
-      if (x > capShare) {
-        excess += x - capShare;
-        return capShare;
+      if (x > cap) {
+        excess += x - cap;
+        return cap;
       }
       return x;
     });
-    if (excess < 1e-9) break;
-    share.forEach((x, i) => {
-      if (w[i] > 0 && x < capShare) free += x;
-    });
+    if (excess < 1e-12) break;
+    const free = share.reduce((n, x, i) => n + (w[i] > 0 && x < cap ? x : 0), 0);
     if (free <= 0) break;
-    share = share.map((x, i) => (w[i] > 0 && x < capShare ? x + (excess * x) / free : x));
+    share = share.map((x, i) => (w[i] > 0 && x < cap ? x + (excess * x) / free : x));
   }
-  sum = share.reduce((a, b) => a + b, 0);
-  return share.map((x) => x / sum);
+  return share;
 }
 
-// Clock hours of one sitting of `ms` starting at hour `h` (a random minute in).
-function spreadHours(hours, h, ms, rand) {
-  let t = ms;
-  let room = (1 - rand() * 0.8) * 3600000;
-  while (t > 0) {
-    const take = Math.min(t, room);
-    hours[h % 24] += take;
-    t -= take;
-    h++;
-    room = 3600000;
+// A day's reading as sittings: [{ start (minutes after midnight, may pass 24 h),
+// ms }], in time order, not overlapping.
+function sittings(ms, hourWeights, rand) {
+  let n = ms < 35 * 60000 ? 1 : ms < 90 * 60000 ? 1 + (rand() < 0.5 ? 1 : 0) : ms < 4 * 3600000 ? 2 + Math.floor(rand() * 2) : 3 + Math.floor(rand() * 2);
+  n = Math.max(1, Math.min(n, Math.floor(ms / MIN_SITTING)));
+  // Uneven lengths: one main sitting, shorter ones around it.
+  const parts = Array.from({ length: n }, (_, i) => (i === 0 ? 1.6 : 0.4) + rand());
+  const tot = parts.reduce((a, b) => a + b, 0);
+  // Hours 0–3 belong to the evening before (days turn at 4 AM): as minutes,
+  // they sit after 24:00.
+  const out = parts.map((p) => {
+    const h = pick(hourWeights, rand());
+    return { start: (h < 4 ? h + 24 : h) * 60 + Math.floor(rand() * 60), ms: (ms * p) / tot };
+  });
+  out.sort((a, b) => a.start - b.start);
+  for (let i = 1; i < out.length; i++) {
+    const end = out[i - 1].start + out[i - 1].ms / 60000 + 15;
+    if (out[i].start < end) out[i].start = end;
   }
+  return out;
 }
 
 /**
  * items: [{ bookId, words, chapters }] in reading order; fromDay / toDay:
- * inclusive day keys; pace: words per ms; hourWeights: 24 numbers.
- * Returns stats rows ({ id, day, bookId, ms, paceMs, words, chapters,
- * sessions, best, hours, bf: 1 }) whose words and chapters add up exactly.
+ * inclusive day keys; pace: words per ms (the total time is words ÷ pace);
+ * hourWeights: 24 numbers. Returns stats rows ({ id, day, bookId, ms, paceMs,
+ * words, chapters, sessions, best, hours, bf: 1 }) whose words and chapters
+ * add up exactly.
  */
 export function generateBackfill({ items, fromDay, toDay, pace, hourWeights = DEFAULT_HOURS, seed = 1 }) {
   const list = items.filter((it) => it.words > 0);
@@ -95,7 +131,15 @@ export function generateBackfill({ items, fromDay, toDay, pace, hourWeights = DE
   const days = [];
   for (let d = fromDay; d <= toDay; d = addDays(d, 1)) days.push(d);
   const rand = rng(seed);
-  const shares = dayWeights(days, rand, Math.max(1 / days.length, (MAX_DAY_MS * pace) / total));
+  let w = dayIntensity(days, rand);
+  if (!w.some((x) => x > 0)) w = w.map((_, i) => (i === w.length - 1 ? 1 : 0));
+  // Words per day; time per day at a pace that drifts a little day to day,
+  // rescaled so the whole still takes words ÷ pace.
+  const capShare = Math.max(1 / days.length, (MAX_DAY_MS * pace * 0.85) / total);
+  const shares = capShares(w, capShare);
+  const dayPace = days.map(() => pace * Math.exp(0.08 * gauss(rand)));
+  const rawMs = shares.map((s, i) => (total * s) / dayPace[i]);
+  const k = total / pace / rawMs.reduce((a, b) => a + b, 0);
 
   const out = [];
   let idx = 0;
@@ -113,9 +157,8 @@ export function generateBackfill({ items, fromDay, toDay, pace, hourWeights = DE
       const take = Math.min(it.words - usedW, left);
       usedW += take;
       left -= take;
-      const part = { bookId: it.bookId, words: take, chapters: 0 };
       const ch = Math.floor((it.chapters * usedW) / it.words + 1e-9) - usedCh;
-      part.chapters = ch;
+      const part = { bookId: it.bookId, words: take, chapters: ch };
       usedCh += ch;
       if (it.words - usedW <= 1e-6) {
         part.chapters += it.chapters - usedCh;
@@ -125,16 +168,20 @@ export function generateBackfill({ items, fromDay, toDay, pace, hourWeights = DE
       }
       parts.push(part);
     }
-    const ms = dayWords / pace;
-    const sessions = Math.max(1, Math.round((ms / SESSION_MS) * (0.7 + rand() * 0.6)));
-    // One or two sittings at likely hours.
+    const ms = rawMs[i] * k;
+    const sit = sittings(ms, hourWeights, rand);
     const hours = new Array(24).fill(0);
-    if (sessions > 1 && ms > 90 * 60000) {
-      const first = ms * (0.25 + rand() * 0.2);
-      spreadHours(hours, pick(hourWeights, rand()), first, rand);
-      spreadHours(hours, pick(hourWeights, rand()), ms - first, rand);
-    } else spreadHours(hours, pick(hourWeights, rand()), ms, rand);
-    const longest = Math.min(ms, (ms / sessions) * (1.1 + rand() * 0.4));
+    for (const s of sit) {
+      let t = s.start;
+      let rem = s.ms;
+      while (rem > 0) {
+        const take = Math.min(rem, (60 - (t % 60)) * 60000);
+        hours[Math.floor(t / 60) % 24] += take;
+        rem -= take;
+        t = Math.floor(t / 60) * 60 + 60;
+      }
+    }
+    const longest = Math.max(...sit.map((s) => s.ms));
     for (const p of parts) {
       const share = p.words / dayWords;
       const rowMs = ms * share;
@@ -146,7 +193,7 @@ export function generateBackfill({ items, fromDay, toDay, pace, hourWeights = DE
         paceMs: rowMs,
         words: p.words,
         chapters: p.chapters,
-        sessions: Math.max(1, Math.round(sessions * share)),
+        sessions: Math.max(1, Math.round(sit.length * share)),
         best: Math.min(rowMs, longest),
         hours: hours.map((x) => x * share),
         bf: 1,

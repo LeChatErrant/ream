@@ -19,7 +19,7 @@
 // turned ONCE into ordinary rows from Aug 24 on (lib/backfill.js, flagged
 // `bf: 1`), after which there is just one kind of data.
 // =========================================================================
-import { dbGetAll, dbPutMany, kvGet, kvSet } from "./db.js";
+import { dbGetAll, dbPutMany, dbDeleteMany, kvGet, kvSet } from "./db.js";
 import { books, progressMap, bookById, seriesById } from "./state.js";
 import { readableChapters, baseHref } from "./lib/chapters.js";
 import { readingDay, dayKey, addDays } from "./lib/stats.js";
@@ -88,6 +88,9 @@ function snapshotBaseline() {
 // ---- One-time backfill -------------------------------------------------------
 
 const BACKFILL_KEY = "statsBackfill";
+// v2: realistic days (lib/backfill.js) — replaces v1's rows, which were
+// tagged bf: 1 like these.
+const BACKFILL_VERSION = 2;
 
 /**
  * Write the reading done before tracking as ordinary rows, once. Needs each
@@ -95,7 +98,14 @@ const BACKFILL_KEY = "statsBackfill";
  * a time). Resolves true when rows were written — the caller re-renders.
  */
 export async function runBackfill() {
-  if (!baseline || (await kvGet(BACKFILL_KEY))) return false;
+  const done = await kvGet(BACKFILL_KEY);
+  if (!baseline || (done && done.v >= BACKFILL_VERSION)) return false;
+  // An earlier version's rows go first (only ever generated ones).
+  const old = [...rows.values()].filter((r) => r.bf).map((r) => r.id);
+  if (old.length) {
+    await dbDeleteMany("stats", old);
+    for (const id of old) rows.delete(id);
+  }
   const entries = baseline.books;
   // Reading order: a series' volumes in order, series and loose books in the
   // order they were last read.
@@ -111,8 +121,8 @@ export async function runBackfill() {
   }
   for (const b of books) if (!placed.has(b.id) && entries[b.id]) groups.push([b]);
   if (!groups.length) {
-    await kvSet(BACKFILL_KEY, { at: Date.now(), rows: 0 });
-    return false;
+    await kvSet(BACKFILL_KEY, { v: BACKFILL_VERSION, at: Date.now(), rows: 0 });
+    return old.length > 0;
   }
   for (const g of groups) for (const b of g) if (!hasCurrentWordCount(b)) await ensureWordCount(b).catch(() => {});
   const firstRead = (g) => Math.min(...g.map((b) => entries[b.id].lastAt));
@@ -139,8 +149,8 @@ export async function runBackfill() {
     out.push(row);
   }
   await dbPutMany("stats", out);
-  await kvSet(BACKFILL_KEY, { at: Date.now(), rows: out.length, fromDay, toDay, wpm: Math.round(pace * 60000) });
-  return out.length > 0;
+  await kvSet(BACKFILL_KEY, { v: BACKFILL_VERSION, at: Date.now(), rows: out.length, fromDay, toDay, wpm: Math.round(pace * 60000) });
+  return out.length > 0 || old.length > 0;
 }
 
 // ---- Tracking --------------------------------------------------------------
