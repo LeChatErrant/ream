@@ -10,7 +10,9 @@
 // and every stored setting is ignored (or `git revert` the commit).
 // =========================================================================
 
-export const READER_SETTINGS = true;
+// Off for now: the v1 panel was too minimal, and a fuller v2 is being
+// designed. Flip back to true to bring the Aa button and its settings back.
+export const READER_SETTINGS = false;
 
 export const DEFAULTS = Object.freeze({ size: 100, spacing: "normal", theme: "dark" });
 

@@ -19,11 +19,12 @@ Everything runs locally in the browser — no book ever leaves your device.
   links on the page work, and an opt-in **Dark pages** switch in the drawer
   redraws the pages in the reader's colours (`src/pdf.js`, `src/lib/pdf.js`)
 - Chapters menu (drawer) — jump to any chapter, current one highlighted
-- **Text & theme** (EPUBs) — the top bar's `Aa` opens text size (80–170 %),
-  line spacing (compact / normal / relaxed) and a dark / light page. The
-  defaults are the original look and add nothing; your place in the text holds
-  while you change them. Rollback: `READER_SETTINGS = false` in
-  `src/lib/reader-prefs.js` (`src/readerprefs.js`)
+- **Text & theme** (EPUBs) — *switched off for now* (`READER_SETTINGS = false`
+  in `src/lib/reader-prefs.js`) while a fuller v2 is designed. When on, the top
+  bar's `Aa` opens text size (80–170 %), line spacing (compact / normal /
+  relaxed) and a dark / light page; the defaults are the original look and add
+  nothing, and your place in the text holds while you change them
+  (`src/readerprefs.js`)
 - One chapter per view, with an end-of-chapter Previous/Next block
 - Phone reading chrome: a permanent top bar (menu · title · chapter tools) and
   a bottom bar (‹ Previous · ⤒ top · ⤓ end · Next ›, its top edge filling with
