@@ -134,6 +134,8 @@ one concern:
 - `src/sheets.js` — action sheet + confirm / name / suggest prompts
 - `src/router.js` — routing + the overlay/Back history stack
 - `src/import.js` — `.epub` parsing, import/grouping, dev-seed
+- `src/epub.js` — opens an EPUB so that a broken file fails (with a reason)
+  instead of leaving epub.js waiting forever
 - `src/library.js` — home screen + multi-select
 - `src/info.js` — info page + editors + volume sheet
 - `src/chapters.js` — chapters screen + shared chapter-preview component
@@ -153,12 +155,21 @@ one concern:
 
 ```bash
 npm test          # Vitest unit tests over the pure logic in src/lib
+npm run test:e2e  # Playwright: the built app in Chromium, phone + desktop sizes
 npm run lint      # ESLint (flat config)
 npm run format    # Prettier (pure-logic modules, tests, config)
+npm run check     # all of the above, as CI runs them
 ```
 
-The deploy workflow runs `npm test` and `npm run lint` before building, so a
-failing check blocks the release.
+The end-to-end suite (`e2e/`) builds the app, serves it with `vite preview`
+and drives it like a reader would: importing good and broken files, reading,
+chapter navigation, resuming after a reload or a closed tab, series, PDFs,
+stats, and the service worker (offline reading, the update banner). The books
+it imports are generated on the fly by `e2e/fixtures/make.mjs`. Any error the
+page logs fails the test. First run: `npx playwright install chromium`.
+
+The deploy workflow runs all of these before building, so a failing check
+blocks the release.
 
 ## Dev seeding
 

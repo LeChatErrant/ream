@@ -220,7 +220,12 @@ describe("remapPdfProgress", () => {
     { href: "p6", from: 6, to: 9 },
   ];
   it("keeps your spot, counts the sections before it as read", () => {
-    const prev = { bookId: "b", cfi: "pdf:7:0.5", href: "p2", chapters: { p2: { pct: 30, cfi: "pdf:7:0.5", done: false } } };
+    const prev = {
+      bookId: "b",
+      cfi: "pdf:7:0.5",
+      href: "p2",
+      chapters: { p2: { pct: 30, cfi: "pdf:7:0.5", done: false } },
+    };
     const out = remapPdfProgress(prev, sections);
     expect(out.href).toBe("p6");
     expect(out.chapterIndex).toBe(2);

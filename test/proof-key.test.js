@@ -19,12 +19,16 @@ describe("textKey", () => {
 });
 
 describe("textSig", () => {
-  const line = '[Swift] Attribute Description: "This Shadow is especially swift and enduring, tireless and quick."';
+  const line =
+    '[Swift] Attribute Description: "This Shadow is especially swift and enduring, tireless and quick."';
   it("barely moves when a typo is fixed", () => {
-    expect(sigSimilarity(textSig(line), textSig(line.replace("especially", "especialy")))).toBeGreaterThanOrEqual(0.75);
+    expect(
+      sigSimilarity(textSig(line), textSig(line.replace("especially", "especialy")))
+    ).toBeGreaterThanOrEqual(0.75);
   });
   it("tells different lines apart", () => {
-    const other = '[Dreadlord] Attribute Description: "This Shadow\'s might grows the more he is feared by all."';
+    const other =
+      '[Dreadlord] Attribute Description: "This Shadow\'s might grows the more he is feared by all."';
     expect(sigSimilarity(textSig(line), textSig(other))).toBeLessThan(0.75);
   });
 });

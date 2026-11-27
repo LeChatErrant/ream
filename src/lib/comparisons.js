@@ -16,14 +16,32 @@ export const COMPARISON_BOOKS = [
   { title: "Animal Farm", author: "George Orwell", words: 30000 },
   { title: "The Great Gatsby", author: "F. Scott Fitzgerald", words: 47000 },
   { title: "The Catcher in the Rye", author: "J. D. Salinger", words: 73000 },
-  { title: "Harry Potter and the Philosopher's Stone", author: "J. K. Rowling", words: 77000, part: "book 1", short: "Harry Potter (book 1)" },
+  {
+    title: "Harry Potter and the Philosopher's Stone",
+    author: "J. K. Rowling",
+    words: 77000,
+    part: "book 1",
+    short: "Harry Potter (book 1)",
+  },
   { title: "1984", author: "George Orwell", words: 88000 },
   { title: "The Hobbit", author: "J. R. R. Tolkien", words: 95000 },
   { title: "To Kill a Mockingbird", author: "Harper Lee", words: 100000 },
   { title: "Pride and Prejudice", author: "Jane Austen", words: 122000 },
   { title: "Moby-Dick", author: "Herman Melville", words: 206000 },
-  { title: "A Game of Thrones", author: "George R. R. Martin", words: 284000, part: "book 1", short: "A Game of Thrones" },
-  { title: "The Lord of the Rings", author: "J. R. R. Tolkien", words: 470000, part: "all 3 books", short: "Lord of the Rings trilogy" },
+  {
+    title: "A Game of Thrones",
+    author: "George R. R. Martin",
+    words: 284000,
+    part: "book 1",
+    short: "A Game of Thrones",
+  },
+  {
+    title: "The Lord of the Rings",
+    author: "J. R. R. Tolkien",
+    words: 470000,
+    part: "all 3 books",
+    short: "Lord of the Rings trilogy",
+  },
 ];
 
 // "The Lord of the Rings (all 3 books)" — the plain title otherwise.

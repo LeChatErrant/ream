@@ -7,7 +7,7 @@
 // Computed once, lazily (info page, stats, or opening the book in the reader),
 // then cached on the book record so it's never redone.
 // -------------------------------------------------------------------------
-import ePub from "epubjs";
+import { openEpub } from "../epub.js";
 import { stripHtml } from "./format.js";
 import { baseHref } from "./chapters.js";
 import { dbPut } from "../db.js";
@@ -44,9 +44,8 @@ async function extractWordCount(book) {
   // A PDF counts the text on its pages, per run of pages (src/pdf.js).
   if (book.format === "pdf") return (await import("../pdf.js")).pdfWordCounts(book);
   const buffer = await book.fileBlob.arrayBuffer();
-  const b = ePub(buffer);
+  const b = await openEpub(buffer);
   try {
-    await b.ready;
     const items = b.spine?.spineItems || [];
     let total = 0;
     for (const item of items) {

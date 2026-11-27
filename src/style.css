@@ -1189,7 +1189,7 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .suggest-title, .sheet-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .sheet-title { font-size: 16px; }
-.suggest-body { margin: 0 0 18px; font: 300 13.5px/1.55 var(--font-serif); color: var(--text-muted2); }
+.suggest-body { white-space: pre-line; margin: 0 0 18px; font: 300 13.5px/1.55 var(--font-serif); color: var(--text-muted2); }
 .suggest-actions { display: flex; align-items: center; gap: 14px; }
 .text-btn {
   appearance: none;
@@ -2596,3 +2596,13 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 .st-strip__bar.is-today { background: var(--text-body); }
 .st-strip__bar.is-future { background: none; border-top: 2px dotted var(--track); height: 0 !important; }
 
+
+/* The reader's message when a book can't be opened (reader.js showReaderError). */
+.reader-error {
+  max-width: 34ch;
+  margin: 0 auto;
+  padding: 22vh 24px 0;
+  text-align: center;
+}
+.reader-error__title { margin: 0 0 10px; font: 400 18px/1.4 var(--font-serif); color: var(--text-primary); }
+.reader-error__body { margin: 0 0 22px; font: 300 14px/1.6 var(--font-serif); color: var(--text-muted2); }

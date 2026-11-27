@@ -23,7 +23,10 @@ export function textKey(text) {
 // Soul Sea's rune sheets); an exact match still goes by textKey.
 const SIG_N = 12;
 export function textSig(text) {
-  const t = String(text ?? "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const t = String(text ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
   const min = new Array(SIG_N).fill(0xffffffff);
   for (let i = 0; i + 4 <= Math.max(t.length, 4); i++) {
     const g = t.slice(i, i + 4);

@@ -3,7 +3,7 @@
 // duplicate/series grouping), the file picker, and the hidden dev-seed menu.
 // Nothing here renders; callers re-render through renderCurrentRoute.
 // =========================================================================
-import ePub from "epubjs";
+import { openEpub, BookError } from "./epub.js";
 import { parseVolumeIndex, stripVolume, seriesKey, cleanTitle, cleanAuthor } from "./lib/text.js";
 import {
   flatten, chapterCount, readableChapters, baseHref, spineGaps, fillSpineGaps, sectionTitle,
@@ -15,7 +15,7 @@ import {
 import { dbPut, dbDelete } from "./db.js";
 import { el, coverUrls } from "./dom.js";
 import { seriesVolumes } from "./reading.js";
-import { showSuggestSheet, showActionSheet, showConfirmSheet } from "./sheets.js";
+import { showSuggestSheet, showActionSheet, showConfirmSheet, showNoticeSheet } from "./sheets.js";
 import { renderCurrentRoute } from "./router.js";
 import { refreshChapterNav } from "./reader.js";
 
@@ -77,8 +77,7 @@ export async function chaptersWithSpine(b, toc, known = []) {
 }
 
 async function parseEpub(buffer, filename) {
-  const b = ePub(buffer);
-  await b.ready;
+  const b = await openEpub(buffer);
   const meta = await b.loaded.metadata.catch(() => ({}));
   const nav = await b.loaded.navigation.catch(() => ({ toc: [] }));
   const chapters = await chaptersWithSpine(b, flatten(nav.toc));
@@ -134,8 +133,10 @@ export async function createBook(buffer, filename, { seriesId = null } = {}) {
     seriesId,
     addedAt: Date.now(),
   };
-  books.push(book);
+  // Stored first, shown second: a write that fails (storage full) must not leave
+  // a book on the shelf that is gone at the next launch.
   await dbPut("books", book);
+  books.push(book);
   return book;
 }
 
@@ -145,24 +146,64 @@ export async function createBook(buffer, filename, { seriesId = null } = {}) {
 // -------------------------------------------------------------------------
 let pendingImportSeriesId = null;
 
+const IMPORTABLE = (f) => /\.(epub|pdf)$/i.test(f.name) || f.type === "application/pdf" || f.type === "application/epub+zip";
+
+// Why a file didn't import, in words for the person who picked it.
+function importFailureReason(err) {
+  const name = err?.name || "";
+  if (name === "QuotaExceededError" || /quota/i.test(err?.message || "")) return "there's no storage space left for it";
+  if (err instanceof BookError && err.reason === "timeout") return "it took too long to open";
+  if (err instanceof BookError && err.reason === "empty") return "it has no chapters to read";
+  if (name === "PasswordException") return "it's password-protected";
+  return "it isn't a readable .epub or PDF";
+}
+
 export async function importFiles(fileList) {
   const intoSeriesId = pendingImportSeriesId;
   pendingImportSeriesId = null;
-  const files = [...fileList].filter((f) => /\.(epub|pdf)$/i.test(f.name) || f.type === "application/pdf");
-  if (!files.length) return;
+  const all = [...fileList];
+  const files = all.filter(IMPORTABLE);
+  const skipped = all.filter((f) => !IMPORTABLE(f));
+  if (!files.length) {
+    if (skipped.length)
+      showNoticeSheet(
+        "Nothing to import",
+        `Ream reads .epub and PDF files. ${listNames(skipped)} ${skipped.length === 1 ? "isn't" : "aren't"} one.`
+      );
+    return;
+  }
 
   const added = [];
-  for (const file of files) {
-    try {
-      const buffer = await file.arrayBuffer();
-      const book = await createBook(buffer, file.name, { seriesId: intoSeriesId });
-      added.push(book);
-    } catch (err) {
-      console.warn("Could not import", file.name, err);
-      alert(`Couldn't read "${file.name}". It may not be a valid .epub or PDF file.`);
+  const failed = []; // { file, reason }
+  try {
+    for (const [i, file] of files.entries()) {
+      showBusy(files.length > 1 ? `Importing ${i + 1} of ${files.length}…` : `Importing “${file.name}”…`);
+      try {
+        const buffer = await file.arrayBuffer();
+        const book = await createBook(buffer, file.name, { seriesId: intoSeriesId });
+        added.push(book);
+      } catch (err) {
+        console.warn("Could not import", file.name, err);
+        failed.push({ file, reason: importFailureReason(err) });
+      }
     }
+  } finally {
+    hideBusy();
   }
-  if (!added.length) return;
+  // What went wrong, said once for the whole batch — after the shelf shows
+  // what did make it in, and before any grouping suggestion.
+  const reportFailures = async () => {
+    if (!failed.length && !skipped.length) return;
+    const lines = failed.map(({ file, reason }) => `“${file.name}”: ${reason}.`);
+    if (skipped.length) lines.push(`Skipped ${listNames(skipped)} (not an .epub or PDF).`);
+    await showNoticeSheet(
+      failed.length === 1 && !added.length && !skipped.length
+        ? "Couldn't import this file"
+        : `Imported ${added.length} of ${files.length + skipped.length}`,
+      lines.join("\n")
+    );
+  };
+  if (!added.length) return reportFailures();
 
   if (intoSeriesId) {
     const s = seriesById(intoSeriesId);
@@ -181,8 +222,12 @@ export async function importFiles(fileList) {
   // reader is still on screen — refresh its stale "Add a volume" card so it turns
   // into "Continue to Vol. N" without waiting for a trip back home.
   if (intoSeriesId) refreshChapterNav();
+  await reportFailures();
   if (!intoSeriesId) await suggestGrouping(added);
 }
+
+const listNames = (files) =>
+  files.length <= 3 ? files.map((f) => `“${f.name}”`).join(", ") : `${files.length} files`;
 
 // After import, cluster books by (title-without-volume + author). Any cluster
 // of 2+ standalone books that includes a new import gets one suggestion card.

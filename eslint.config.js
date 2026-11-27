@@ -8,7 +8,17 @@ import prettier from "eslint-config-prettier";
 // best-effort paths signal "ignore".
 export default [
   // design_handoff*/ are untracked local design archives, not app code.
-  { ignores: ["dist/**", "dev-dist/**", "node_modules/**", "design_handoff*/**"] },
+  {
+    ignores: [
+      "dist/**",
+      "dev-dist/**",
+      "node_modules/**",
+      "design_handoff*/**",
+      "test-results/**",
+      "playwright-report/**",
+      "e2e/.fixtures/**",
+    ],
+  },
   js.configs.recommended,
   {
     files: ["src/**/*.js"],
@@ -23,7 +33,13 @@ export default [
     },
   },
   {
-    files: ["vite.config.js", "vitest.config.js", "eslint.config.js", "scripts/**/*.mjs"],
+    files: [
+      "vite.config.js",
+      "vitest.config.js",
+      "playwright.config.js",
+      "eslint.config.js",
+      "scripts/**/*.mjs",
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
@@ -36,6 +52,15 @@ export default [
       ecmaVersion: 2022,
       sourceType: "module",
       globals: { ...globals.node },
+    },
+  },
+  {
+    // Playwright specs run in Node, but page.evaluate() callbacks run in the page.
+    files: ["e2e/**/*.{js,mjs}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node, ...globals.browser },
     },
   },
   prettier,

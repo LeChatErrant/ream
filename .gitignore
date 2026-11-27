@@ -9,3 +9,8 @@ dev-dist/
 
 # soul sea work dir (book text: rune blocks, chapter text, review page)
 /soul-sea/
+
+# end-to-end test output and generated fixtures
+/e2e/.fixtures/
+/test-results/
+/playwright-report/

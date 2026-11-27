@@ -12,7 +12,7 @@
 // panel holds what Sunny had when the chapter on screen began, so opening it
 // mid-chapter never gives away what the chapter is about to bring.
 // =========================================================================
-import ePub from "epubjs";
+import { openEpub as openEpubBytes } from "./epub.js";
 import data from "./soul-sea/shadow-slave.json";
 import { h, svg, ICON, WIDE } from "./dom.js";
 import { books, seriesById } from "./state.js";
@@ -59,10 +59,7 @@ function openEpub(lib) {
   if (!epubs.has(lib.id))
     epubs.set(
       lib.id,
-      lib.fileBlob.arrayBuffer().then((buf) => {
-        const b = ePub(buf);
-        return b.ready.then(() => b);
-      })
+      lib.fileBlob.arrayBuffer().then((buf) => openEpubBytes(buf))
     );
   return epubs.get(lib.id);
 }

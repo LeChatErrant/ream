@@ -1,0 +1,87 @@
+import { test, expect, openApp, importBook, importBooks, tiles, tile } from "./helpers.js";
+
+test.describe("library", () => {
+  test("starts empty, with the version in the footer", async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator(".empty__title")).toHaveText("No books yet");
+    await expect(page.locator("#app-version")).toHaveText(/^\d+\.\d+\.\d+ · \w+$/);
+    await expect(tiles(page)).toHaveCount(0);
+  });
+
+  test("imports an EPUB with its title, cover and chapter count", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "basic.epub", "The Lamplighter");
+    const t = tile(page, "The Lamplighter");
+    await expect(t.locator(".tile__meta")).toHaveText("3 chapters");
+    // The cover image came out of the epub.
+    await expect(t.locator(".tile__cover img")).toHaveAttribute("src", /^blob:/);
+    await expect(page.locator(".lib-label").filter({ hasText: "All books" })).toHaveText("All books · 1");
+  });
+
+  test("keeps the library across a reload", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "basic.epub", "The Lamplighter");
+    await importBook(page, "ncx-only.epub", "Old Format");
+    await page.reload();
+    await expect(tile(page, "The Lamplighter")).toBeVisible();
+    await expect(tile(page, "Old Format")).toBeVisible();
+  });
+
+  test("imports several files picked at once", async ({ page }) => {
+    await openApp(page);
+    await importBooks(page, "basic.epub", "ncx-only.epub", "no-toc.epub", "text.pdf");
+    await expect(tiles(page)).toHaveCount(4);
+    await expect(tile(page, "No Contents").locator(".tile__meta")).toHaveText("3 chapters");
+    await expect(tile(page, "Printed Matter").locator(".tile__meta")).toHaveText("3 chapters");
+  });
+
+  test("handles non-ASCII titles and authors", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "unicode.epub", "Élan & Ünïcode “Quotes”");
+    await tile(page, "Élan & Ünïcode").locator(".tile__cover").click();
+    await expect(page.locator("#info-screen")).toContainText("Zoë Ångström");
+  });
+
+  test("search filters the shelf", async ({ page }) => {
+    await openApp(page);
+    await importBooks(page, "basic.epub", "ncx-only.epub");
+    await expect(tiles(page)).toHaveCount(2);
+    const search = page.locator("#lib-search-input");
+    if (!(await search.isVisible())) await page.locator("#lib-search").click();
+    await search.fill("lamp");
+    await expect(tiles(page)).toHaveCount(1);
+    await expect(tile(page, "The Lamplighter")).toBeVisible();
+    await search.fill("nothing like this");
+    await expect(tiles(page)).toHaveCount(0);
+    await search.fill("");
+    await expect(tiles(page)).toHaveCount(2);
+  });
+
+  test("deletes a book, for good", async ({ page }) => {
+    await openApp(page);
+    await importBooks(page, "basic.epub", "ncx-only.epub");
+    await expect(tiles(page)).toHaveCount(2);
+    await tile(page, "Old Format").locator(".tile__cover").click();
+    await page.locator("#info-screen [aria-label='More']").first().click();
+    await page.locator(".action-item", { hasText: /^Delete/ }).click();
+    await page.locator("#confirm-ok").click();
+    await expect(page.locator("#app")).toHaveAttribute("data-route", "library");
+    await expect(tiles(page)).toHaveCount(1);
+    await page.reload();
+    await expect(tiles(page)).toHaveCount(1);
+    await expect(tile(page, "The Lamplighter")).toBeVisible();
+  });
+
+  test("sort toggles between recent and title", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "ncx-only.epub", "Old Format");
+    await importBook(page, "basic.epub", "The Lamplighter");
+    const titles = () => tiles(page).locator(".tile__title").allInnerTexts();
+    expect(await titles()).toEqual(["The Lamplighter", "Old Format"]); // most recent first
+    await page.locator(".sort-btn").click();
+    await expect(page.locator(".sort-btn")).toHaveText(/Title/);
+    expect(await titles()).toEqual(["Old Format", "The Lamplighter"]);
+    await page.reload();
+    await expect(page.locator(".sort-btn")).toHaveText(/Title/); // remembered
+  });
+});

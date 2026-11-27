@@ -32,13 +32,30 @@ jobs:
 
       - run: npm ci
 
-      # Every push to main ships, so a red test or lint stops the deploy here,
-      # before anything is built or published.
+      # Every push to main ships, so a red test, lint or format check stops the
+      # deploy here, before anything is built or published.
       - run: npm test
 
       - run: npm run lint
 
+      - run: npm run format:check
+
       - run: npm run build
+
+      # End-to-end: the built app in a real browser (phone + desktop sizes) —
+      # import, read, resume, offline, updates. Chromium only, matching the
+      # pinned @playwright/test version.
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e
+
+      - name: Keep the failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results/
+          retention-days: 7
 
       # Pages is already enabled on the repo (build type = GitHub Actions),
       # so this just wires up the deployment for the artifact upload.

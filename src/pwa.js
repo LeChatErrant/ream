@@ -82,10 +82,12 @@ export function hideUpdateBanner() {
   if (el.updateBanner) el.updateBanner.hidden = true;
 }
 
-// registerSW handles the waiting/reload plumbing; calling updateSW(true)
-// activates the waiting worker and reloads the page.
-const updateSW = registerSW({
+// registerSW registers the worker and reports a waiting one (onNeedRefresh);
+// applying it is applyUpdate below.
+registerSW({
   immediate: true,
+  // The new worker took over after Reload — load the new version (once).
+  onNeedReload: reloadOnce,
   // A new worker has installed and is waiting — the app is now out of date.
   onNeedRefresh() {
     showUpdateBanner({ installing: false });
@@ -102,6 +104,9 @@ const updateSW = registerSW({
       showUpdateBanner({ installing: true });
       sw.addEventListener("statechange", () => {
         if (sw.state === "installed") showUpdateBanner({ installing: false });
+        // The download failed (went offline mid-way, a server error): don't
+        // leave "Downloading…" up forever — the next check will try again.
+        if (sw.state === "redundant" && reg.waiting !== sw) hideUpdateBanner();
       });
     });
     // Poll for a fresh build: immediately whenever the app is refocused, and
@@ -116,7 +121,26 @@ const updateSW = registerSW({
     setInterval(check, UPDATE_POLL_MS);
   },
 });
-export const applyUpdate = () => updateSW(true);
+
+// Reload: hand over to the waiting worker, then load the new version.
+//
+// Done here rather than through registerSW's updateSW(): the banner shows the
+// moment the new worker has installed, but registerSW only arms its
+// reload-on-takeover ~200 ms later (when workbox-window reports "waiting"). A
+// tap inside that window activated the new worker with no reload — the old
+// page kept running, the banner stayed up, and Reload did nothing after that.
+let reloading = false;
+function reloadOnce() {
+  if (reloading) return;
+  reloading = true;
+  window.location.reload();
+}
+export function applyUpdate() {
+  const waiting = swRegistration?.waiting;
+  if (!waiting) return reloadOnce(); // already active (another tab took it): just load it
+  navigator.serviceWorker.addEventListener("controllerchange", reloadOnce, { once: true });
+  waiting.postMessage({ type: "SKIP_WAITING" });
+}
 
 // Set the update-check status line (its own line under the version row).
 // kind: "ok" (green ✓), "err" (danger), or "" (neutral).

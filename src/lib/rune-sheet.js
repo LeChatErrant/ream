@@ -11,7 +11,8 @@
 // book often names it on the line before.
 
 // "Memory Rank" → "Rank" — but "Shadow Dance Mastery Level" stays itself.
-const KIND_WORD = /^(Memory|Echo|Shadow|Aspect|Flaw)\s+(?=(Rank|Tier|Type|Class|Description|Attributes|Abilities|Enchantments?|Ability Description|Legacy|Fragments)$)/;
+const KIND_WORD =
+  /^(Memory|Echo|Shadow|Aspect|Flaw)\s+(?=(Rank|Tier|Type|Class|Description|Attributes|Abilities|Enchantments?|Ability Description|Legacy|Fragments)$)/;
 // A short value loses its full stop ("Awakened."); prose keeps its own, losing
 // only one that closes the brackets ("[…deserts].").
 export const unwrap = (v, prose = false) =>
@@ -34,9 +35,15 @@ export const cap = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 export function parseRune(t) {
   t = t.trim().replace(/^(…|\.\.\.)\s*/, "");
   let m = t.match(/^\[([^\]]+)\]\s+(\w+ Descriptions?)\s*:\s*(.*)$/s); // [Fated] Attribute Description: "…"
-  if (m) return { label: m[2].replace(/s$/, "").replace(/Enchantments/, "Enchantment"), subject: m[1], value: m[3] };
+  if (m)
+    return {
+      label: m[2].replace(/s$/, "").replace(/Enchantments/, "Enchantment"),
+      subject: m[1],
+      value: m[3],
+    };
   m = t.match(/^((?:[A-Z][\w']*\s){1,4})(Attribute|Enchantment|Ability) Description\s*:\s*(.*)$/s); // Battle Master Attribute Description: […]
-  if (m && !/^(Memory|Echo|Shadow|Aspect|Flaw|Aspect Ability)$/.test(m[1].trim())) return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
+  if (m && !/^(Memory|Echo|Shadow|Aspect|Flaw|Aspect Ability)$/.test(m[1].trim()))
+    return { label: `${m[2]} Description`, subject: m[1].trim(), value: m[3] };
   m = t.match(/^([A-Z][\w' ]{0,40}?)\s*:\s*(.*)$/s); // Memory Rank: Awakened.
   if (m) return { label: m[1], value: m[2] };
   m = t.match(/^\[(.*)\]\.?$/s); // a Spell message: "[Silver Bell: a small memento…]", "[Shadow Fragments: 0/200.]"
@@ -111,7 +118,11 @@ export function runeLines(paras) {
       prev.src.push(cut ? { i, cut: 1 } : { i });
     } else
       splitFields(t).forEach((part, seg) =>
-        lines.push({ t: part, s: /Description/.test(part) ? s : undefined, src: [cont ? { i, seg, raw: 1 } : { i, seg }] })
+        lines.push({
+          t: part,
+          s: /Description/.test(part) ? s : undefined,
+          src: [cont ? { i, seg, raw: 1 } : { i, seg }],
+        })
       );
   });
   return lines;
@@ -124,18 +135,32 @@ export function runeLines(paras) {
 export function descText(parts) {
   let line = null;
   for (const { t, seg, raw, cut } of parts) {
-    if (line == null) line = seg != null ? splitFields(raw ? t : runeOnly(t))[seg] ?? "" : t.trim();
+    if (line == null) line = seg != null ? (splitFields(raw ? t : runeOnly(t))[seg] ?? "") : t.trim();
     else line = extend(line, t, !!cut);
   }
   return line == null ? "" : unwrap(parseRune(line).value, true);
 }
 
 // Tiers are Roman numerals in the runes; the book once spells one out ("Memory Tier: Seven.").
-const TIER_WORDS = { one: "I", two: "II", three: "III", four: "IV", five: "V", six: "VI", seven: "VII", eight: "VIII", nine: "IX" };
+const TIER_WORDS = {
+  one: "I",
+  two: "II",
+  three: "III",
+  four: "IV",
+  five: "V",
+  six: "VI",
+  seven: "VII",
+  eight: "VIII",
+  nine: "IX",
+};
 const romanTier = (v) => TIER_WORDS[v.toLowerCase()] ?? v;
 
 // The kind of description each list holds.
-const LIST_KIND = { Enchantments: "Enchantment Description", Attributes: "Attribute Description", Abilities: "Ability Description" };
+const LIST_KIND = {
+  Enchantments: "Enchantment Description",
+  Attributes: "Attribute Description",
+  Abilities: "Ability Description",
+};
 const KIND_LIST = Object.fromEntries(Object.entries(LIST_KIND).map(([l, k]) => [k, l]));
 // Names compared loosely: case, spacing, punctuation.
 const loose = (n) => n.toLowerCase().replace(/[^a-z0-9?]/g, "");
@@ -180,7 +205,12 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
   const notes = []; // named descriptions: enchantments, attributes, abilities
   let epigraph = null;
   let pending = null; // a name line ("Enchantment: [Doubtless].", "[Blade of Darkness].") titling the description after it
-  const clean = (n) => n.trim().replace(/^(…|\.\.\.)\s*/, "").replace(/(\.+|…)$/, "").trim();
+  const clean = (n) =>
+    n
+      .trim()
+      .replace(/^(…|\.\.\.)\s*/, "")
+      .replace(/(\.+|…)$/, "")
+      .trim();
   // Repeated lines: the later one wins (sheets are in reading order)…
   // …unless it's cut short ("A pitiful little creature...") and the earlier one is the full text.
   const cutOf = (nu, old) => {
@@ -201,7 +231,8 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
     const value = clean(unwrap(r.value));
     const prose = unwrap(r.value, true);
     // "[Blade of Darkness]." names what follows; "[Shadows recognize you as their ruler.]" is a description.
-    const bareName = /^\s*\[[^:\]]{1,60}\]\.?\s*$/.test(t) && !/^\s*\[[^\]]*\S\s+\S+\s+[^\]]*[.!?]\]\.?\s*$/.test(t);
+    const bareName =
+      /^\s*\[[^:\]]{1,60}\]\.?\s*$/.test(t) && !/^\s*\[[^\]]*\S\s+\S+\s+[^\]]*[.!?]\]\.?\s*$/.test(t);
     if (bareName || label === "Enchantment" || label === "Ability" || label === "Attribute") {
       const name = bareName ? clean(t.replace(/[[\]]/g, "")) : value;
       if (name !== x.name && !NOT_A_NAME.test(name)) pending = name;
@@ -213,34 +244,60 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
     if (/Description$/.test(label)) {
       // "Shadow Dance Description", "[Fated] Attribute Description", or a description with no other subject: the item's own.
       const typed = /^(Attribute|Ability|Enchantment) Description$/.test(label);
-      let title = r.subject || s || (label !== "Description" && !typed ? label.replace(/ Description$/, "") : null) || pending;
+      let title =
+        r.subject ||
+        s ||
+        (label !== "Description" && !typed ? label.replace(/ Description$/, "") : null) ||
+        pending;
       title = title && clean(title);
       if (title && NOT_A_NAME.test(title)) title = null; // "[You have acquired a new Attribute.]"
       pending = null;
       // An Attribute's or Ability's own description — but the Shadow Nightmare's
       // "[Nightmare] Ability Description" is its ability's.
-      const ownKind = !typed || label.startsWith({ attribute: "Attribute", ability: "Ability" }[x.kind] ?? "-");
-      const own = (title === x.name && ownKind) || (!title && (label === "Description" || x.kind === "attribute" || x.kind === "ability"));
+      const ownKind =
+        !typed || label.startsWith({ attribute: "Attribute", ability: "Ability" }[x.kind] ?? "-");
+      const own =
+        (title === x.name && ownKind) ||
+        (!title && (label === "Description" || x.kind === "attribute" || x.kind === "ability"));
       if (own) {
         if (!cutOf(prose, epigraph?.text)) epigraph = { text: prose, src };
       } else put(notes, { title, kind: label, text: prose, src }, (n) => title && n.title === title);
     }
     // A list of names ("[Battle Master], [Stalwart]") — not a count like "[27/200]". The
     // book sometimes trails off ("[Royal Promise]...") or garbles a bracket ("(Blessing of Soul],").
-    else if (/s$/.test(label) && !/ss$/.test(label) && /^[[(][^\]\d]/.test(r.value.trim()) && /\]/.test(r.value) && !/\]\s*[^,.\s…\]]/.test(r.value.replace(/\]\s*,\s*[[(]/g, "")))
-      put(lists, { label, names: [...r.value.matchAll(/[[(]([^[\]()]+)\]/g)].map((m) => clean(m[1])).filter(Boolean), cut: /(…|\.\.\.|,)\s*\.?$/.test(r.value.trim()) }, (l) => l.label === label);
+    else if (
+      /s$/.test(label) &&
+      !/ss$/.test(label) &&
+      /^[[(][^\]\d]/.test(r.value.trim()) &&
+      /\]/.test(r.value) &&
+      !/\]\s*[^,.\s…\]]/.test(r.value.replace(/\]\s*,\s*[[(]/g, ""))
+    )
+      put(
+        lists,
+        {
+          label,
+          names: [...r.value.matchAll(/[[(]([^[\]()]+)\]/g)].map((m) => clean(m[1])).filter(Boolean),
+          cut: /(…|\.\.\.|,)\s*\.?$/.test(r.value.trim()),
+        },
+        (l) => l.label === label
+      );
     else put(facts, { label, value: label === "Tier" ? romanTier(value) : value }, (f) => f.label === label);
   }
   // A list naming the item itself is Sunny's own ("Attributes: [Fated], [Ember of Divinity]"
   // on the Ember's sheet), not what the item holds.
   const own = { attribute: "Attributes", ability: "Abilities" }[x.kind];
-  for (const l of [...lists]) if (l.label === own && l.names.some((n) => loose(n) === loose(x.name ?? ""))) lists.splice(lists.indexOf(l), 1);
+  for (const l of [...lists])
+    if (l.label === own && l.names.some((n) => loose(n) === loose(x.name ?? "")))
+      lists.splice(lists.indexOf(l), 1);
   // What the book has said since the last rune sheet ("now a Transcendent Devil").
-  for (const [label, value] of Object.entries(x.facts || {})) put(facts, { label, value }, (f) => f.label === label);
+  for (const [label, value] of Object.entries(x.facts || {}))
+    put(facts, { label, value }, (f) => f.label === label);
   // A list's "???" the book later reveals ("[Where is my eye?]"): the described name not in the list.
   for (const l of lists) {
     const unknown = l.names.indexOf("???");
-    const revealed = notes.filter((n) => n.kind === LIST_KIND[l.label] && n.title && !l.names.some((m) => sameName(m, n.title)));
+    const revealed = notes.filter(
+      (n) => n.kind === LIST_KIND[l.label] && n.title && !l.names.some((m) => sameName(m, n.title))
+    );
     if (unknown >= 0 && revealed.length === 1) l.names[unknown] = revealed[0].title;
   }
   // Descriptions the book lists without naming: in the order of the list.
@@ -257,11 +314,18 @@ export function readSheet(paras, x, { prefer = (listed, described) => described 
   const out = lists.map((l) => ({
     label: l.label,
     names: l.names.map((name) => {
-      const n = notes.find((m) => !placed.has(m) && m.title && loose(m.title) === loose(name)) ?? notes.find((m) => !placed.has(m) && m.title && sameName(m.title, name));
+      const n =
+        notes.find((m) => !placed.has(m) && m.title && loose(m.title) === loose(name)) ??
+        notes.find((m) => !placed.has(m) && m.title && sameName(m.title, name));
       if (!n) return { name };
       placed.add(n);
       const typo = loose(n.title) !== loose(name);
-      return { name: typo ? prefer(name, n.title) : name, text: n.text, src: n.src, ...(typo ? { typo: [name, n.title] } : {}) };
+      return {
+        name: typo ? prefer(name, n.title) : name,
+        text: n.text,
+        src: n.src,
+        ...(typo ? { typo: [name, n.title] } : {}),
+      };
     }),
   }));
   const whole = (label) => lists.some((l) => l.label === label && !l.cut);

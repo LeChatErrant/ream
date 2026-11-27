@@ -112,6 +112,28 @@ export function showConfirmSheet(title, body, confirmLabel) {
     el.confirmScrim.onclick = () => closeOverlay();
   });
 }
+// A message with a single OK — for things the user should know (a file that
+// wouldn't import) but has nothing to decide about. Shares the confirm sheet.
+export function showNoticeSheet(title, body) {
+  return new Promise((resolve) => {
+    el.confirmTitle.textContent = title;
+    el.confirmBody.textContent = body;
+    el.confirmOk.textContent = "OK";
+    el.confirmOk.classList.remove("pill-btn--danger");
+    el.confirmCancel.hidden = true;
+    const hide = () => {
+      el.confirmSheet.hidden = true;
+      el.confirmOk.onclick = el.confirmScrim.onclick = null;
+      el.confirmOk.classList.add("pill-btn--danger");
+      el.confirmCancel.hidden = false;
+      resolve();
+    };
+    el.confirmSheet.hidden = false;
+    armOverlay(hide);
+    el.confirmOk.onclick = () => closeOverlay();
+    el.confirmScrim.onclick = () => closeOverlay();
+  });
+}
 export function showNameSheet(title, prefill, confirmLabel) {
   return new Promise((resolve) => {
     el.nameTitle.textContent = title;

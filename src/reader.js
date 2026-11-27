@@ -6,6 +6,7 @@
 // destroyRendition / setCurrentBook.
 // =========================================================================
 import ePub, { Contents } from "epubjs";
+import { whenOpen } from "./epub.js";
 // The reader theme is inlined into the JS bundle (not fetched per chapter) and
 // injected as a <style> element into each chapter document via a content hook.
 // Registering it as an external URL made epub.js drop a <link> into every
@@ -94,13 +95,55 @@ let restoreActive = false;
 // leaves the reader route.
 export const setCurrentBook = (b) => { currentBook = b; };
 export const hasRendition = () => !!rendition;
+// In place of the text when the book can't be opened: what happened, and the
+// way back to the library.
+function showReaderError(err) {
+  console.warn("Could not open the book", err);
+  destroyRendition();
+  updateChapterTitle(null);
+  el.btnPrev.disabled = el.rbPrev.disabled = true;
+  el.btnNext.disabled = el.rbNext.disabled = true;
+  el.viewer.replaceChildren(
+    h(
+      "div",
+      { class: "reader-error", role: "alert" },
+      h("p", { class: "reader-error__title" }, "This book couldn’t be opened"),
+      h(
+        "p",
+        { class: "reader-error__body" },
+        err?.reason === "timeout"
+          ? "It took too long to open. Try again, or re-import the file if it keeps happening."
+          : "The stored file looks damaged. Delete it from the library and import it again."
+      ),
+      h("button", { class: "pill-btn", onclick: () => go({ route: "library" }) }, "Back to library")
+    )
+  );
+}
+
 export function destroyRendition() {
   releaseWakeLock();
   endSession();
   if (rendition) {
-    rendition.destroy();
+    teardown(rendition);
     rendition = null;
     book = null;
+  }
+}
+
+// Tear a rendition down even if it hasn't finished starting — leaving the
+// reader (Back, the drawer's Library row) moments after opening a book. epub.js
+// queues the rendition's start and first display behind the book's opening;
+// destroyed first, those still ran later against the gone book and threw, and
+// destroying a view manager that never rendered threw too. Clearing the queue
+// drops the pending work; anything half-built is just discarded.
+function teardown(r) {
+  try {
+    r.q?.clear?.();
+  } catch {}
+  try {
+    r.destroy();
+  } catch {
+    /* never fully started — nothing left to tear down */
   }
 }
 
@@ -337,7 +380,7 @@ async function keepNewPdfChapters(lib, opened) {
 
 export async function renderReader(lib, startHref = null) {
   if (rendition) {
-    rendition.destroy();
+    teardown(rendition);
     rendition = null;
   }
   el.viewer.innerHTML = "";
@@ -372,7 +415,13 @@ export async function renderReader(lib, startHref = null) {
   if (isPdf) {
     // A PDF reads through PdfBook / PdfRendition (pdf.js), shaped like
     // epub.js's book and rendition so everything below works on it as is.
-    const opened = await (await import("./pdf.js")).openPdfBook(buffer, lib);
+    let opened;
+    try {
+      opened = await (await import("./pdf.js")).openPdfBook(buffer, lib);
+    } catch (err) {
+      if (currentBook === lib && document.getElementById("app").dataset.route === "reader") showReaderError(err);
+      return;
+    }
     // Left the reader (or opened another book) while PDF.js was loading.
     if (currentBook !== lib || document.getElementById("app").dataset.route !== "reader" || rendition) {
       opened.destroy();
@@ -395,6 +444,12 @@ export async function renderReader(lib, startHref = null) {
       height: "100%",
       spread: "none",
       allowScriptedContent: false,
+    });
+    // A stored book that no longer opens (a damaged file) would otherwise
+    // leave a blank page with nothing to say why.
+    const opening = book;
+    whenOpen(opening).catch((err) => {
+      if (book === opening) showReaderError(err);
     });
   }
   // Critical dark background as a rules theme so it's applied the instant the

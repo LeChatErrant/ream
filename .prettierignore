@@ -16,3 +16,12 @@ README.md
 CLAUDE.md
 scripts/**
 vite.config.js
+
+# Generated data and tool files, not hand-written code.
+src/soul-sea/*.json
+.claude/
+
+# End-to-end test output and generated fixtures.
+e2e/.fixtures/
+test-results/
+playwright-report/

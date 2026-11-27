@@ -231,7 +231,8 @@ export function remapPdfProgress(prev, sections) {
   const pos = parsePdfPos(prev.cfi);
   const at = pos && sectionOfPage(sections, pos.page);
   for (const s of sections) {
-    if (prev.finished || (at && s.to < at.from)) out.chapters[s.href] = { pct: 100, cfi: s === at ? prev.cfi : null, done: true };
+    if (prev.finished || (at && s.to < at.from))
+      out.chapters[s.href] = { pct: 100, cfi: s === at ? prev.cfi : null, done: true };
   }
   if (at && !prev.finished) {
     const pct = Math.round(((pos.page - at.from + pos.frac) / (at.to - at.from + 1)) * 100);

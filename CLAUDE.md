@@ -21,6 +21,11 @@ is red or the work is knowingly incomplete/experimental; or the maintainer says
 not to. When in doubt, ship. An explicit "deploy" / "ship it" / "push it live" /
 "release" always means ship now.
 
+The workflow runs the unit tests, lint, the Prettier check and the Playwright
+end-to-end suite (`e2e/`) before it builds; any failure stops the deploy. Run
+`npm run check` locally before pushing so a red run doesn't hold up a release,
+and add an e2e test alongside any user-facing fix.
+
 Whether prompted or shipping by default, follow this exactly:
 
 1. **Bump the version first.** Increment `package.json` + `package-lock.json`:

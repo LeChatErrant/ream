@@ -38,6 +38,10 @@ function tx(store, mode, fn) {
         // the request object itself.
         t.oncomplete = () => resolve(out instanceof IDBRequest ? out.result : out);
         t.onerror = () => reject(t.error);
+        // A write refused at commit (storage full: QuotaExceededError) aborts
+        // the transaction without an error event — without this the promise
+        // would never settle and the caller (an import) would wait forever.
+        t.onabort = () => reject(t.error || new DOMException("The write was aborted.", "AbortError"));
       })
   );
 }

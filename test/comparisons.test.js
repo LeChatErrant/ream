@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { COMPARISON_BOOKS, refTitle, refShortTitle, formatMultiplier, bestComparison } from "../src/lib/comparisons.js";
+import {
+  COMPARISON_BOOKS,
+  refTitle,
+  refShortTitle,
+  formatMultiplier,
+  bestComparison,
+} from "../src/lib/comparisons.js";
 
 describe("refShortTitle", () => {
   it("uses the short name when there is one, the full title otherwise", () => {

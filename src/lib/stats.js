@@ -86,6 +86,7 @@ export function formatDay(key, today) {
 // share already read).
 export function wordsThrough(chapters, idx, from = 0) {
   let w = 0;
-  for (let i = from; i <= idx && i < chapters.length; i++) w += chapters[i].words * (1 - Math.min(1, chapters[i].frac));
+  for (let i = from; i <= idx && i < chapters.length; i++)
+    w += chapters[i].words * (1 - Math.min(1, chapters[i].frac));
   return w;
 }

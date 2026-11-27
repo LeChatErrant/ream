@@ -37,9 +37,17 @@ describe("isFrontMatter", () => {
     expect(isFrontMatter("Licence")).toBe(true);
   });
   it("flags trailing back matter (the notes page every scraped volume ends with)", () => {
-    ["Notes", "Note", "Author's Notes", "Authors Note", "Translator's Notes", "Afterword", "Foreword", "Acknowledgements", "About the Author"].forEach(
-      (l) => expect(isFrontMatter(l)).toBe(true)
-    );
+    [
+      "Notes",
+      "Note",
+      "Author's Notes",
+      "Authors Note",
+      "Translator's Notes",
+      "Afterword",
+      "Foreword",
+      "Acknowledgements",
+      "About the Author",
+    ].forEach((l) => expect(isFrontMatter(l)).toBe(true));
   });
   it("does not flag real chapters", () => {
     expect(isFrontMatter("Chapter 1")).toBe(false);
@@ -79,14 +87,18 @@ describe("chapterCount", () => {
 
 describe("frontMatterCount", () => {
   it("counts all boilerplate, front and back", () => {
-    const book = { chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")] };
+    const book = {
+      chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")],
+    };
     expect(frontMatterCount(book)).toBe(3);
   });
 });
 
 describe("frontMatterEntries", () => {
   it("returns the boilerplate entries, front and back, in order — the 'Notes & extras' group", () => {
-    const book = { chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")] };
+    const book = {
+      chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")],
+    };
     expect(frontMatterEntries(book).map((e) => e.label)).toEqual(["Cover", "Contents", "Notes"]);
   });
   it("is empty when every entry is a real chapter", () => {
@@ -96,7 +108,9 @@ describe("frontMatterEntries", () => {
 
 describe("leadingFrontMatterCount", () => {
   it("counts only the boilerplate before the first real chapter", () => {
-    const book = { chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")] };
+    const book = {
+      chapters: [ch("Cover", "c"), ch("Contents", "t"), ch("Chapter 1", "1"), ch("Notes", "n")],
+    };
     // Cover + Contents lead; the trailing Notes page must not be counted, or a
     // spine-index fallback would land one chapter early.
     expect(leadingFrontMatterCount(book)).toBe(2);
@@ -107,10 +121,19 @@ describe("leadingFrontMatterCount", () => {
 // be dropped so counts stay honest and the cross-volume offset never drifts.
 describe("readableChapters + chapterCount with a trailing notes page", () => {
   const volume = {
-    chapters: [ch("Information", "i"), ch("Table of Contents", "t"), ch("Chapter 1: Nightmare Begins", "0"), ch("Chapter 2: Slave Caravan", "1"), ch("Notes", "n")],
+    chapters: [
+      ch("Information", "i"),
+      ch("Table of Contents", "t"),
+      ch("Chapter 1: Nightmare Begins", "0"),
+      ch("Chapter 2: Slave Caravan", "1"),
+      ch("Notes", "n"),
+    ],
   };
   it("keeps only the real chapters", () => {
-    expect(readableChapters(volume.chapters).map((e) => e.label)).toEqual(["Chapter 1: Nightmare Begins", "Chapter 2: Slave Caravan"]);
+    expect(readableChapters(volume.chapters).map((e) => e.label)).toEqual([
+      "Chapter 1: Nightmare Begins",
+      "Chapter 2: Slave Caravan",
+    ]);
   });
   it("counts 2, not 3 (the notes page no longer inflates it)", () => {
     expect(chapterCount(volume)).toBe(2);
@@ -122,7 +145,10 @@ describe("chapterDisplay", () => {
     expect(chapterDisplay(ch("Chapter 96: Exile"), 1)).toEqual({ num: 96, title: "Exile" });
   });
   it("handles the no-separator form some volumes use", () => {
-    expect(chapterDisplay(ch("Chapter 2721 The Ship of Theseus"), 1)).toEqual({ num: 2721, title: "The Ship of Theseus" });
+    expect(chapterDisplay(ch("Chapter 2721 The Ship of Theseus"), 1)).toEqual({
+      num: 2721,
+      title: "The Ship of Theseus",
+    });
   });
   it("prefers the label number over the positional fallback", () => {
     // Position says 1, but the book states 96 — the stated number wins.
