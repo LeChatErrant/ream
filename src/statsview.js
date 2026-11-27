@@ -173,8 +173,11 @@ const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st",
 // Bars of reading time. buckets: [{ label, name, ms, current, future }].
 // With `onPick`, each past bar is a button: tapping one calls onPick(index),
 // tapping it again calls onPick(null). Future bars are inert dotted stubs.
-// `line` ({ ms, label }) draws your usual as a dashed line across.
+// `line` ({ ms, label }) draws your usual as a dashed line across. `values`
+// (true, or a formatter) writes each bar's time above it; the line's label then
+// goes under the chart, where it can't sit on top of a bar's number.
 function barChart(buckets, { height = 110, values = false, aria = "", onPick = null, line = null } = {}) {
+  const fmt = typeof values === "function" ? values : formatHoursShort;
   const max = Math.max(1, ...buckets.map((b) => b.ms), line ? line.ms * 1.08 : 0);
   const room = values ? height - 16 : height;
   const bars = h("div", { class: "st-bars", style: `height:${height}px`, role: onPick ? "group" : "img", "aria-label": aria });
@@ -185,7 +188,7 @@ function barChart(buckets, { height = 110, values = false, aria = "", onPick = n
   buckets.forEach((b, i) => {
     const px = b.ms > 0 ? Math.max(2, Math.round((b.ms / max) * room)) : 0;
     const kids = [
-      values && b.ms > 0 ? h("span", { class: "st-bars__val" }, formatHoursShort(b.ms)) : null,
+      values && b.ms > 0 ? h("span", { class: "st-bars__val" }, fmt(b.ms)) : null,
       px
         ? h("div", { class: "st-bars__stack", style: `height:${px}px` }, h("div", { class: "st-bars__seg" + (b.current ? " is-current" : ""), style: "flex:1" }))
         : h("div", { class: "st-bars__stub" + (b.future ? " is-future" : "") }),
@@ -212,8 +215,11 @@ function barChart(buckets, { height = 110, values = false, aria = "", onPick = n
     cols.push(col);
     bars.append(col);
   });
-  if (line && line.ms > 0)
-    bars.append(h("div", { class: "st-bars__line", style: `bottom:${Math.round((line.ms / max) * room)}px`, "aria-hidden": "true" }, line.label ? h("span", null, line.label) : null));
+  if (line && line.ms > 0) {
+    const note = line.label && values;
+    bars.append(h("div", { class: "st-bars__line", style: `bottom:${Math.round((line.ms / max) * room)}px`, "aria-hidden": "true" }, line.label && !note ? h("span", null, line.label) : null));
+    if (note) chart.append(h("div", { class: "st-chart__note", "aria-hidden": "true" }, `dashed: ${line.label}`));
+  }
   return chart;
 }
 
@@ -413,26 +419,12 @@ function renderBook(content, scope) {
   if (m.pos.behind)
     content.append(h("p", { class: "st-note" }, `${plural(m.pos.behind, "earlier chapter")} still unread — not counted in the time left.`));
 
-  // Hours per week, last 8 weeks, against your usual week on this book.
-  const thisWeek = weekStart(day);
-  const weeks = [];
-  for (let i = 7; i >= 0; i--) {
-    const wf = addDays(thisWeek, -7 * i);
-    const s = sumRange(m.days, wf, addDays(wf, 6));
-    const d = dayDate(wf);
-    const prev = dayDate(addDays(wf, -7));
-    const lbl = i === 7 || d.getMonth() !== prev.getMonth() ? `${monthShort(d.getMonth())} ${d.getDate()}` : String(d.getDate());
-    weeks.push({ ...s, label: lbl, current: i === 0 });
-  }
-  const usual = usualWeek(m.days, day);
-  content.append(
-    h(
-      "section",
-      { class: "st-section" },
-      label("Hours per week", usual ? `last 8 weeks · dashed: usual ${formatDuration(usual.ms)}` : "last 8 weeks"),
-      barChart(weeks, { height: 118, values: true, aria: "Hours read per week over the last 8 weeks", line: usual ? { ms: usual.ms } : null })
-    )
-  );
+  // Reading time — the same Week / Month / Year / All chart as the overall
+  // screen, on this book (series) alone, then its reading days.
+  const rerender = () => renderStats(scope.kind, scope.id, { keep: true });
+  const hero = periodHero(m.days, day, rerender, workDetail);
+  content.append(h("section", { class: "st-section" }, label("Reading time"), periodTabs(rerender), hero.node));
+  content.append(heatmapSection(m.days, day, hero.firstDay, (k) => workDetail(m.days.get(k))));
 
   // Details.
   const read = scope.books.reduce((n, b) => n + wordsRead(b), 0);
@@ -650,14 +642,8 @@ function perShelf(rows, from, to) {
   return [...per.values()].sort((a, b) => b.ms - a.ms);
 }
 
-function renderOverall(content, scope) {
-  const rows = statRows(idsOf(scope));
-  const days = byDay(rows);
-  const day = today();
-  const all = totals(days);
-  const rerender = () => renderStats("all", undefined, { keep: true });
-
-  // Period switch.
+// Week / Month / Year / All — switching starts the new tab on its current period.
+function periodTabs(rerender) {
   const tabs = h("div", { class: "st-tabs", role: "tablist", "aria-label": "Period" });
   for (const [key, name] of PERIODS) {
     tabs.append(
@@ -677,15 +663,15 @@ function renderOverall(content, scope) {
       )
     );
   }
-  content.append(tabs);
+  return tabs;
+}
 
-  if (!all.ms) {
-    content.append(h("p", { class: "st-empty" }, "Nothing read yet. Your reading time shows up here once you start."));
-    return;
-  }
-
-  // Headline + chart; ‹ › (or a swipe on the chart) step through periods, a
-  // tapped bar takes over the headline until it's tapped again.
+// The headline and chart for the current tab, over the given rows (the whole
+// library, or one book / series). ‹ › (or a swipe on the chart) step through
+// periods; a tapped bar takes over the headline until it's tapped again, its
+// second line from `detail(bucket)`. In the Week tab every day's time is
+// written over its bar, so the last few days read at a glance.
+function periodHero(days, day, rerender, detail) {
   const p = periodBuckets(period, day, days, offset);
   const uw = usualWeek(days, day);
   const um = usualMonth(days, day);
@@ -709,8 +695,7 @@ function renderOverall(content, scope) {
   const pick = (i) => {
     if (i == null) return show(total);
     const b = p.buckets[i];
-    const top = perShelf(rows, b.from, b.to);
-    show({ k: b.name, v: b.ms ? formatDuration(b.ms) : "Nothing read", sub: top.length ? (top.length > 1 ? `${top[0].title} +${top.length - 1}` : top[0].title) : "" });
+    show({ k: b.name, v: b.ms ? formatDuration(b.ms) : "Nothing read", sub: b.ms ? detail(b) : "" });
   };
   const firstDay = firstDayOf(days);
   const canPrev = period !== "all" && !!firstDay && firstDay < p.from;
@@ -732,7 +717,8 @@ function renderOverall(content, scope) {
   // The dashed line: your usual day under daily bars, your usual month under monthly ones.
   const daily = period === "week" || period === "month";
   const line = daily ? uw && { ms: uw.ms / 7, label: `usual day ${formatDuration(uw.ms / 7)}` } : um && { ms: um.ms, label: `usual month ${formatHoursShort(um.ms)}` };
-  const chart = barChart(p.buckets, { height: 110, aria: `Reading time, ${p.title}. Tap a bar for its details.`, onPick: pick, line });
+  const week = period === "week";
+  const chart = barChart(p.buckets, { height: week ? 126 : 110, values: week ? formatDuration : false, aria: `Reading time, ${p.title}. Tap a bar for its details.`, onPick: pick, line });
   // Swipe the chart: right for earlier, left for later.
   let touch = null;
   chart.addEventListener("touchstart", (e) => (touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null), { passive: true });
@@ -743,7 +729,39 @@ function renderOverall(content, scope) {
     touch = null;
     if (Math.abs(dx) > 50 && Math.abs(dx) > 2 * Math.abs(dy)) step(dx > 0 ? -1 : 1);
   });
-  content.append(h("section", { class: "st-hero" }, h("div", { class: "st-hero__head" }, kEl, nav), vEl, subEl, cmpEl, chart));
+  const node = h("section", { class: "st-hero" }, h("div", { class: "st-hero__head" }, kEl, nav), vEl, subEl, cmpEl, chart);
+  return { node, p, uw, um, firstDay };
+}
+
+// What a day (or any span) of one book / series held: "3 chapters · 12.4K words".
+function workDetail(s) {
+  const bits = [];
+  if (s.chapters) bits.push(plural(s.chapters, "chapter"));
+  if (s.words >= 1) bits.push(`${formatCompactNumber(Math.round(s.words))} words`);
+  return bits.join(" · ");
+}
+// The books of a span across the library: "Shadow Slave +2".
+function shelfDetail(rows, from, to) {
+  const top = perShelf(rows, from, to);
+  return top.length ? (top.length > 1 ? `${top[0].title} +${top.length - 1}` : top[0].title) : "";
+}
+
+function renderOverall(content, scope) {
+  const rows = statRows(idsOf(scope));
+  const days = byDay(rows);
+  const day = today();
+  const all = totals(days);
+  const rerender = () => renderStats("all", undefined, { keep: true });
+
+  content.append(periodTabs(rerender));
+
+  if (!all.ms) {
+    content.append(h("p", { class: "st-empty" }, "Nothing read yet. Your reading time shows up here once you start."));
+    return;
+  }
+
+  const { node, p, uw, um, firstDay } = periodHero(days, day, rerender, (b) => shelfDetail(rows, b.from, b.to));
+  content.append(node);
 
   // Last · usual · best.
   content.append(h("div", { class: "st-tiles st-tiles--3" }, ...yardsticks(days, day, uw, um)));
@@ -758,7 +776,7 @@ function renderOverall(content, scope) {
 
   // Everything else is about you overall, whatever the tab.
   content.append(h("div", { class: "st-divider" }, h("span", null, `Since ${formatDay(firstDay, day)}`)));
-  content.append(heatmapSection(days, rows, day, firstDay));
+  content.append(heatmapSection(days, day, firstDay, (k) => shelfDetail(rows, k, k)));
   content.append(youSection(days, rows, day, uw));
   const rec = records(days, rows, day);
   if (rec) content.append(h("section", { class: "st-section" }, label("Records"), rec));
@@ -894,10 +912,11 @@ function youSection(days, rows, day, uw) {
 }
 
 // The last 20 weeks (or since your first day), Monday first, month names on
-// top; tapping a day shows its time and books underneath. Shades follow your
-// own days — the quarters of your range — so a long day stands out from a
-// usual one however much you read.
-function heatmapSection(days, rows, day, firstDay) {
+// top; the line underneath shows a day's time and `detail(day)` — today's to
+// begin with, then whichever day is tapped. Shades follow your own days — the
+// quarters of your range — so a long day stands out from a usual one however
+// much you read.
+function heatmapSection(days, day, firstDay, detail) {
   const back = addDays(weekStart(day), -19 * 7);
   const firstWeek = firstDay ? weekStart(firstDay) : back;
   const start = firstWeek > back ? firstWeek : back;
@@ -914,10 +933,23 @@ function heatmapSection(days, rows, day, firstDay) {
   const line = (k) => {
     const d = days.get(k);
     if (!d || d.ms < MIN_DAY_MS) return "nothing read";
-    const top = perShelf(rows, k, k);
-    return formatDuration(d.ms) + (top.length ? ` · ${top[0].title}${top.length > 1 ? ` +${top.length - 1}` : ""}` : "");
+    const more = detail(k);
+    return formatDuration(d.ms) + (more ? ` · ${more}` : "");
   };
   let sel = null;
+  const select = (cell, k) => {
+    if (sel) sel.classList.remove("is-sel");
+    if (sel === cell) {
+      sel = null;
+      readout.textContent = "Tap a day";
+      readout.classList.remove("is-on");
+      return;
+    }
+    sel = cell;
+    cell.classList.add("is-sel");
+    readout.textContent = `${dayName(k, day)} · ${line(k)}`;
+    readout.classList.add("is-on");
+  };
   for (let i = 0; i < weeksN * 7; i++) {
     const k = addDays(start, i);
     const d = days.get(k);
@@ -933,20 +965,9 @@ function heatmapSection(days, rows, day, firstDay) {
       continue;
     }
     const cell = h("button", { type: "button", class: `st-cal__day l${level(d ? d.ms : 0)}${k === day ? " is-today" : ""}`, "aria-label": `${dayName(k, day)}: ${line(k)}` });
-    cell.addEventListener("click", () => {
-      if (sel) sel.classList.remove("is-sel");
-      if (sel === cell) {
-        sel = null;
-        readout.textContent = "Tap a day";
-        readout.classList.remove("is-on");
-        return;
-      }
-      sel = cell;
-      cell.classList.add("is-sel");
-      readout.textContent = `${dayName(k, day)} · ${line(k)}`;
-      readout.classList.add("is-on");
-    });
+    cell.addEventListener("click", () => select(cell, k));
     grid.append(cell);
+    if (k === day) select(cell, k);
   }
   const dows = h("div", { class: "st-cal__dows", "aria-hidden": "true" }, ["M", "", "W", "", "F", "", "S"].map((x) => h("span", null, x)));
   const legend = h(
