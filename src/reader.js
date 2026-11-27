@@ -13,6 +13,7 @@ import ePub, { Contents } from "epubjs";
 // unstyled (dark-on-dark) text online, and permanently dark text offline
 // (that in-iframe request never hit the service-worker precache).
 import readerThemeCss from "./reader-theme.css?raw";
+import { injectReaderPrefs, mountReaderPrefs, unmountReaderPrefs, readerPageColor, readerLayoutKey } from "./readerprefs.js";
 import { el, h, svg, ICON, coverUrlFor, DESK, WIDE } from "./dom.js";
 import {
   progressMap, ui, bookById, seriesById, saveUi, putProgress, stashPendingProgress,
@@ -97,6 +98,7 @@ export const hasRendition = () => !!rendition;
 export function destroyRendition() {
   releaseWakeLock();
   endSession();
+  unmountReaderPrefs();
   if (rendition) {
     rendition.destroy();
     rendition = null;
@@ -114,6 +116,12 @@ function readerContentDoc() {
     return null;
   }
 }
+
+// A saved pixel offset is only exact in the text layout it was measured in
+// (size / spacing / theme, src/readerprefs.js); after a change the CFI alone
+// places you. Spots saved before those settings existed have no `layout` and
+// match the defaults.
+const sameLayout = (st) => (st?.layout || "") === readerLayoutKey();
 
 // After a resume display() settles, correct the chapter view to the exact saved
 // pixel offset. epub.js positions to the CFI's top-of-viewport word, which can
@@ -255,6 +263,8 @@ function saveReadingLocation(location) {
         // Keep scrollTop paired with the cfi it was captured at: refresh both
         // when advancing, keep both when scrolled back.
         scrollTop: advanced ? scrollTop : base.scrollTop ?? scrollTop,
+        // …and the text layout that offset was measured in (readerprefs.js).
+        layout: advanced ? readerLayoutKey() : (base.layout ?? readerLayoutKey()),
         done,
       };
       // Chapter skipping: finishing a chapter completes every earlier one too.
@@ -397,12 +407,24 @@ export async function renderReader(lib, startHref = null) {
       allowScriptedContent: false,
     });
   }
-  // Critical dark background as a rules theme so it's applied the instant the
+  // Text size / spacing / light theme (EPUBs; src/readerprefs.js). Mounted
+  // before the first chapter renders so its content hook knows the format.
+  mountReaderPrefs(
+    {
+      getContainer: () => rendition?.manager?.container,
+      getContents: () => rendition?.getContents?.() || [],
+      savePosition: flushReadingPosition,
+    },
+    { pdf: isPdf }
+  );
+  // Critical page background as a rules theme so it's applied the instant the
   // view is created; the full reading theme is injected inline per chapter by
   // injectReaderTheme (content hook, before the view is shown) so there is no
   // per-chapter fetch — no flash, and it works fully offline.
-  rendition.themes.default({ "html, body": { background: "#1f2129 !important" } });
+  rendition.themes.default({ "html, body": { background: `${readerPageColor()} !important` } });
   rendition.hooks.content.register(injectReaderTheme);
+  // The reader's own settings override the theme, so they go in right after it.
+  rendition.hooks.content.register(injectReaderPrefs);
   rendition.hooks.content.register(evenOutTypeSizes);
   // Before the chapter-end card, so it snapshots only the story's paragraphs.
   if (!isPdf) rendition.hooks.content.register((contents) => proofChapter(contents, currentBook, spineHref(contents)));
@@ -442,7 +464,7 @@ export async function renderReader(lib, startHref = null) {
   const showOpening = () => {
     if (startHref) return displayChapterTop(startHref);
     const shown = rendition.display(resume || flatToc[0]?.href || undefined);
-    if (chapterState && resume === chapterState.cfi && chapterState.scrollTop > 0) {
+    if (chapterState && resume === chapterState.cfi && chapterState.scrollTop > 0 && sameLayout(chapterState)) {
       restoreScrollAfter(shown, chapterState.scrollTop);
     }
   };
@@ -748,7 +770,7 @@ function maybeShowResumeChip(href) {
       onclick: () => {
         if (rendition && st.cfi) {
           const shown = rendition.display(st.cfi);
-          if (st.scrollTop > 0) restoreScrollAfter(shown, st.scrollTop);
+          if (st.scrollTop > 0 && sameLayout(st)) restoreScrollAfter(shown, st.scrollTop);
         }
         hideResumeChip();
       },

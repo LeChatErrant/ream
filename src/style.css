@@ -2585,3 +2585,133 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 .st-strip__day.is-today .st-strip__dow { color: var(--text-body); }
 .st-strip__day.is-future .st-strip__track { opacity: 0.45; }
 
+
+/* =========================================================================
+   READER SETTINGS (src/readerprefs.js) — the top bar's "Aa" button and its
+   panel: text size, line spacing, dark / light. The light page itself is
+   styled inside each chapter (src/lib/reader-prefs.js); here the reader's
+   own bars and background follow it. Remove this block together with the
+   module to roll the feature back.
+   ====================================================================== */
+.rprefs-btn { gap: 0; align-items: baseline; padding-top: 2px; font-family: var(--font-serif); color: var(--text-body); }
+.rprefs-btn__a { font-size: 19px; font-weight: 500; line-height: 1; }
+.rprefs-btn__a--sm { font-size: 14px; margin-right: 1px; }
+
+.rprefs[hidden] { display: none; }
+.rprefs__catch { position: fixed; inset: 0; z-index: 49; }
+.rprefs__card {
+  position: fixed;
+  z-index: 50;
+  top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px);
+  right: 8px;
+  width: min(320px, calc(100vw - 16px));
+  padding: 14px 14px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-2f);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-ui);
+  color: var(--text-body);
+  animation: fade-in 0.14s ease-out;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.rprefs__row { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.rprefs__label {
+  font: 500 10.5px var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dimmest);
+}
+.rprefs__size,
+.rprefs__seg {
+  display: flex;
+  align-items: center;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.rprefs__step,
+.rprefs__opt {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  height: 36px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: 500 13px var(--font-ui);
+  transition: background 0.15s, color 0.15s;
+}
+.rprefs__step { width: 56px; }
+.rprefs__step:disabled { opacity: 0.35; cursor: default; }
+.rprefs__step:not(:disabled):active,
+.rprefs__opt:active { background: var(--row-current); }
+.rprefs__a { font-family: var(--font-serif); font-weight: 500; line-height: 1; color: var(--text-secondary); }
+.rprefs__a--sm { font-size: 14px; }
+.rprefs__a--lg { font-size: 21px; }
+.rprefs__val {
+  flex: 1;
+  text-align: center;
+  font: 500 13.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.rprefs__opt { flex: 1; }
+.rprefs__opt.is-on { background: var(--row-current); color: var(--text-primary); }
+.rprefs__swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--dashed); }
+.rprefs__swatch--dark { background: #1f2129; }
+.rprefs__swatch--light { background: #f7f5f0; }
+.rprefs__reset {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  display: block;
+  margin: -4px auto 0;
+  padding: 6px 10px;
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.rprefs__reset[hidden] { display: none; }
+.rprefs__reset:hover { color: var(--text-secondary); }
+.rprefs__step:focus-visible,
+.rprefs__opt:focus-visible,
+.rprefs__reset:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
+
+/* ---- Light page: the reader's bars, background and the panel follow it.
+   Variables are swapped on these elements only, so the drawer, sheets and
+   every other screen keep the app's dark palette. */
+#app.reader-light[data-route="reader"] #topbar,
+#app.reader-light[data-route="reader"] #readbar,
+#app.reader-light .rprefs__card {
+  --page: #f7f5f0;
+  --surface: #ebe8e1;
+  --surface-alt: #f1eee8;
+  --row-current: #e1ddd3;
+  --border: #e0dcd2;
+  --border-2f: #d8d3c8;
+  --dashed: #c9c4b8;
+  --text-primary: #15171c;
+  --text-secondary: #2b2e35;
+  --text-body: #3a3d45;
+  --text-muted: #5d616b;
+  --text-dim: #7a7e88;
+  --text-dimmest: #8b8f98;
+  --fill-card: #8a8f99;
+}
+#app.reader-light[data-route="reader"] #topbar { background: color-mix(in srgb, #f7f5f0 92%, transparent); }
+#app.reader-light[data-route="reader"] #readbar { background: color-mix(in srgb, #f7f5f0 94%, transparent); }
+#app.reader-light .rprefs__card { box-shadow: 0 12px 32px rgba(40, 36, 28, 0.18); }
+#app.reader-light[data-route="reader"] #viewer-wrap,
+#app.reader-light[data-route="reader"] #viewer { background: #f7f5f0; }
+#app.reader-light[data-route="reader"] #viewer iframe { background: #f7f5f0 !important; }
+/* The menu button's mark is drawn in light-on-dark shades: flip them so the
+   current line is the dark one on paper. */
+#app.reader-light[data-route="reader"] .reader-mark { filter: invert(1) hue-rotate(180deg); }
