@@ -33,9 +33,82 @@ export function soulSeaFor(lib) {
   return [displayTitle(lib), lib.title, s?.name].some((t) => MATCH.test(t || "")) ? data : null;
 }
 
-// The Shadow Core with Memories orbiting it, as Sunny sees his Soul Sea.
-export const ORB_ICON =
-  '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="3.4" fill="currentColor"/><ellipse cx="12" cy="12" rx="9.2" ry="3.9" transform="rotate(-24 12 12)" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="19.4" cy="7.3" r="1.5" fill="currentColor"/><circle cx="4.6" cy="16.7" r="1.15" fill="currentColor"/></svg>';
+// ---- the top-bar badge ---------------------------------------------------------------
+// A small window into Sunny's Soul Sea: "a silent, calm dark sea illuminated by a
+// lonely black sun" (ch 16). His Shadow Cores are black suns on a tilted orbit over the
+// water, around a Memory, as many as he has before the chapter on screen (same
+// spoiler rule as the panel); dashed while the runes still say "Dormant". Fixed
+// colours — it looks the same in every reader theme.
+
+// [first chapter, cores, dormant] after each change of the core stat.
+let coreSteps = null;
+function coresAt(num) {
+  if (!coreSteps) {
+    coreSteps = [];
+    const values = [];
+    for (const e of data.events) {
+      if (e.id !== "core" || e.type !== "set") continue;
+      values.push(e.value);
+      coreSteps.push([e.at[0], coreCount(values).n, /dormant/i.test(e.value)]);
+    }
+  }
+  const last = Math.min(num - 1, data.reviewedThrough);
+  let at = [0, 1, true]; // before the Awakening: the core is still asleep
+  for (const s of coreSteps) if (s[0] <= last) at = s;
+  return { n: Math.max(1, Math.min(7, at[1] || 1)), dormant: at[2] };
+}
+
+const BADGE = { sky: "#17172A", sea: "#0C0C14", light: "#E8E4DA", memory: "#F2D49B", sun: "#050507" };
+const r2 = (x) => Math.round(x * 100) / 100;
+
+/** The badge for the chapter on screen (its number), as SVG markup. */
+export function soulSeaBadge(num, size = 26) {
+  const { n, dormant } = coresAt(num || 0);
+  const { sky, sea, light, memory, sun } = BADGE;
+  const H = 23.5; // the horizon
+  const [cx, cy, tilt] = [16, 13.5, (-12 * Math.PI) / 180];
+  const onOrbit = (t) => {
+    const [x, y] = [11 * Math.cos(t), 4 * Math.sin(t)];
+    return [cx + x * Math.cos(tilt) - y * Math.sin(tilt), cy + x * Math.sin(tilt) + y * Math.cos(tilt)];
+  };
+  const blackSun = ([x, y], r) => {
+    [x, y] = [r2(x), r2(y)];
+    if (dormant)
+      return `<circle cx="${x}" cy="${y}" r="${r}" fill="${sun}" stroke="${light}" stroke-opacity=".5" stroke-width=".7" stroke-dasharray="1.3 1.1"/>`;
+    return (
+      (r > 3 ? `<circle cx="${x}" cy="${y}" r="${r + 2.6}" fill="${light}" fill-opacity=".045"/>` : "") +
+      `<circle cx="${x}" cy="${y}" r="${r + 1.2}" fill="${light}" fill-opacity=".09"/>` +
+      `<circle cx="${x}" cy="${y}" r="${r}" fill="${sun}" stroke="${light}" stroke-opacity=".92" stroke-width=".75"/>`
+    );
+  };
+  const aMemory = ([x, y], r) =>
+    `<circle cx="${r2(x)}" cy="${r2(y)}" r="${r + 1}" fill="${memory}" fill-opacity=".22"/><circle cx="${r2(x)}" cy="${r2(y)}" r="${r}" fill="${memory}"/>`;
+
+  let s =
+    `<rect width="32" height="32" fill="${sky}"/>` +
+    `<rect y="${H - 4}" width="32" height="4" fill="${light}" fill-opacity=".045"/>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="11" ry="4" transform="rotate(-12 ${cx} ${cy})" fill="none" stroke="${light}" stroke-opacity=".17" stroke-width=".5"/>`;
+  if (n === 1) s += blackSun([cx, cy - 1], 4) + aMemory(onOrbit(0.5), 0.9);
+  else {
+    // Equal suns spread around the orbit; the far side is drawn behind the Memory.
+    const r = { 2: 2.9, 3: 2.7, 4: 2.5, 5: 2.3, 6: 2.1, 7: 1.95 }[n];
+    const suns = Array.from({ length: n }, (_, i) => onOrbit(Math.PI / 2 + (i * 2 * Math.PI) / n));
+    s += suns.filter(([, y]) => y < cy).map((p) => blackSun(p, r)).join("");
+    s += aMemory([cx, cy], 1.05);
+    s += suns.filter(([, y]) => y >= cy).map((p) => blackSun(p, r)).join("");
+  }
+  s += `<rect y="${H}" width="32" height="${32 - H}" fill="${sea}"/><path d="M0 ${H}h32" stroke="${light}" stroke-opacity=".2" stroke-width=".5"/>`;
+  if (!dormant)
+    s += [[18, 0.26], [12, 0.18], [6, 0.12], [2, 0.08]]
+      .map(([w, o], j) => `<path d="M${16 - w / 2} ${r2(H + 1.8 + j * 1.8)}h${w}" stroke="${light}" stroke-opacity="${o}" stroke-width=".75" stroke-linecap="round"/>`)
+      .join("");
+  return (
+    `<svg class="soulsea-badge" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">` +
+    `<defs><clipPath id="soulsea-badge-clip"><circle cx="16" cy="16" r="15.5"/></clipPath></defs>` +
+    `<g clip-path="url(#soulsea-badge-clip)">${s}</g>` +
+    `<circle cx="16" cy="16" r="15.5" fill="none" stroke="#fff" stroke-opacity=".09"/></svg>`
+  );
+}
 
 // ---- reading the book's paragraphs from the imported volumes ----------------------
 

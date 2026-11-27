@@ -39,7 +39,7 @@ import {
   prepareExport, exportVia,
 } from "./proof.js";
 import { showConfirmSheet } from "./sheets.js";
-import { soulSeaFor, openSoulSea, ORB_ICON } from "./soulsea.js";
+import { soulSeaFor, openSoulSea, soulSeaBadge } from "./soulsea.js";
 import {
   setChrome, holdChrome, releaseChrome, applyChromeInsets, chromeTap,
   chromeChapter, chromeScrolled, isAway,
@@ -862,6 +862,7 @@ function updateChapterTitle(href) {
   if (label === null) return;
   el.chapterTitle.textContent = label;
   el.titleBlock.classList.toggle("has-chapter", label !== "");
+  paintSoulSeaButton();
 }
 
 // End-of-chapter navigation, injected into each chapter document. At the end
@@ -1211,11 +1212,22 @@ function mountSoulSeaButton(lib) {
     soulSeaBtn = h(
       "button",
       { id: "btn-soulsea", class: "icon-btn", "aria-label": "Soul Sea", title: "Soul Sea", onclick: () => openSoulSea(readingPoint()) },
-      svg(ORB_ICON)
+      svg(soulSeaBadge(0))
     );
     el.btnPrev.before(soulSeaBtn);
   }
   soulSeaBtn.hidden = !soulSeaFor(lib);
+  paintSoulSeaButton();
+}
+// The badge shows Sunny's Shadow Cores as of the chapter on screen: redrawn only
+// when that count (or dormancy) changes.
+let soulSeaPainted = null;
+function paintSoulSeaButton() {
+  if (!soulSeaBtn || soulSeaBtn.hidden) return;
+  const badge = soulSeaBadge(readingPoint().num);
+  if (badge === soulSeaPainted) return;
+  soulSeaPainted = badge;
+  soulSeaBtn.replaceChildren(svg(badge));
 }
 // Where the reader is: the chapter number. The Soul Sea shows what came before it.
 function readingPoint() {
