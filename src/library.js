@@ -16,6 +16,7 @@ import { openBook } from "./reader.js";
 import { openInfo } from "./router.js";
 import { openInfoMenu, infoModel } from "./info.js";
 import { weekStrip } from "./statsview.js";
+import { STATS_UI } from "./lib/features.js";
 import { pickFiles, openDevSeedMenu, groupIntoSeries } from "./import.js";
 import { showNameSheet, showConfirmSheet } from "./sheets.js";
 
@@ -52,7 +53,7 @@ export function renderLibrary() {
   const cont = continueTarget();
   if (cont && !libFilter) body.append(continueSection(cont));
   // This week's reading, the way into the overall stats.
-  const strip = libFilter ? null : weekStrip();
+  const strip = libFilter || !STATS_UI ? null : weekStrip();
   if (strip) body.append(h("section", { class: "lib-section lib-section--strip" }, h("div", { class: "lib-label" }, "This week"), strip));
 
   // All books.

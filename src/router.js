@@ -10,6 +10,7 @@ import { renderLibrary, exitSelection, isSelecting } from "./library.js";
 import { renderInfo } from "./info.js";
 import { renderChapters, teardownChapters } from "./chapters.js";
 import { renderStats } from "./statsview.js";
+import { STATS_UI } from "./lib/features.js";
 
 function setRouteChrome(route) {
   document.getElementById("app").dataset.route = route;
@@ -59,7 +60,7 @@ async function applyState(state) {
     currentInfo = null;
     setRouteChrome("chapters");
     renderChapters(s.kind || "book", s.id, s.volId);
-  } else if (s.route === "stats") {
+  } else if (s.route === "stats" && STATS_UI) {
     currentInfo = null;
     setRouteChrome("stats");
     renderStats(s.kind || "all", s.id);
@@ -84,7 +85,7 @@ export function go(state, push = true) {
     currentInfo = null;
     setRouteChrome("chapters");
     renderChapters(state.kind || "book", state.id, state.volId);
-  } else if (state.route === "stats") {
+  } else if (state.route === "stats" && STATS_UI) {
     currentInfo = null;
     setRouteChrome("stats");
     renderStats(state.kind || "all", state.id);

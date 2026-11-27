@@ -23,6 +23,7 @@ import { showActionSheet, showConfirmSheet } from "./sheets.js";
 import { chaptersModel, chapterPreview, previewItemsFor, openChapters } from "./chapters.js";
 import { addVolumeToSeries } from "./import.js";
 import { paintStatsCard } from "./statsview.js";
+import { STATS_UI } from "./lib/features.js";
 
 // The text fields the info page shows and Edit details can type over.
 const META_FIELDS = ["author", "description", "language", "published", "publisher"];
@@ -235,9 +236,11 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
 
   // The one way into the reading stats screen — kept to a single card so the
   // page itself stays about the book.
-  const statsHost = h("div", { class: "info-stats" });
-  side.append(statsHost);
-  paintStatsCard(statsHost, m.kind, m.id);
+  if (STATS_UI) {
+    const statsHost = h("div", { class: "info-stats" });
+    side.append(statsHost);
+    paintStatsCard(statsHost, m.kind, m.id);
+  }
 
   // Volumes block (series only). Tapping a row selects that volume; the chapter
   // list at the foot of the page then shows its chapters. Selection defaults to

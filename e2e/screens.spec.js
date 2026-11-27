@@ -1,5 +1,5 @@
 // Every other screen, walked end to end: the chapters list, the editors, the
-// stats screens fed by real (clock-accelerated) reading. The point is less the
+// stats tracker fed by real (clock-accelerated) reading. The point is less the
 // exact numbers than that each screen renders without a single error.
 import {
   test,
@@ -49,9 +49,11 @@ test.describe("screens", () => {
     await expect(tile(page, "The Night Walker")).toBeVisible();
   });
 
-  test("reading time shows up in the stats", async ({ page, allowedErrors }) => {
-    // The fake clock is a script Playwright injects into every frame; the
-    // chapter's sandbox refuses it (as it should any script).
+  test("stats UI is off, but reading time is still recorded", async ({ page, allowedErrors }) => {
+    // The stats screens sit behind STATS_UI (src/lib/features.js), off in this
+    // build; the tracker must keep recording underneath so nothing is lost
+    // before they're turned on. The fake clock is a script Playwright injects
+    // into every frame; the chapter's sandbox refuses it (as it should any script).
     allowedErrors.push(/Blocked script execution in 'about:srcdoc'/);
     await page.clock.install();
     await page.clock.resume(); // real time flows; fastForward jumps ahead
@@ -66,19 +68,33 @@ test.describe("screens", () => {
     }
     await leaveReader(page);
 
-    const strip = page.locator(".st-strip");
-    await expect(strip).toBeVisible();
-    await expect(strip.locator(".st-strip__v")).toHaveText(/\d+ min/);
-    await strip.click();
-    await expect(page.locator("#app")).toHaveAttribute("data-route", "stats");
-    await expect(page.locator("#stats-screen")).toContainText("Long Road");
-
-    // Kept across a reload, and the book's own stats open from its page.
+    // Recorded, and kept across a reload…
+    const recordedMs = () =>
+      page.evaluate(
+        () =>
+          new Promise((resolve, reject) => {
+            const req = indexedDB.open("webnovel-reader");
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => {
+              const all = req.result.transaction("stats").objectStore("stats").getAll();
+              all.onerror = () => reject(all.error);
+              all.onsuccess = () => {
+                req.result.close();
+                resolve(all.result.filter((r) => !r.bf).reduce((t, r) => t + r.ms, 0));
+              };
+            };
+          })
+      );
+    await expect.poll(recordedMs).toBeGreaterThanOrEqual(4 * 60_000);
     await page.reload();
-    await expect(page.locator(".st-strip .st-strip__v")).toHaveText(/\d+ min/);
+    await expect(tile(page, "Long Road")).toBeVisible();
+    expect(await recordedMs()).toBeGreaterThanOrEqual(4 * 60_000);
+
+    // …but no way into the stats: no "This week" strip, no card on the book's page.
+    await expect(page.locator(".st-strip")).toHaveCount(0);
     await tile(page, "Long Road").locator(".tile__cover").click();
-    await page.locator("#info-screen [aria-label='Reading stats']").click();
-    await expect(page.locator("#app")).toHaveAttribute("data-route", "stats");
+    await expect(page.locator("#app")).toHaveAttribute("data-route", "info");
+    await expect(page.locator("#info-screen [aria-label='Reading stats']")).toHaveCount(0);
   });
 
   test("install help opens and closes", async ({ page }) => {

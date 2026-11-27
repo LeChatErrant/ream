@@ -41,6 +41,8 @@ Everything runs locally in the browser — no book ever leaves your device.
   Time counts while you scroll or tap and pauses after 3 idle minutes; days
   turn at 4 AM. Reading from before stats existed (Aug 24 – Nov 24, 2026) was
   backfilled once from your progress (`src/stats.js`, `src/statsview.js`)
+  — **hidden for now** behind the `STATS_UI` flag (`src/lib/features.js`,
+  build with `VITE_STATS_UI=on` to show it); the tracking keeps recording.
 - Installable, fully offline PWA (service worker via `vite-plugin-pwa`)
 - Asks the browser to keep the library's storage persistent, and keeps the
   screen awake while you read — released after 5 minutes without a scroll or tap
