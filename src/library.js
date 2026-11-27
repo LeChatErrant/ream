@@ -53,7 +53,7 @@ export function renderLibrary() {
   if (cont && !libFilter) body.append(continueSection(cont));
   // This week's reading, the way into the overall stats.
   const strip = libFilter ? null : weekStrip();
-  if (strip) body.append(h("section", { class: "lib-section lib-section--strip" }, strip));
+  if (strip) body.append(h("section", { class: "lib-section lib-section--strip" }, h("div", { class: "lib-label" }, "This week"), strip));
 
   // All books.
   const items = shelfItems();

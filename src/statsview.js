@@ -27,9 +27,6 @@ let renderToken = 0;
 let shown = null; // { kind, id } on screen, for refreshStats
 const countFailed = new Set(); // books whose word count can't be had (don't retry forever)
 
-const STATS_ICON =
-  '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 20v-8M12 20V5M19 20v-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
-
 const today = () => readingDay(Date.now());
 
 // ---- Scope & aggregation ----------------------------------------------------
@@ -957,7 +954,7 @@ function heatmapSection(days, day, firstDay, detail) {
       // A month name over the week that holds its 1st.
       for (let j = 0; j < 7; j++) {
         const kk = addDays(k, j);
-        if (dayDate(kk).getDate() === 1) months.append(h("span", { style: `left:${(i / 7) * 16}px` }, monthShort(dayDate(kk).getMonth())));
+        if (dayDate(kk).getDate() === 1) months.append(h("span", { style: `left:calc(${i / 7} * (var(--cell) + 3px))` }, monthShort(dayDate(kk).getMonth())));
       }
     }
     if (k > day) {
@@ -983,7 +980,7 @@ function heatmapSection(days, day, firstDay, detail) {
     "section",
     { class: "st-section" },
     label(weeksN >= 20 ? "Last 20 weeks" : "Reading days", "shades follow your own days"),
-    h("div", { class: "st-cal" }, h("div", { class: "st-cal__body" }, h("div", { class: "st-cal__side" }, h("span", { class: "st-cal__mspacer" }), dows), h("div", null, months, grid))),
+    h("div", { class: "st-cal", style: `--weeks:${weeksN}` }, h("div", { class: "st-cal__body" }, h("div", { class: "st-cal__side" }, h("span", { class: "st-cal__mspacer" }), dows), h("div", null, months, grid))),
     readout,
     legend
   );
@@ -1033,7 +1030,7 @@ export function paintStatsCard(host, kind, id) {
   host.innerHTML = "";
   const card = statsCard(kind, id);
   if (!card) return;
-  host.append(card);
+  host.append(...card);
   const scope = scopeOf(kind, id);
   const pending = uncounted(scope.books);
   if (pending.length)
@@ -1048,50 +1045,78 @@ function statsCard(kind, id) {
   const ids = idsOf(scope);
   const ms = statRows(ids).reduce((n, r) => n + r.ms, 0);
   const counted = !needsCounting(scope.books).length;
-  const bits = [];
-  if (ms >= MIN_DAY_MS) bits.push(`${formatDuration(ms)} read`);
+  let sub = "Time, pace and time left";
   if (counted) {
     const left = positionOf(scope).leftWords;
-    if (left > 0 && ms >= MIN_DAY_MS) bits.push(`about ${formatDuration(left / paceFor(ids))} left`);
-    else if (left <= 0) bits.push(kind === "series" ? "caught up" : "finished");
+    if (left > 0 && ms >= MIN_DAY_MS) sub = `About ${formatDuration(left / paceFor(ids))} left`;
+    else if (left <= 0) sub = kind === "series" ? "Caught up" : "Finished";
   }
-  return h(
-    "button",
-    { class: "st-card", onclick: () => go({ route: "stats", kind, id }) },
-    h("span", { class: "st-card__icon" }, svg(STATS_ICON)),
-    h("span", { class: "st-card__text" }, h("span", { class: "st-card__title" }, "Reading stats"), h("span", { class: "st-card__sub" }, bits.length ? bits.join(" · ") : "Time, pace and time left")),
-    h("span", { class: "st-card__chev" }, svg(ICON.chevron))
-  );
+  // Same anatomy as the Library's "This week" strip; the week chart only
+  // shows when this book/series was read this week.
+  const { week } = weekOf(ids);
+  return [
+    h("div", { class: "lib-label info-statslabel" }, "Reading stats"),
+    stripButton(ms >= MIN_DAY_MS ? `${formatDuration(ms)} read` : "Just started", sub, week.some(Boolean) ? week : null, () => go({ route: "stats", kind, id })),
+  ];
 }
 
-/** The Library's "This week" strip, under Continue: this week, and last week beside it. */
-export function weekStrip() {
-  if (!hasAnyStats()) return null;
-  const days = byDay(statRows());
-  const day = today();
-  const mon = weekStart(day);
+// This reading week (Mon → Sun) as ms per day, for the given books (or all).
+function weekOf(ids = null) {
+  const days = byDay(statRows(ids));
+  const mon = weekStart(today());
   const week = [];
   for (let i = 0; i < 7; i++) week.push(days.get(addDays(mon, i))?.ms || 0);
-  const total = week.reduce((a, b) => a + b, 0);
-  const lw = addDays(mon, -7);
-  const last = sumRange(days, lw, addDays(lw, 6)).ms;
+  return { days, mon, week };
+}
+
+// One column per day: a faint full-height track (so empty and future days
+// still read as days) with the day's time filled from the bottom, and its
+// initial underneath.
+function weekBars(week) {
+  const day = today();
+  const mon = weekStart(day);
   const max = Math.max(...week, 1);
   const bars = h("span", { class: "st-strip__bars", "aria-hidden": "true" });
   week.forEach((ms, i) => {
     const k = addDays(mon, i);
-    const cls = k === day ? " is-today" : k > day ? " is-future" : ms ? " is-on" : "";
-    bars.append(h("span", { class: "st-strip__bar" + cls, style: `height:${k > day ? 2 : Math.max(2, Math.round((ms / max) * 30))}px` }));
+    const cls = k === day ? " is-today" : k > day ? " is-future" : "";
+    const fill = k > day || !ms ? 0 : Math.max(8, Math.round((ms / max) * 100));
+    bars.append(
+      h(
+        "span",
+        { class: "st-strip__day" + cls },
+        h("span", { class: "st-strip__track" }, fill ? h("span", { class: "st-strip__fill", style: `height:${fill}%` }) : null),
+        h("span", { class: "st-strip__dow" }, "MTWTFSS"[i])
+      )
+    );
   });
+  return bars;
+}
+
+function stripButton(value, sub, week, onclick) {
   return h(
     "button",
-    { class: "st-strip", onclick: () => go({ route: "stats", kind: "all" }), "aria-label": "Reading stats" },
-    h(
-      "span",
-      { class: "st-strip__text" },
-      h("span", { class: "st-strip__k" }, "This week"),
-      h("span", { class: "st-strip__v" }, total >= MIN_DAY_MS ? formatDuration(total) : "Not yet", last >= MIN_DAY_MS ? h("span", { class: "st-strip__ref" }, ` · last week ${formatDuration(last)}`) : null)
-    ),
-    bars,
+    { class: "st-strip", onclick, "aria-label": "Reading stats" },
+    h("span", { class: "st-strip__text" }, h("span", { class: "st-strip__v" }, value), h("span", { class: "st-strip__ref" }, sub)),
+    week ? weekBars(week) : null,
     h("span", { class: "st-strip__chev" }, svg(ICON.chevron))
+  );
+}
+
+/**
+ * The Library's "This week" strip: this week's reading time against last
+ * week's, and a bar per day. Taps through to the overall stats screen.
+ */
+export function weekStrip() {
+  if (!hasAnyStats()) return null;
+  const { days, mon, week } = weekOf();
+  const total = week.reduce((a, b) => a + b, 0);
+  const lw = addDays(mon, -7);
+  const last = sumRange(days, lw, addDays(lw, 6)).ms;
+  return stripButton(
+    total >= MIN_DAY_MS ? formatDuration(total) : "Not yet",
+    last >= MIN_DAY_MS ? `Last week ${formatDuration(last)}` : "Reading time",
+    week,
+    () => go({ route: "stats", kind: "all" })
   );
 }

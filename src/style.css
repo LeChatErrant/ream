@@ -2480,14 +2480,18 @@ html { -webkit-tap-highlight-color: transparent; }
 .st-divider::before, .st-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-2f); }
 
 /* Calendar */
-.st-cal__body { display: flex; gap: 6px; }
-.st-cal__side { display: flex; flex-direction: column; }
+/* Squares grow to fill the width (--weeks columns, 3px apart, after the 10px
+   day letters and a 6px gap), up to 24px so a short history stays calm. */
+.st-cal { container-type: inline-size; }
+.st-cal__body { --cell: min(24px, calc((100cqw - 16px - (var(--weeks) - 1) * 3px) / var(--weeks))); display: flex; gap: 6px; }
+.st-cal__side { display: flex; flex-direction: column; width: 10px; flex: none; }
 .st-cal__mspacer { height: 16px; }
 .st-cal__months { position: relative; height: 16px; }
 .st-cal__months > span { position: absolute; top: 0; font: 400 9.5px var(--font-ui); color: var(--text-dim); white-space: nowrap; }
-.st-cal__dows, .st-cal__grid { display: grid; grid-template-rows: repeat(7, 13px); gap: 3px; }
-.st-cal__dows { font: 400 9px/13px var(--font-ui); color: var(--text-dim); }
-.st-cal__grid { grid-auto-flow: column; grid-auto-columns: 13px; }
+.st-cal__dows, .st-cal__grid { display: grid; grid-template-rows: repeat(7, var(--cell)); gap: 3px; }
+.st-cal__dows { font: 400 9px/var(--cell) var(--font-ui); color: var(--text-dim); }
+.st-cal__grid { grid-auto-flow: column; grid-auto-columns: var(--cell); }
+.st-cal__grid .st-cal__day { width: var(--cell); height: var(--cell); border-radius: calc(var(--cell) * 0.22); }
 .st-cal__day { display: inline-block; width: 13px; height: 13px; padding: 0; border: 0; border-radius: 3px; }
 button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .st-cal__day.is-sel { box-shadow: 0 0 0 2px var(--text-primary); }
@@ -2544,15 +2548,22 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 .st-bookrow:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
 
 /* Info page card */
-.info-stats { padding: 16px 24px 0; }
+.info-stats { padding: 28px 24px 0; }
 .info-stats:empty { display: none; }
-.st-card {
+.info-statslabel { margin-bottom: 11px; }
+.st-strip__chev { display: inline-flex; color: #5b636f; }
+
+/* Library strip — a sibling of the Continue card: same label-then-card
+   rhythm, same filled surface, same title/sub type. */
+.lib-section--strip { padding: 24px 20px 0; }
+.lib-section--strip .lib-label { margin-bottom: 11px; }
+.st-strip {
   appearance: none;
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 16px;
+  padding: 14px 12px 12px 16px;
   border: 0;
   border-radius: 12px;
   background: var(--surface);
@@ -2560,41 +2571,19 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
   cursor: pointer;
   transition: background 0.15s;
 }
-.st-card:hover { background: #242a35; }
-.st-card:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
-.st-card__icon { display: inline-flex; color: var(--text-muted); }
-.st-card__text { flex: 1; min-width: 0; }
-.st-card__title { display: block; font: 400 13.5px var(--font-ui); color: var(--text-secondary); }
-.st-card__sub { display: block; margin-top: 2px; font: 400 11.5px var(--font-ui); color: var(--text-muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.st-card__chev, .st-strip__chev { display: inline-flex; color: #5b636f; }
-
-/* Library strip */
-.lib-section--strip { padding: 10px 20px 0; }
-.st-strip {
-  appearance: none;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-alt);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.st-strip:hover { background: #1c2029; }
+.st-strip:hover { background: #242a35; }
 .st-strip:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 2px; }
 .st-strip__text { flex: 1; min-width: 0; }
-.st-strip__k { display: block; font: 400 11px var(--font-ui); color: var(--text-muted2); }
-.st-strip__v { display: block; margin-top: 4px; font: 600 16px var(--font-ui); color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.st-strip__ref { font-size: 12.5px; font-weight: 400; color: var(--text-muted2); }
-.st-strip__bars { display: flex; align-items: flex-end; gap: 4px; height: 30px; }
-.st-strip__bar { width: 6px; border-radius: 2px; background: var(--track); }
-.st-strip__bar.is-on { background: #5b636f; }
-.st-strip__bar.is-today { background: var(--text-body); }
-.st-strip__bar.is-future { background: none; border-top: 2px dotted var(--track); height: 0 !important; }
+.st-strip__v { display: block; font: 600 15px var(--font-ui); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.st-strip__ref { display: block; margin-top: 3px; font: 400 12.5px var(--font-ui); color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-strip__bars { flex: none; display: flex; gap: 6px; }
+.st-strip__day { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.st-strip__track { position: relative; display: block; width: 8px; height: 30px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.st-strip__fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px; background: var(--text-dim); }
+.st-strip__dow { font: 500 9.5px var(--font-ui); line-height: 1; color: var(--text-dimmest); }
+.st-strip__day.is-today .st-strip__fill { background: var(--text-body); }
+.st-strip__day.is-today .st-strip__dow { color: var(--text-body); }
+.st-strip__day.is-future .st-strip__track { opacity: 0.45; }
 
 
 /* The reader's message when a book can't be opened (reader.js showReaderError). */
@@ -2606,3 +2595,131 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
 }
 .reader-error__title { margin: 0 0 10px; font: 400 18px/1.4 var(--font-serif); color: var(--text-primary); }
 .reader-error__body { margin: 0 0 22px; font: 300 14px/1.6 var(--font-serif); color: var(--text-muted2); }
+
+/* =========================================================================
+   READER SETTINGS (src/readerprefs.js) — the top bar's "Aa" button and its
+   panel: text size, line spacing, dark / light. The light page itself is
+   styled inside each chapter (src/lib/reader-prefs.js); here the reader's
+   own bars and background follow it. Remove this block together with the
+   module to roll the feature back.
+   ====================================================================== */
+.rprefs-btn__icon, .rprefs-btn__icon svg { display: block; }
+
+.rprefs[hidden] { display: none; }
+.rprefs__catch { position: fixed; inset: 0; z-index: 49; }
+.rprefs__card {
+  position: fixed;
+  z-index: 50;
+  top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px);
+  right: 8px;
+  width: min(320px, calc(100vw - 16px));
+  padding: 14px 14px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-2f);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-ui);
+  color: var(--text-body);
+  animation: fade-in 0.14s ease-out;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.rprefs__row { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.rprefs__label {
+  font: 500 10.5px var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dimmest);
+}
+.rprefs__size,
+.rprefs__seg {
+  display: flex;
+  align-items: center;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.rprefs__step,
+.rprefs__opt {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  height: 36px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: 500 13px var(--font-ui);
+  transition: background 0.15s, color 0.15s;
+}
+.rprefs__step { width: 56px; }
+.rprefs__step:disabled { opacity: 0.35; cursor: default; }
+.rprefs__step:not(:disabled):active,
+.rprefs__opt:active { background: var(--row-current); }
+.rprefs__a { font-family: var(--font-serif); font-weight: 500; line-height: 1; color: var(--text-secondary); }
+.rprefs__a--sm { font-size: 14px; }
+.rprefs__a--lg { font-size: 21px; }
+.rprefs__val {
+  flex: 1;
+  text-align: center;
+  font: 500 13.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.rprefs__opt { flex: 1; }
+.rprefs__opt.is-on { background: var(--row-current); color: var(--text-primary); }
+.rprefs__swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--dashed); }
+.rprefs__swatch--dark { background: #1f2129; }
+.rprefs__swatch--light { background: #f7f5f0; }
+.rprefs__reset {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  display: block;
+  margin: -4px auto 0;
+  padding: 6px 10px;
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.rprefs__reset[hidden] { display: none; }
+.rprefs__reset:hover { color: var(--text-secondary); }
+.rprefs__step:focus-visible,
+.rprefs__opt:focus-visible,
+.rprefs__reset:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
+
+/* ---- Light page: the reader's bars, background and the panel follow it.
+   Variables are swapped on these elements only, so the drawer, sheets and
+   every other screen keep the app's dark palette. */
+#app.reader-light[data-route="reader"] #topbar,
+#app.reader-light[data-route="reader"] #readbar,
+#app.reader-light .rprefs__card {
+  --page: #f7f5f0;
+  --surface: #ebe8e1;
+  --surface-alt: #f1eee8;
+  --row-current: #e1ddd3;
+  --border: #e0dcd2;
+  --border-2f: #d8d3c8;
+  --dashed: #c9c4b8;
+  --text-primary: #15171c;
+  --text-secondary: #2b2e35;
+  --text-body: #3a3d45;
+  --text-muted: #5d616b;
+  --text-dim: #7a7e88;
+  --text-dimmest: #8b8f98;
+  --fill-card: #8a8f99;
+}
+#app.reader-light[data-route="reader"] #topbar { background: color-mix(in srgb, #f7f5f0 92%, transparent); }
+#app.reader-light[data-route="reader"] #readbar { background: color-mix(in srgb, #f7f5f0 94%, transparent); }
+#app.reader-light .rprefs__card { box-shadow: 0 12px 32px rgba(40, 36, 28, 0.18); }
+#app.reader-light[data-route="reader"] #viewer-wrap,
+#app.reader-light[data-route="reader"] #viewer { background: #f7f5f0; }
+#app.reader-light[data-route="reader"] #viewer iframe { background: #f7f5f0 !important; }
+/* The menu button's mark is drawn in light-on-dark shades: flip them so the
+   current line is the dark one on paper. */
+#app.reader-light[data-route="reader"] .reader-mark { filter: invert(1) hue-rotate(180deg); }

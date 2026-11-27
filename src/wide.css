@@ -148,6 +148,11 @@
   }
   .continue-card:hover .continue-card__cta { background: #333b4a; }
 
+  /* This week — same label-then-card rhythm as Continue. */
+  .lib-section--strip { padding-top: 32px; }
+  .lib-section--strip .lib-label { margin-bottom: 12px; }
+  .st-strip { padding: 16px 22px 14px 22px; border-radius: 14px; }
+
   /* Shelf — as many columns as fit, instead of three stretched ones. */
   .lib-section--grid { padding-top: 36px; }
   .lib-section__head { margin-bottom: 18px; }
@@ -466,7 +471,8 @@
   .info-side { display: block; grid-column: 2; grid-row: 1; position: sticky; top: 24px; }
   .info-sidelabel { padding-bottom: 10px; }
   .info-side .info-table { padding: 0; }
-  .info-side .info-stats { padding: 18px 0 0; }
+  .info-side .info-stats { padding: 28px 0 0; }
+  .info-side .info-statslabel { margin-bottom: 10px; }
   .info-vollabel { padding: 0 24px 10px; }
   .info-main > .cprev:first-child { margin-top: 0; }
   .info-vol-preview .cprev { margin-top: 40px; }
