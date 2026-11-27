@@ -82,8 +82,13 @@ export function mountReaderPrefs(opts, { pdf }) {
         "aria-haspopup": "dialog",
         onclick: openPanel,
       },
-      h("span", { class: "rprefs-btn__a rprefs-btn__a--sm", "aria-hidden": "true" }, "A"),
-      h("span", { class: "rprefs-btn__a", "aria-hidden": "true" }, "a")
+      // A small and a large A, drawn (not typed) so it sits on the bar's
+      // centre line like the other icons, whatever fonts are loaded.
+      h("span", {
+        class: "rprefs-btn__icon",
+        "aria-hidden": "true",
+        html: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 19l4-10 4 10M4.1 15.2h4.8"/><path d="M11.5 19l5-14 5 14M13.4 13.8h6.2"/></svg>',
+      })
     );
     el.btnPrev.before(btn);
   }

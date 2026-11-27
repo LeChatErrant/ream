@@ -2593,9 +2593,7 @@ button.st-cal__day { cursor: pointer; -webkit-tap-highlight-color: transparent; 
    own bars and background follow it. Remove this block together with the
    module to roll the feature back.
    ====================================================================== */
-.rprefs-btn { gap: 0; align-items: baseline; padding-top: 2px; font-family: var(--font-serif); color: var(--text-body); }
-.rprefs-btn__a { font-size: 19px; font-weight: 500; line-height: 1; }
-.rprefs-btn__a--sm { font-size: 14px; margin-right: 1px; }
+.rprefs-btn__icon, .rprefs-btn__icon svg { display: block; }
 
 .rprefs[hidden] { display: none; }
 .rprefs__catch { position: fixed; inset: 0; z-index: 49; }
