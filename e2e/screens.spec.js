@@ -77,7 +77,7 @@ test.describe("screens", () => {
     await page.reload();
     await expect(page.locator(".st-strip .st-strip__v")).toHaveText(/\d+ min/);
     await tile(page, "Long Road").locator(".tile__cover").click();
-    await page.locator(".st-card").click();
+    await page.locator("#info-screen [aria-label='Reading stats']").click();
     await expect(page.locator("#app")).toHaveAttribute("data-route", "stats");
   });
 

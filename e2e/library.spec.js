@@ -81,6 +81,21 @@ test.describe("library", () => {
     await page.locator(".sort-btn").click();
     await expect(page.locator(".sort-btn")).toHaveText(/Title/);
     expect(await titles()).toEqual(["Old Format", "The Lamplighter"]);
+    // The choice is saved in the background; reload once it has landed.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            new Promise((resolve) => {
+              const req = indexedDB.open("webnovel-reader");
+              req.onsuccess = () => {
+                const get = req.result.transaction("kv").objectStore("kv").get("ui");
+                get.onsuccess = () => resolve(get.result?.sort);
+              };
+            })
+        )
+      )
+      .toBe("title");
     await page.reload();
     await expect(page.locator(".sort-btn")).toHaveText(/Title/); // remembered
   });
