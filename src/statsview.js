@@ -188,7 +188,7 @@ function barChart(buckets, { height = 110, values = false, aria = "", onPick = n
   buckets.forEach((b, i) => {
     const px = b.ms > 0 ? Math.max(2, Math.round((b.ms / max) * room)) : 0;
     const kids = [
-      values && b.ms > 0 ? h("span", { class: "st-bars__val" }, fmt(b.ms)) : null,
+      values && b.ms >= MIN_DAY_MS ? h("span", { class: "st-bars__val" }, fmt(b.ms)) : null,
       px
         ? h("div", { class: "st-bars__stack", style: `height:${px}px` }, h("div", { class: "st-bars__seg" + (b.current ? " is-current" : ""), style: "flex:1" }))
         : h("div", { class: "st-bars__stub" + (b.future ? " is-future" : "") }),
