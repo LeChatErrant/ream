@@ -344,9 +344,11 @@ function saveReadingLocation(location) {
 // app-switch). The scroll-driven `relocated` save is throttled, so without this
 // a spot reached moments before locking could be lost. `currentLocation()`
 // recomputes from the live DOM, giving a fresher position than the last event.
-// Pure save — it never moves the view.
+// Pure save — it never moves the view. Also run when leaving the reader
+// (router), and skipped while a resume is still settling: the half-restored
+// spot on screen then isn't where you were (restoreScrollAfter saves the landing).
 export function flushReadingPosition() {
-  if (!rendition || document.getElementById("app").dataset.route !== "reader") return;
+  if (!rendition || restoreActive || document.getElementById("app").dataset.route !== "reader") return;
   try {
     let loc = rendition.currentLocation();
     if (loc && typeof loc.then === "function") loc = null; // async manager; skip

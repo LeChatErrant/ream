@@ -98,6 +98,23 @@ test.describe("reader", () => {
     await expect.poll(() => scrollFraction(page), { timeout: 10_000 }).toBeGreaterThan(0.35);
   });
 
+  test("leaving the reader right after scrolling keeps the spot", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "long.epub", "Long Road");
+    await startReading(page, "Long Road");
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 5$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 5");
+    // No wait for the scroll-driven save: tap out at once, then reload at once.
+    await scrollChapter(page, 0.6);
+    await leaveReader(page);
+    await page.reload();
+
+    await page.locator(".continue-card").click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 5");
+    await expect.poll(() => scrollFraction(page), { timeout: 10_000 }).toBeGreaterThan(0.45);
+  });
+
   test("keeps the position when the app is closed mid-chapter", async ({ page }) => {
     // No trip back to the library: the tab just goes away (phone lock, swipe-away).
     await openApp(page);

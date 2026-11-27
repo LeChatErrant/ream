@@ -5,7 +5,7 @@
 // popstate unwind; the screen modules own their own rendering.
 // =========================================================================
 import { bookById, seriesById } from "./state.js";
-import { renderReader, closeDrawer, destroyRendition, setCurrentBook } from "./reader.js";
+import { renderReader, closeDrawer, destroyRendition, setCurrentBook, flushReadingPosition } from "./reader.js";
 import { renderLibrary, exitSelection, isSelecting } from "./library.js";
 import { renderInfo } from "./info.js";
 import { renderChapters, teardownChapters } from "./chapters.js";
@@ -13,6 +13,10 @@ import { renderStats } from "./statsview.js";
 import { STATS_UI } from "./lib/features.js";
 
 function setRouteChrome(route) {
+  // Leaving the reader: save the spot on screen first, while the reader is
+  // still laid out (hidden, its scroll reads 0). The scroll-driven save is
+  // throttled, so a position reached just before tapping out was otherwise lost.
+  if (route !== "reader") flushReadingPosition();
   document.getElementById("app").dataset.route = route;
   // The reader titles the page after the book; everywhere else is just Ream.
   if (route !== "reader") document.title = "Ream";
