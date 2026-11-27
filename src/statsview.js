@@ -957,7 +957,7 @@ function heatmapSection(days, day, firstDay, detail) {
       // A month name over the week that holds its 1st.
       for (let j = 0; j < 7; j++) {
         const kk = addDays(k, j);
-        if (dayDate(kk).getDate() === 1) months.append(h("span", { style: `left:${(i / 7) * 16}px` }, monthShort(dayDate(kk).getMonth())));
+        if (dayDate(kk).getDate() === 1) months.append(h("span", { style: `left:calc(${i / 7} * (var(--cell) + 3px))` }, monthShort(dayDate(kk).getMonth())));
       }
     }
     if (k > day) {
@@ -983,7 +983,7 @@ function heatmapSection(days, day, firstDay, detail) {
     "section",
     { class: "st-section" },
     label(weeksN >= 20 ? "Last 20 weeks" : "Reading days", "shades follow your own days"),
-    h("div", { class: "st-cal" }, h("div", { class: "st-cal__body" }, h("div", { class: "st-cal__side" }, h("span", { class: "st-cal__mspacer" }), dows), h("div", null, months, grid))),
+    h("div", { class: "st-cal", style: `--weeks:${weeksN}` }, h("div", { class: "st-cal__body" }, h("div", { class: "st-cal__side" }, h("span", { class: "st-cal__mspacer" }), dows), h("div", null, months, grid))),
     readout,
     legend
   );
