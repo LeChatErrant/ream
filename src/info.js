@@ -18,7 +18,7 @@ import {
   volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent, isRereading,
   furthestLink, furthestLabel,
 } from "./reading.js";
-import { furthestButton } from "./furthest.js";
+import { FURTHEST_KEY, furthestValue, openFurthest } from "./furthest.js";
 import { openBook } from "./reader.js";
 import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay, renderCurrentRoute } from "./router.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
@@ -187,9 +187,6 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
       )
     )
   );
-  // Re-reading (or peeking back): a chip back to the furthest chapter reached.
-  const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
-  if (f) top.append(h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link")));
 
   // Subject chips.
   if (m.subjects.length) {
@@ -224,6 +221,10 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
   // Plain display rows; the route into the Chapters screen is the five-chapter
   // preview at the foot of the page (11b), not this table row.
   const table = h("div", { class: "info-table" });
+  // Re-reading (or peeking back): the first row leads back to the furthest
+  // chapter reached.
+  const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
+  if (f) table.append(infoRow(FURTHEST_KEY, furthestValue(f), () => openFurthest(f)));
   for (const [label, value] of rows) table.append(infoRow(label, value));
   // Side-column heading on a desktop; the phone's table needs none.
   side.append(h("div", { class: "lib-label info-sidelabel desk-only" }, "Details"), table);
@@ -797,9 +798,15 @@ function showVolumeSheet(s, book, start, end) {
       { class: "vsheet__actions" },
       h("button", { class: "pill-btn vsheet__continue", onclick: () => closeOverlay(() => openBook(book.id)) }, continueLabel)
     ),
-    // Only this volume's chapters count here. (A native append: no nulls.)
-    ...(sheetFurthest ? [h("div", { class: "info-furthest info-furthest--sheet" }, furthestButton(sheetFurthest, "info-furthest__link", { vol: false, before: closeOverlay }))] : []),
-    h("div", { class: "vsheet__facts" }, ...facts.map(([k, v]) => factRow(k, v))),
+    h(
+      "div",
+      { class: "vsheet__facts" },
+      // Only this volume's chapters count here.
+      sheetFurthest
+        ? factRow(FURTHEST_KEY, furthestValue(sheetFurthest, { vol: false }), () => openFurthest(sheetFurthest, closeOverlay))
+        : null,
+      ...facts.map(([k, v]) => factRow(k, v))
+    ),
     h(
       "div",
       { class: "vsheet__textactions" },

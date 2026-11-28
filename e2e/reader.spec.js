@@ -251,7 +251,7 @@ test.describe("reader", () => {
     await openApp(page);
     await importBook(page, "long.epub", "Long Road");
     const cont = page.locator(".continue-card");
-    const link = page.locator(".continue-card__furthest-link");
+    const link = page.locator(".continue-card__furthest");
 
     // Reading forward: latest = furthest, nothing extra.
     await startReading(page, "Long Road");
@@ -273,12 +273,12 @@ test.describe("reader", () => {
     await leaveReader(page);
     await page.reload();
     await expect(cont).toContainText("Chapter 3");
-    await expect(link).toHaveText(/Back to ch\. 8/);
+    await expect(link).toHaveText(/Furthest read\s*Ch\. 8/);
 
     // The info page and the chapters list say the same.
     await tile(page, "Long Road").locator(".tile__cover").click();
     await expect(page.locator(".info-actions__continue")).toHaveText("Continue ch. 3");
-    await expect(page.locator(".info-furthest__link")).toHaveText(/Back to ch\. 8/);
+    await expect(page.locator(".info-trow.kv-link").first()).toHaveText(/Furthest read\s*Ch\. 8/);
     await page.locator(".cprev__seeall").click();
     await expect(page.locator(".ch-row--furthest")).toContainText(/Furthest · \d+ % through/);
     await expect(page.locator(".ch-row--furthest .ch-row__num")).toHaveText("8");

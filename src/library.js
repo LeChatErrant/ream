@@ -12,7 +12,7 @@ import {
   displayTitle, seriesVolumes, seriesPercent, currentVolume, bookPercent,
   continueSubtitle, continueTarget, overrideOf, scopeVolumes, furthestLink,
 } from "./reading.js";
-import { furthestButton } from "./furthest.js";
+import { FURTHEST_KEY, furthestValue, openFurthest } from "./furthest.js";
 import { openBook } from "./reader.js";
 import { openInfo } from "./router.js";
 import { openInfoMenu, infoModel } from "./info.js";
@@ -131,21 +131,24 @@ function continueSection(book) {
     ),
     h("span", { class: "continue-card__cta wide-only" }, "Continue")
   );
-  // Re-reading (or peeking back): a "Back to ch. N" chip, inside the card's
-  // surface under its text, leads back to the furthest chapter you'd reached.
+  // Re-reading (or peeking back): a details row at the foot of the card —
+  // "Furthest read · Vol. 10 · ch. 2680 ›" — leads back to the furthest
+  // chapter you'd reached.
   const f = furthestLink(scopeVolumes(book), book);
+  const back =
+    f &&
+    h(
+      "button",
+      { class: "continue-card__furthest", onclick: () => openFurthest(f) },
+      h("span", { class: "continue-card__furthest-k" }, FURTHEST_KEY),
+      h("span", { class: "continue-card__furthest-v" }, furthestValue(f)),
+      h("span", { class: "continue-card__furthest-chev" }, svg(ICON.chevron))
+    );
   return h(
     "section",
     { class: "lib-section lib-section--continue" },
     h("div", { class: "lib-label" }, "Continue"),
-    f
-      ? h(
-          "div",
-          { class: "continue-group" },
-          card,
-          h("div", { class: "continue-card__furthest" }, furthestButton(f, "continue-card__furthest-link"))
-        )
-      : card
+    back ? h("div", { class: "continue-group" }, card, back) : card
   );
 }
 
