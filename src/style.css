@@ -299,6 +299,42 @@ html { -webkit-tap-highlight-color: transparent; }
 /* Bar + (wide-only) percentage; layout-neutral here, a row in wide.css. */
 .continue-card__progress { display: contents; }
 
+/* ⚑ Furthest read — while re-reading, a link back to the furthest chapter
+   reached (furthest.js). Muted text, the place itself in brighter type. */
+.furthest-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
+  font: 400 13px var(--font-ui);
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.furthest-link b { font-weight: 500; color: var(--text-secondary); }
+.furthest-link__flag, .furthest-link__chev { display: inline-flex; flex: none; }
+.furthest-link__chev { color: var(--text-dim); }
+.furthest-link:hover { color: var(--text-body); }
+.furthest-link:focus-visible { outline: 2px solid var(--text-muted); outline-offset: -2px; }
+/* On the Continue card: one block, the link a row under the card's text. */
+.continue-group { border-radius: 12px; background: var(--surface); overflow: hidden; }
+.continue-group .continue-card { border-radius: 0; background: transparent; }
+.continue-group .continue-card:hover, .continue-card__furthest:hover { background: #242a35; }
+.continue-card__furthest {
+  display: flex;
+  width: 100%;
+  padding: 0 14px 0 82px; /* under the text: card padding + cover + gap */
+  border-top: 1px solid var(--border-strong);
+  font-size: 12.5px;
+}
+.continue-card__furthest .furthest-link__text { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Under the Info page's (and volume sheet's) main button. */
+.info-furthest { display: flex; justify-content: center; padding: 2px 24px 0; }
+
 /* Grid of tiles */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 14px; row-gap: 16px; }
 .tile {
@@ -1755,6 +1791,18 @@ html { -webkit-tap-highlight-color: transparent; }
 .ch-row--reading { border-left: 2px solid #3a4350; }
 .ch-row--reading .ch-row__title { color: var(--text-secondary); white-space: normal; }
 .ch-row__title-wrap { flex: 1 1 auto; min-width: 0; }
+/* Furthest read while re-reading: a dashed edge (current is solid) and a ⚑ sub-line. */
+.ch-row--furthest {
+  padding: 14px 20px;
+  background: #1e232c;
+  border-left: 2px dashed var(--fill-card);
+  contain-intrinsic-size: auto 66px;
+}
+.ch-row--furthest .ch-row__num { font-weight: 600; color: var(--text-body); }
+.ch-row--furthest .ch-row__title { color: var(--text-secondary); font-weight: 500; white-space: normal; }
+.row-sub--furthest { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.row-sub--furthest > span { display: inline-flex; }
+.row-sub--furthest svg { width: 11px; height: 11px; }
 
 /* Empty search result — one line, no illustration. */
 .ch-empty { padding: 22px 20px; font: 300 14.5px/1.6 var(--font-serif); color: var(--text-dim); }
@@ -1882,6 +1930,9 @@ html { -webkit-tap-highlight-color: transparent; }
    current row, and it carries a "Reading · N %" sub-line. */
 .cprev__row--reading { border-left: 2px solid #3a4350; padding-left: 22px; }
 .cprev__row--reading .cprev__title { color: var(--text-secondary); }
+.cprev__row--furthest { background: #1e232c; border-left: 2px dashed var(--fill-card); padding-left: 22px; }
+.cprev__row--furthest .cprev__num { color: var(--text-body); font-weight: 600; }
+.cprev__row--furthest .cprev__title { color: var(--text-secondary); font-weight: 500; }
 .cprev__seeall {
   appearance: none;
   width: 100%;

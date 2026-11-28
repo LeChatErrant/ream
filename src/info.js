@@ -16,7 +16,9 @@ import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 import {
   overrideOf, displayTitle, bookPercent, bookIsStarted, seriesVolumes, currentVolume,
   volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent, isRereading,
+  furthestLink, furthestLabel,
 } from "./reading.js";
+import { furthestButton } from "./furthest.js";
 import { openBook } from "./reader.js";
 import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay, renderCurrentRoute } from "./router.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
@@ -185,6 +187,9 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
       )
     )
   );
+  // Re-reading (or peeking back): ⚑ back to the furthest chapter reached.
+  const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
+  if (f) top.append(h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link")));
 
   // Subject chips.
   if (m.subjects.length) {
@@ -298,9 +303,14 @@ function volumeRow(s, book, start, end, selId) {
   const pct = bookPercent(book);
   const p = progressMap[book.id];
   let statusText;
-  if (pct >= 100) statusText = "finished";
+  if (isRereading(book)) statusText = "re-reading ch. " + absChapterNum(book, p);
+  else if (pct >= 100) statusText = "finished";
   else if (p) statusText = "reading ch. " + absChapterNum(book, p);
   else statusText = "not started";
+  // The volume holding the furthest chapter, while you re-read an earlier one.
+  const f = furthestLink(seriesVolumes(s), currentVolume(s));
+  const flag = f && f.book.id === book.id;
+  if (flag) statusText = "furthest " + furthestLabel(f, { vol: false });
   const title = "Vol. " + volumeNumber(s, book) + (stripVolume(displayTitle(book)) ? " · " + stripVolume(displayTitle(book)) : "");
   const row = h(
     "div",
@@ -310,7 +320,7 @@ function volumeRow(s, book, start, end, selId) {
       "div",
       { class: "vrow__text" },
       h("div", { class: "vrow__title" }, title),
-      h("div", { class: "vrow__sub" }, `Ch. ${start}–${end} · ${statusText}`)
+      h("div", { class: "vrow__sub" + (flag ? " row-sub--furthest" : "") }, flag ? [`Ch. ${start}–${end} ·`, svg(ICON.flag), statusText] : `Ch. ${start}–${end} · ${statusText}`)
     ),
     h("div", { class: "vrow__pct" }, pct >= 100 ? "100 %" : bookIsStarted(book) ? pct + " %" : ""),
     // Pointer-only ⋯ (hidden on touch, see .hover-ctl): the long-press's view.
@@ -742,7 +752,8 @@ function showVolumeSheet(s, book, start, end) {
   const absCh = p ? absChapterNum(book, p) : volumeFirstAbs(book);
   const volTitle = "Vol. " + volNum + (stripVolume(displayTitle(book)) ? " · " + stripVolume(displayTitle(book)) : "");
   let statusLine;
-  if (pct >= 100) statusLine = "Finished · 100 %";
+  if (isRereading(book)) statusLine = `Re-reading ch. ${absCh} · 100 %`;
+  else if (pct >= 100) statusLine = "Finished · 100 %";
   else if (p) statusLine = `Reading ch. ${absCh} · ${pct} %`;
   else statusLine = "Not started";
   const continueLabel = pct >= 100 && !isRereading(book) ? "Read again" : p ? `Continue ch. ${absCh}` : "Start reading";
@@ -784,6 +795,10 @@ function showVolumeSheet(s, book, start, end) {
       "div",
       { class: "vsheet__actions" },
       h("button", { class: "pill-btn vsheet__continue", onclick: () => closeOverlay(() => openBook(book.id)) }, continueLabel)
+    ),
+    // Only this volume's chapters count here.
+    ((f) => f && h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link", { vol: false, before: closeOverlay })))(
+      furthestLink([book], book)
     ),
     h("div", { class: "vsheet__facts" }, ...facts.map(([k, v]) => factRow(k, v))),
     h(

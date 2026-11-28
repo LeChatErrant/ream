@@ -140,6 +140,52 @@ export function volumeLastAbs(book) {
   const r = readableChapters(book.chapters || []);
   return r.length ? chapterDisplay(r[r.length - 1], r.length + volumeChapterOffset(book)).num : chapterCount(book) + volumeChapterOffset(book);
 }
+// -------------------------------------------------------------------------
+// Furthest read. While you re-read (or peek back), "where you are" and "how
+// far you got" differ; the furthest one gets a ⚑ link back to it. It is the
+// last chapter, across the scope's volumes, holding a real reading position —
+// chapters completed by "Mark as read" or by skipping past them have none, so
+// they never count. Compared by chapter, not %: scrolling back inside one
+// chapter isn't a re-read.
+// -------------------------------------------------------------------------
+// The volumes a book's furthest point is looked for in: its series, or itself.
+export function scopeVolumes(book) {
+  const s = book?.seriesId ? seriesById(book.seriesId) : null;
+  return s ? seriesVolumes(s) : book ? [book] : [];
+}
+export function furthestSpot(vols) {
+  for (let v = vols.length - 1; v >= 0; v--) {
+    const b = vols[v];
+    const p = progressMap[b.id];
+    if (!p?.chapters) continue;
+    const r = readableChapters(b.chapters || []);
+    for (let i = r.length - 1; i >= 0; i--) {
+      const st = p.chapters[baseHref(r[i].href)];
+      if (st?.cfi) return { book: b, vi: v, i, href: r[i].href, entry: r[i], st, last: v === vols.length - 1 && i === r.length - 1 };
+    }
+  }
+  return null;
+}
+// The furthest spot when your latest one (in `latest`, one of `vols`) is in an
+// earlier chapter — else null. Nothing once the whole scope is read: the last
+// chapter is the furthest and it is done, so there is nowhere further to go.
+export function furthestLink(vols, latest) {
+  const f = furthestSpot(vols);
+  if (!f || (f.last && f.st.done)) return null;
+  const p = progressMap[latest?.id];
+  const v = vols.indexOf(latest);
+  if (!p?.href || v < 0) return null;
+  const i = readableChapters(latest.chapters || []).findIndex((e) => baseHref(e.href) === baseHref(p.href));
+  if (i < 0 || v > f.vi || (v === f.vi && i >= f.i)) return null;
+  return f;
+}
+// "Vol. 2 · ch. 200" (or "ch. 200" outside a series) for a furthest spot.
+export function furthestLabel(f, { vol = true } = {}) {
+  const num = chapterDisplay(f.entry, volumeChapterOffset(f.book) + f.i + 1).num;
+  const s = f.book.seriesId ? seriesById(f.book.seriesId) : null;
+  return (vol && s ? `vol. ${volumeNumber(s, f.book)} · ` : "") + `ch. ${num}`;
+}
+
 export function continueTarget() {
   let best = null,
     bestT = -1;

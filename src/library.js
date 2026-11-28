@@ -10,8 +10,9 @@ import { chapterCount } from "./lib/chapters.js";
 import { formatAdded } from "./lib/format.js";
 import {
   displayTitle, seriesVolumes, seriesPercent, currentVolume, bookPercent,
-  continueSubtitle, continueTarget, overrideOf,
+  continueSubtitle, continueTarget, overrideOf, scopeVolumes, furthestLink,
 } from "./reading.js";
+import { furthestButton } from "./furthest.js";
 import { openBook } from "./reader.js";
 import { openInfo } from "./router.js";
 import { openInfoMenu, infoModel } from "./info.js";
@@ -130,11 +131,14 @@ function continueSection(book) {
     ),
     h("span", { class: "continue-card__cta wide-only" }, "Continue")
   );
+  // Re-reading (or peeking back): a ⚑ row under the card leads back to the
+  // furthest chapter you'd reached.
+  const f = furthestLink(scopeVolumes(book), book);
   return h(
     "section",
     { class: "lib-section lib-section--continue" },
     h("div", { class: "lib-label" }, "Continue"),
-    card
+    f ? h("div", { class: "continue-group" }, card, furthestButton(f, "continue-card__furthest")) : card
   );
 }
 

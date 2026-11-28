@@ -247,6 +247,58 @@ test.describe("reader", () => {
     expect(await scrollFraction(page)).toBeLessThan(0.65);
   });
 
+  test("going back to an earlier chapter offers a ⚑ link to the furthest one", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "long.epub", "Long Road");
+    const cont = page.locator(".continue-card");
+    const link = page.locator(".continue-card__furthest");
+
+    // Reading forward: latest = furthest, nothing extra.
+    await startReading(page, "Long Road");
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 8$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 8");
+    await scrollChapter(page, 0.5);
+    await expect.poll(() => scrollFraction(page)).toBeGreaterThan(0.4);
+    await leaveReader(page);
+    await expect(cont).toContainText("Chapter 8");
+    await expect(link).toHaveCount(0);
+
+    // Back in chapter 3: Continue says 3, the ⚑ link says 8.
+    await cont.click();
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 3$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 3");
+    await scrollChapter(page, 0.3);
+    await leaveReader(page);
+    await page.reload();
+    await expect(cont).toContainText("Chapter 3");
+    await expect(link).toHaveText(/Furthest · ch\. 8/);
+
+    // The info page and the chapters list say the same.
+    await tile(page, "Long Road").locator(".tile__cover").click();
+    await expect(page.locator(".info-actions__continue")).toHaveText("Continue ch. 3");
+    await expect(page.locator(".info-furthest__link")).toHaveText(/Furthest · ch\. 8/);
+    await page.locator(".cprev__seeall").click();
+    await expect(page.locator(".ch-row--furthest")).toContainText("Furthest read");
+    await expect(page.locator(".ch-row--furthest .ch-row__num")).toHaveText("8");
+    await expect(page.locator(".ch-row--current .ch-row__num")).toHaveText("3");
+    await page.goBack();
+    await page.goBack();
+
+    // The link lands on chapter 8 where you'd got to; then it's gone.
+    await link.click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 8");
+    await expect.poll(() => scrollFraction(page), { timeout: 10_000 }).toBeGreaterThan(0.35);
+    // Scrolling back inside the furthest chapter isn't going back: still none.
+    // (A wheel first, as a reader's own scroll would: it ends the landing restore.)
+    await scroller(page).dispatchEvent("wheel");
+    await scrollChapter(page, 0.1);
+    await leaveReader(page);
+    await expect(cont).toContainText("Chapter 8");
+    await expect(link).toHaveCount(0);
+  });
+
   test("shows progress on the shelf after reading", async ({ page }) => {
     await openApp(page);
     await importBook(page, "basic.epub", "The Lamplighter");

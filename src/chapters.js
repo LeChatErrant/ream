@@ -13,7 +13,7 @@ import { progressMap, ui, bookById, seriesById, saveUi } from "./state.js";
 import { readableChapters, frontMatterEntries, chapterOrdinalFor, chapterDisplay, scrollAnchorFor, previewWindow } from "./lib/chapters.js";
 import {
   chapterProgress, bookPercent, seriesVolumes, currentVolume, volumeChapterOffset,
-  volumeNumber, displayTitle,
+  volumeNumber, displayTitle, furthestLink,
 } from "./reading.js";
 import { openBook } from "./reader.js";
 import { go } from "./router.js";
@@ -37,16 +37,24 @@ function setChSortDir(kind, id, dir) {
 // `current` (the resume chapter — where "Continue" drops you), `reading` (a
 // chapter opened partway but not finished, and not the resume point) or
 // `unread`. Completion comes from the per-chapter map, so jumping back never
-// un-reads a chapter and opening one never completes it.
-function chapterRowState({ vol, e, i, curLocal, isCurVol, finished }) {
+// un-reads a chapter and opening one never completes it — except that while
+// you re-read (a furthest link `f` exists), the chapter you're back in is
+// `current` even though it's done. The furthest chapter is flagged `furthest`.
+function chapterRowState({ vol, e, i, curLocal, isCurVol, finished, f }) {
   const st = chapterProgress(vol, e.href);
-  const pct = st?.pct || 0;
+  let pct = st?.pct || 0;
   let state;
-  if (finished || st?.done) state = "read";
+  if (f && isCurVol && i === curLocal) {
+    state = "current";
+    // A done chapter's own % is its old 100: show how far into the re-read.
+    if (st?.done) pct = progressMap[vol.id]?.chapterPct || 0;
+  }
+  else if (finished || st?.done) state = "read";
   else if (isCurVol && i === curLocal) state = "current";
   else if (pct > 0) state = "reading";
   else state = "unread";
-  return { state, pct };
+  const furthest = !!f && f.book.id === vol.id && f.i === i;
+  return { state, pct, furthest, done: !!st?.done };
 }
 export function chaptersModel(kind, id) {
   if (kind === "series") {
@@ -56,6 +64,7 @@ export function chaptersModel(kind, id) {
     const cur = currentVolume(s);
     const curP = cur ? progressMap[cur.id] : null;
     const curLocal = cur && curP ? chapterOrdinalFor(cur, curP) - 1 : -1;
+    const f = furthestLink(vols, cur);
     const items = [];
     const extras = [];
     for (const vol of vols) {
@@ -64,9 +73,9 @@ export function chaptersModel(kind, id) {
       const finished = bookPercent(vol) >= 100;
       const isCurVol = !!(cur && vol.id === cur.id);
       chs.forEach((e, i) => {
-        const { state, pct } = chapterRowState({ vol, e, i, curLocal, isCurVol, finished });
+        const { state, pct, furthest, done } = chapterRowState({ vol, e, i, curLocal, isCurVol, finished, f });
         const { num, title } = chapterDisplay(e, offset + i + 1);
-        items.push({ absNum: num, title, label: e.label, href: e.href, bookId: vol.id, localIndex: i, state, pct });
+        items.push({ absNum: num, title, label: e.label, href: e.href, bookId: vol.id, localIndex: i, state, pct, furthest, done });
       });
       for (const e of frontMatterEntries(vol)) {
         extras.push({ title: (e.label || "").trim() || "Untitled", label: e.label, href: e.href, bookId: vol.id, volNum: volumeNumber(s, vol) });
@@ -89,10 +98,11 @@ export function chaptersModel(kind, id) {
   const p = progressMap[b.id];
   const finished = bookPercent(b) >= 100;
   const curLocal = p ? chapterOrdinalFor(b, p) - 1 : -1;
+  const f = furthestLink([b], b);
   const items = chs.map((e, i) => {
-    const { state, pct } = chapterRowState({ vol: b, e, i, curLocal, isCurVol: true, finished });
+    const { state, pct, furthest, done } = chapterRowState({ vol: b, e, i, curLocal, isCurVol: true, finished, f });
     const { num, title } = chapterDisplay(e, i + 1);
-    return { absNum: num, title, label: e.label, href: e.href, bookId: b.id, localIndex: i, state, pct };
+    return { absNum: num, title, label: e.label, href: e.href, bookId: b.id, localIndex: i, state, pct, furthest, done };
   });
   const extras = frontMatterEntries(b).map((e) => ({
     title: (e.label || "").trim() || "Untitled", label: e.label, href: e.href, bookId: b.id, volNum: null,
@@ -120,26 +130,49 @@ export function openChapters(kind, id, { volId = null } = {}) {
 // one chapter) never has to open it.
 // -------------------------------------------------------------------------
 
+// The second line of a two-line row: "Re-reading · 40 % through" for the
+// chapter you're back in, "⚑ Furthest read · 70 % through" for the furthest.
+function rowSub(it, cls) {
+  if (it.furthest) {
+    return h(
+      "div",
+      { class: cls + " row-sub--furthest" },
+      svg(ICON.flag),
+      it.done ? "Furthest read" : `Furthest read · ${it.pct} % through`
+    );
+  }
+  const verb = it.done ? "Re-reading" : "Reading";
+  return h("div", { class: cls }, it.pct ? `${verb} · ${it.pct} % through` : verb);
+}
+// The resume chapter reopens where you left off, the furthest one at its own
+// furthest spot, any other at its top.
+function openRow(it) {
+  if (it.state === "current") openBook(it.bookId);
+  else if (it.furthest) openBook(it.bookId, { atHref: it.href });
+  else openBook(it.bookId, { startHref: it.href });
+}
+
 function cprevRow(it) {
   // The resume chapter reopens the book where you left off; every other row
   // opens that chapter (an in-progress one offers its own resume once inside).
-  const open = () => (it.state === "current" ? openBook(it.bookId) : openBook(it.bookId, { startHref: it.href }));
-  if (it.state === "current" || it.state === "reading") {
+  const open = () => openRow(it);
+  const cls = "cprev__row cprev__row--" + it.state + (it.furthest ? " cprev__row--furthest" : "");
+  if (it.state === "current" || it.state === "reading" || it.furthest) {
     return h(
       "button",
-      { class: "cprev__row cprev__row--" + it.state, onclick: open },
+      { class: cls, onclick: open },
       h("span", { class: "cprev__num" }, String(it.absNum)),
       h(
         "span",
         { class: "cprev__titlewrap" },
         h("div", { class: "cprev__title" }, it.title || it.label || "Untitled"),
-        h("div", { class: "cprev__sub" }, it.pct ? `Reading · ${it.pct} % through` : "Reading")
+        rowSub(it, "cprev__sub")
       )
     );
   }
   return h(
     "button",
-    { class: "cprev__row cprev__row--" + it.state, onclick: open },
+    { class: cls, onclick: open },
     h("span", { class: "cprev__num" }, String(it.absNum)),
     h("span", { class: "cprev__title" }, it.title || it.label || "Untitled"),
     it.state === "read" ? h("span", { class: "cprev__check" }, svg(ICON.check)) : null
@@ -413,11 +446,11 @@ function chExtraRow(it, showVol) {
 }
 
 function chRow(m, it) {
-  const cls = "ch-row ch-row--" + it.state;
+  const cls = "ch-row ch-row--" + it.state + (it.furthest ? " ch-row--furthest" : "");
   const ds = {};
   if (it.state === "current") ds.current = "1";
   if (it.absNum === m.scrollAnchorAbs) ds.anchor = "1"; // pre-scroll target
-  if (it.state === "current" || it.state === "reading") {
+  if (it.state === "current" || it.state === "reading" || it.furthest) {
     return h(
       "button",
       { class: cls, dataset: ds, onclick: () => chOpen(it) },
@@ -426,7 +459,7 @@ function chRow(m, it) {
         "span",
         { class: "ch-row__title-wrap" },
         h("div", { class: "ch-row__title" }, it.title || it.label || "Untitled"),
-        h("div", { class: "ch-row__sub" }, it.pct ? `Reading · ${it.pct} % through` : "Reading")
+        rowSub(it, "ch-row__sub")
       )
     );
   }
@@ -439,12 +472,8 @@ function chRow(m, it) {
   );
 }
 
-// Tapping a row opens the reader at that chapter — the saved offset for the
-// current chapter, the top for any other.
-function chOpen(it) {
-  if (it.state === "current") openBook(it.bookId);
-  else openBook(it.bookId, { startHref: it.href });
-}
+// Tapping a row opens the reader at that chapter (see openRow).
+const chOpen = openRow;
 
 function scrollToCurrentRow() {
   const cur = chEls?.list.querySelector("[data-anchor]") || chEls?.list.querySelector("[data-current]");

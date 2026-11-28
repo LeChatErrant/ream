@@ -366,12 +366,14 @@ export function flushReadingPosition() {
   }
 }
 
-export async function openBook(id, { withDrawer = false, startHref = null } = {}) {
+// `startHref` opens a chapter at its top (offering its resume chip);
+// `atHref` opens it at its own saved spot — the ⚑ furthest-read links.
+export async function openBook(id, { withDrawer = false, startHref = null, atHref = null } = {}) {
   const lib = bookById(id);
   if (!lib) return;
   currentBook = lib;
   go({ route: "reader", id }, true);
-  await renderReader(lib, startHref);
+  await renderReader(lib, startHref, atHref);
   if (withDrawer) openDrawer();
 }
 
@@ -392,7 +394,7 @@ async function keepNewPdfChapters(lib, opened) {
   updateDrawerBook();
 }
 
-export async function renderReader(lib, startHref = null) {
+export async function renderReader(lib, startHref = null, atHref = null) {
   if (rendition) {
     teardown(rendition);
     rendition = null;
@@ -528,8 +530,9 @@ export async function renderReader(lib, startHref = null) {
     p.href &&
     baseHref(p.href) === chapterKey &&
     (p.chapterPct ?? 0) >= MIN_SCROLL_PCT;
-  const resume = reread ? p.cfi : chapterState?.cfi || resumeHref;
-  const resumeAt = reread ? p : chapterState;
+  const atState = atHref ? p?.chapters?.[baseHref(atHref)] : null;
+  const resume = atHref ? atState?.cfi || atHref : reread ? p.cfi : chapterState?.cfi || resumeHref;
+  const resumeAt = atHref ? atState : reread ? p : chapterState;
   // A chapter tapped in the list/drawer opens at its top and offers the
   // per-chapter resume chip; the book-level "Continue" restores the exact spot.
   const showOpening = () => {
@@ -819,6 +822,13 @@ function updateSteps() {
 // restores the exact CFI directly, so it never routes through here.
 function displayChapterTop(href) {
   if (!rendition || !href) return;
+  // Jumping elsewhere while a resume is still settling: stop it, or it would
+  // keep pushing the old offset onto the new chapter and hold its saves back.
+  if (restoreActive) {
+    restoreRun++;
+    restoreActive = false;
+    releaseChrome();
+  }
   const p = rendition.display(baseHref(href));
   Promise.resolve(p).then(() => maybeShowResumeChip(href)).catch(() => {});
 }
