@@ -62,6 +62,8 @@ test.describe("reader", () => {
     );
     expect(new Set(fills)).toEqual(new Set(["currentColor"]));
     expect(await badge.getAttribute("width")).toBe("22");
+    // A "Dormant" core (the first chapters) is still a core: a solid sun, not dashed.
+    await expect(badge.locator("[stroke-dasharray]")).toHaveCount(0);
   });
 
   test("steps through chapters: end card, next and previous", async ({ page }) => {

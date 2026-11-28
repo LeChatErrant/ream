@@ -1220,7 +1220,7 @@ function mountSoulSeaButton(lib) {
   paintSoulSeaButton();
 }
 // The badge shows Sunny's Shadow Cores as of the chapter on screen: redrawn only
-// when that count (or dormancy) changes.
+// when that count changes.
 let soulSeaPainted = null;
 function paintSoulSeaButton() {
   if (!soulSeaBtn || soulSeaBtn.hidden) return;

@@ -37,10 +37,10 @@ export function soulSeaFor(lib) {
 // A small window into Sunny's Soul Sea: "a silent, calm dark sea illuminated by a
 // lonely black sun" (ch 16). His Shadow Cores are black suns on a tilted orbit over the
 // water, around a Memory, as many as he has before the chapter on screen (same
-// spoiler rule as the panel); dashed while the runes still say "Dormant". Drawn
-// like the other top-bar icons: outlines in the button's own colour.
+// spoiler rule as the panel). "Dormant" is only the rank of a young core, still a
+// core: no different look. Drawn like the other top-bar icons, in the button's colour.
 
-// [first chapter, cores, dormant] after each change of the core stat.
+// [first chapter, cores] after each change of the core stat.
 let coreSteps = null;
 function coresAt(num) {
   if (!coreSteps) {
@@ -49,20 +49,20 @@ function coresAt(num) {
     for (const e of data.events) {
       if (e.id !== "core" || e.type !== "set") continue;
       values.push(e.value);
-      coreSteps.push([e.at[0], coreCount(values).n, /dormant/i.test(e.value)]);
+      coreSteps.push([e.at[0], coreCount(values).n]);
     }
   }
   const last = Math.min(num - 1, data.reviewedThrough);
-  let at = [0, 1, true]; // before the Awakening: the core is still asleep
+  let at = [0, 1]; // before the Awakening: the one core he starts with
   for (const s of coreSteps) if (s[0] <= last) at = s;
-  return { n: Math.max(1, Math.min(7, at[1] || 1)), dormant: at[2] };
+  return Math.max(1, Math.min(7, at[1] || 1));
 }
 
 const r2 = (x) => Math.round(x * 100) / 100;
 
 /** The badge for the chapter on screen (its number), as SVG markup. */
 export function soulSeaBadge(num, size = 22) {
-  const { n, dormant } = coresAt(num || 0);
+  const n = coresAt(num || 0);
   const H = 20.5; // the horizon
   const [cx, cy, rx, ry, deg] = [12, 10, 10, 4.3, -12];
   const tilt = (deg * Math.PI) / 180;
@@ -80,10 +80,7 @@ export function soulSeaBadge(num, size = 22) {
   const gaps = [...suns.map(([x, y]) => [x, y, r + 1.1]), ...(memory ? [[...memory, memoryR + 1]] : [])]
     .map(([x, y, g]) => `<circle cx="${x}" cy="${y}" r="${r2(g)}"/>`)
     .join("");
-  const sun = ([x, y]) =>
-    dormant
-      ? `<circle cx="${x}" cy="${y}" r="${r2(r - 0.4)}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="1.4 1.1"/>`
-      : `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor"/>`;
+  const sun = ([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor"/>`;
   return (
     `<svg class="soulsea-badge" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">` +
     `<defs><mask id="soulsea-badge-gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">` +
@@ -92,7 +89,7 @@ export function soulSeaBadge(num, size = 22) {
     suns.map(sun).join("") +
     (memory ? `<circle cx="${memory[0]}" cy="${memory[1]}" r="${memoryR}" fill="currentColor"/>` : "") +
     `<path d="M2 ${H}h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
-    (dormant ? "" : `<path d="M7.5 ${H + 2.6}h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".5"/>`) +
+    `<path d="M7.5 ${H + 2.6}h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".5"/>` +
     `</svg>`
   );
 }
