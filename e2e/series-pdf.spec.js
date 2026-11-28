@@ -9,6 +9,7 @@ import {
   chapter,
   startReading,
   chapterTitle,
+  openDrawer,
 } from "./helpers.js";
 
 test.describe("series", () => {
@@ -40,6 +41,27 @@ test.describe("series", () => {
     await go.click();
     await expect(page.locator("#book-title")).toHaveText(/Vol\. 2/);
     await expect(chapterTitle(page)).toHaveText("Chapter 1");
+  });
+
+  test("a volume picked in the drawer opens at its chapter's top", async ({ page }) => {
+    // Its TOC links point at each chapter's heading: opening there must not
+    // land on the anchor, a little way down past the chapter's top padding.
+    const scrollTop = () => page.evaluate(() => document.querySelector("#viewer .epub-container").scrollTop);
+    await openApp(page);
+    await importBooks(page, "ash1.epub", "ash2.epub");
+    await page.locator("#suggest-group").click();
+    await expect(tiles(page)).toHaveCount(1);
+    await tile(page, "Ash Saga").locator(".tile__cover").click();
+    await page.locator(".info-actions__continue").click();
+    await chapter(page).locator("p").first().waitFor();
+    await expect.poll(scrollTop).toBe(0);
+    await openDrawer(page);
+    await page.locator(".vol-chip", { hasText: "Vol. 2" }).click();
+    await expect(page.locator("#book-title")).toHaveText(/Vol\. 2/);
+    await expect(chapterTitle(page)).toHaveText("Chapter 1");
+    await chapter(page).locator("p").first().waitFor();
+    await page.waitForTimeout(500); // let any jump to the anchor happen
+    expect(await scrollTop()).toBe(0);
   });
 
   test("keeping volumes separate leaves two books", async ({ page }) => {

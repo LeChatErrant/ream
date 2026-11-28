@@ -537,7 +537,15 @@ export async function renderReader(lib, startHref = null, atHref = null) {
   // per-chapter resume chip; the book-level "Continue" restores the exact spot.
   const showOpening = () => {
     if (startHref) return displayChapterTop(startHref);
-    const shown = rendition.display(resume || flatToc[0]?.href || undefined);
+    // A saved position (a CFI, or a PDF's pdf:page:frac) lands on its exact
+    // spot. A plain chapter href is opened at the chapter's top, without its
+    // #fragment: many epubs point their TOC at the heading's id, and landing on
+    // that anchor scrolls past the chapter's top padding, so a volume opened
+    // from the drawer's chips (or an unread book's Continue) looked already
+    // scrolled. Same as a chapter tapped in the list (displayChapterTop).
+    const target = resume || flatToc[0]?.href;
+    const isPosition = /^(epubcfi\(|pdf:)/.test(target || "");
+    const shown = rendition.display(target ? (isPosition ? target : baseHref(target)) : undefined);
     if (resumeAt && resume === resumeAt.cfi && resumeAt.scrollTop > 0 && sameLayout(resumeAt)) {
       restoreScrollAfter(shown, resumeAt.scrollTop);
     }
