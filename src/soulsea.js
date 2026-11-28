@@ -34,10 +34,9 @@ export function soulSeaFor(lib) {
 }
 
 // ---- the top-bar badge ---------------------------------------------------------------
-// A small window into Sunny's Soul Sea: "a silent, calm dark sea illuminated by a
-// lonely black sun" (ch 16). His Shadow Cores are black suns on a tilted orbit over the
-// water, around a Memory, as many as he has before the chapter on screen (same
-// spoiler rule as the panel). "Dormant" is only the rank of a young core, still a
+// Sunny's Shadow Cores, the black suns of his Soul Sea (ch 16), on a tilted orbit:
+// as many as he has before the chapter on screen (same spoiler rule as the panel).
+// No sea drawn — at icon size it only muddied what the mark is. "Dormant" is only the rank of a young core, still a
 // core: no different look. Drawn like the other top-bar icons, in the button's colour.
 
 // [first chapter, cores] after each change of the core stat.
@@ -63,8 +62,7 @@ const r2 = (x) => Math.round(x * 100) / 100;
 /** The badge for the chapter on screen (its number), as SVG markup. */
 export function soulSeaBadge(num, size = 22) {
   const n = coresAt(num || 0);
-  const H = 20.5; // the horizon
-  const [cx, cy, rx, ry, deg] = [12, 10, 10, 4.3, -12];
+  const [cx, cy, rx, ry, deg] = [12, 12, 10, 5, -20];
   const tilt = (deg * Math.PI) / 180;
   const onOrbit = (t) => {
     const [x, y] = [rx * Math.cos(t), ry * Math.sin(t)];
@@ -72,10 +70,10 @@ export function soulSeaBadge(num, size = 22) {
   };
   // One sun in the middle with a Memory on its orbit, or equal suns around the
   // orbit (the middle left empty: one colour, a Memory there blurred into them).
-  const r = { 1: 3.6, 2: 2.7, 3: 2.5, 4: 2.3, 5: 2.1, 6: 1.9, 7: 1.75 }[n];
+  const r = { 1: 3.8, 2: 2.9, 3: 2.7, 4: 2.5, 5: 2.25, 6: 2.05, 7: 1.9 }[n];
   const suns = n === 1 ? [[cx, cy]] : Array.from({ length: n }, (_, i) => onOrbit(Math.PI / 2 + (i * 2 * Math.PI) / n));
   const memory = n === 1 ? onOrbit(-0.35) : null;
-  const memoryR = 1.35;
+  const memoryR = 1.5;
   // The orbit breaks around each sun and the Memory so the shapes stay apart.
   const gaps = [...suns.map(([x, y]) => [x, y, r + 1.1]), ...(memory ? [[...memory, memoryR + 1]] : [])]
     .map(([x, y, g]) => `<circle cx="${x}" cy="${y}" r="${r2(g)}"/>`)
@@ -85,11 +83,9 @@ export function soulSeaBadge(num, size = 22) {
     `<svg class="soulsea-badge" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">` +
     `<defs><mask id="soulsea-badge-gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">` +
     `<rect width="24" height="24" fill="#fff"/><g fill="#000">${gaps}</g></mask></defs>` +
-    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${deg} ${cx} ${cy})" fill="none" stroke="currentColor" stroke-width="1.2" stroke-opacity=".6" mask="url(#soulsea-badge-gaps)"/>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${deg} ${cx} ${cy})" fill="none" stroke="currentColor" stroke-width="1.3" stroke-opacity=".7" mask="url(#soulsea-badge-gaps)"/>` +
     suns.map(sun).join("") +
     (memory ? `<circle cx="${memory[0]}" cy="${memory[1]}" r="${memoryR}" fill="currentColor"/>` : "") +
-    `<path d="M2 ${H}h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
-    `<path d="M7.5 ${H + 2.6}h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".5"/>` +
     `</svg>`
   );
 }
