@@ -175,6 +175,52 @@ test.describe("reader", () => {
     await expect.poll(() => scrollFraction(page), { timeout: 10_000 }).toBeGreaterThan(0.45);
   });
 
+  test("Continue follows a re-read of a finished book, not just the unfinished one", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "long.epub", "Long Road");
+    await importBook(page, "basic.epub", "The Lamplighter");
+    const cont = page.locator(".continue-card");
+
+    // Long Road: in progress at chapter 5.
+    await startReading(page, "Long Road");
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 5$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 5");
+    await leaveReader(page);
+    await expect(cont).toContainText("Long Road");
+
+    // Marking the other book read isn't reading it: Continue stays put.
+    await tile(page, "The Lamplighter").locator(".tile__cover").click();
+    await page.locator("#info-screen [aria-label='More']").first().click();
+    await page.locator(".action-item", { hasText: "Mark book as read" }).click();
+    await expect(page.locator(".info-actions__continue")).toHaveText("Read again");
+    await page.goBack();
+    await expect(cont).toContainText("Long Road");
+
+    // Going back into the finished book mid-way: Continue points there.
+    await tile(page, "The Lamplighter").locator(".tile__cover").click();
+    await page.locator(".info-actions__continue").click();
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 2$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 2");
+    await leaveReader(page);
+    await page.reload();
+    await expect(cont).toContainText("The Lamplighter");
+    await expect(cont).toContainText("Chapter 2");
+    await tile(page, "The Lamplighter").locator(".tile__cover").click();
+    await expect(page.locator(".info-actions__continue")).toHaveText("Continue ch. 2");
+    await page.goBack();
+
+    // Back at its last chapter, the re-read is over: Continue moves on.
+    await cont.click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 2");
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 3$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 3");
+    await leaveReader(page);
+    await expect(cont).toContainText("Long Road");
+  });
+
   test("shows progress on the shelf after reading", async ({ page }) => {
     await openApp(page);
     await importBook(page, "basic.epub", "The Lamplighter");

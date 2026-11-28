@@ -61,15 +61,34 @@ export function seriesPercent(s) {
   }
   return den ? Math.round((num / den) * 100) : 0;
 }
-// The volume the reader is "on": the most recently read unfinished volume,
-// else the first unfinished, else the first.
+// A finished volume you've gone back into: your latest spot is on a chapter
+// before its last one. Finished is sticky, so without this a re-read would be
+// skipped as "done" and Continue would jump to some later volume. A spot left
+// over from before "Mark as read" doesn't count (finishedAt, set there, is
+// dropped by the next real save), nor does one on a notes page after the end.
+export function isRereading(book) {
+  const p = progressMap[book?.id];
+  if (!p?.finished || !p.href) return false;
+  if (p.finishedAt != null && p.finishedAt >= p.updatedAt) return false;
+  const r = readableChapters(book.chapters || []);
+  const i = r.findIndex((e) => baseHref(e.href) === baseHref(p.href));
+  return i >= 0 && i < r.length - 1;
+}
+// A book Continue can point at: started and not finished, or being re-read.
+function inProgress(book) {
+  const p = progressMap[book.id];
+  return !!p && (!p.finished || isRereading(book));
+}
+
+// The volume the reader is "on": the most recently read unfinished (or
+// re-read) volume, else the first unfinished, else the first.
 export function currentVolume(s) {
   const vols = seriesVolumes(s);
   let best = null,
     bestT = -1;
   for (const b of vols) {
     const p = progressMap[b.id];
-    if (p && !p.finished && p.updatedAt > bestT) {
+    if (inProgress(b) && p.updatedAt > bestT) {
       bestT = p.updatedAt;
       best = b;
     }
@@ -126,7 +145,7 @@ export function continueTarget() {
     bestT = -1;
   for (const b of books) {
     const p = progressMap[b.id];
-    if (p && !p.finished && p.updatedAt > bestT) {
+    if (inProgress(b) && p.updatedAt > bestT) {
       bestT = p.updatedAt;
       best = b;
     }

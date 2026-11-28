@@ -109,6 +109,7 @@ export async function markBookRead(book) {
     chapters[key] = { ...chapters[key], pct: 100, cfi: chapters[key]?.cfi || null, done: true };
   }
   dropPendingProgress(book.id);
+  const now = Date.now();
   await putProgress({
     cfi: null,
     chapterIndex: 0,
@@ -117,7 +118,10 @@ export async function markBookRead(book) {
     bookId: book.id,
     chapters,
     finished: true,
-    updatedAt: Date.now(),
+    // The kept spot isn't a re-read (isRereading, reading.js) until you read
+    // again; the reader's next save rebuilds the record without this stamp.
+    finishedAt: now,
+    updatedAt: now,
   });
 }
 

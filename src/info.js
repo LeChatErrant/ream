@@ -15,7 +15,7 @@ import { COMPARISON_BOOKS, formatMultiplier, bestComparison, refTitle, refShortT
 import { ensureWordCount, hasCurrentWordCount } from "./lib/wordcount.js";
 import {
   overrideOf, displayTitle, bookPercent, bookIsStarted, seriesVolumes, currentVolume,
-  volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent,
+  volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent, isRereading,
 } from "./reading.js";
 import { openBook } from "./reader.js";
 import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay, renderCurrentRoute } from "./router.js";
@@ -98,7 +98,7 @@ function continueInfo(m) {
   const t = m.continueTarget;
   if (!t) return { label: "Start reading", target: null };
   const p = progressMap[t.id];
-  if (bookPercent(t) >= 100) return { label: "Read again", target: t };
+  if (bookPercent(t) >= 100 && !isRereading(t)) return { label: "Read again", target: t };
   if (!p) return { label: "Start reading", target: t };
   if (m.kind === "series") {
     const abs = absChapterNum(t, p);
@@ -745,7 +745,7 @@ function showVolumeSheet(s, book, start, end) {
   if (pct >= 100) statusLine = "Finished · 100 %";
   else if (p) statusLine = `Reading ch. ${absCh} · ${pct} %`;
   else statusLine = "Not started";
-  const continueLabel = pct >= 100 ? "Read again" : p ? `Continue ch. ${absCh}` : "Start reading";
+  const continueLabel = pct >= 100 && !isRereading(book) ? "Read again" : p ? `Continue ch. ${absCh}` : "Start reading";
 
   // File facts (11a): File · Size · Added — three plain rows.
   const facts = [
