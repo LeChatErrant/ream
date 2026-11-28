@@ -328,6 +328,8 @@ function saveReadingLocation(location) {
     // in-progress chapter (has a `chapters[href]` entry) from a sub-threshold
     // dip that never crossed MIN_SCROLL_PCT (see restore gate in renderReader)
     scrollTop, // exact in-chapter offset, paired with cfi (see above)
+    layout: readerLayoutKey(), // the text layout scrollTop was measured in
+    chapterPct: rawPct, // how far into the chapter that spot is (re-read resume)
     chapterIndex: idx,
     chapterLabel: chapterLabelFor(href) || prev?.chapterLabel || "",
     chapters,
@@ -515,14 +517,26 @@ export async function renderReader(lib, startHref = null) {
   // "Continue". A chapter with no chapters[] entry yet (or one seeded/migrated
   // without a precise cfi) resumes by its plain href instead — like tapping it
   // in the Chapters screen, landing at its natural top.
-  const resume = chapterState?.cfi || resumeHref;
+  // …except in a chapter you'd already finished: you're re-reading it, and its
+  // own position is the furthest point from the first read (it only moves
+  // forward), so it would drop you at the old end, or at the top if it was
+  // completed by skipping ahead. There the book-level spot is where you are —
+  // when it's really into the chapter; near the top, open the top as above.
+  const reread =
+    chapterState?.done &&
+    p.cfi &&
+    p.href &&
+    baseHref(p.href) === chapterKey &&
+    (p.chapterPct ?? 0) >= MIN_SCROLL_PCT;
+  const resume = reread ? p.cfi : chapterState?.cfi || resumeHref;
+  const resumeAt = reread ? p : chapterState;
   // A chapter tapped in the list/drawer opens at its top and offers the
   // per-chapter resume chip; the book-level "Continue" restores the exact spot.
   const showOpening = () => {
     if (startHref) return displayChapterTop(startHref);
     const shown = rendition.display(resume || flatToc[0]?.href || undefined);
-    if (chapterState && resume === chapterState.cfi && chapterState.scrollTop > 0 && sameLayout(chapterState)) {
-      restoreScrollAfter(shown, chapterState.scrollTop);
+    if (resumeAt && resume === resumeAt.cfi && resumeAt.scrollTop > 0 && sameLayout(resumeAt)) {
+      restoreScrollAfter(shown, resumeAt.scrollTop);
     }
   };
   showOpening();

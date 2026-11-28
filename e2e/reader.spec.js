@@ -221,6 +221,32 @@ test.describe("reader", () => {
     await expect(cont).toContainText("Long Road");
   });
 
+  test("Continue in a chapter you're re-reading lands where you are, not at its old end", async ({
+    page,
+  }) => {
+    await openApp(page);
+    await importBook(page, "long.epub", "Long Road");
+    await tile(page, "Long Road").locator(".tile__cover").click();
+    await page.locator("#info-screen [aria-label='More']").first().click();
+    await page.locator(".action-item", { hasText: "Mark book as read" }).click();
+    await page.locator(".info-actions__continue").click();
+    await expect(page.locator("#app")).toHaveAttribute("data-route", "reader");
+    await openDrawer(page);
+    await page.locator("#toc-list li", { hasText: /^Chapter 5$/ }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 5");
+    await scrollChapter(page, 0.5);
+    await expect.poll(() => scrollFraction(page)).toBeGreaterThan(0.4);
+    await leaveReader(page);
+    await page.reload();
+
+    const cont = page.locator(".continue-card");
+    await expect(cont).toContainText("Chapter 5");
+    await cont.click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 5");
+    await expect.poll(() => scrollFraction(page), { timeout: 10_000 }).toBeGreaterThan(0.35);
+    expect(await scrollFraction(page)).toBeLessThan(0.65);
+  });
+
   test("shows progress on the shelf after reading", async ({ page }) => {
     await openApp(page);
     await importBook(page, "basic.epub", "The Lamplighter");
