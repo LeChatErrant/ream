@@ -2,7 +2,7 @@
 // reading.js): shown only while your latest spot is in an earlier chapter, it
 // opens that chapter at its own saved spot. It is drawn as a details row —
 // "Furthest read · Vol. 10 · ch. 2680 ›" — in each surface's own row style
-// (Continue card footer, info page table, volume sheet facts), never as a
+// (Continue card footer, volume sheet facts), never as a
 // second button competing with Continue.
 import { furthestLabel } from "./reading.js";
 import { openBook } from "./reader.js";

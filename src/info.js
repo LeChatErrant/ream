@@ -221,10 +221,6 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
   // Plain display rows; the route into the Chapters screen is the five-chapter
   // preview at the foot of the page (11b), not this table row.
   const table = h("div", { class: "info-table" });
-  // Re-reading (or peeking back): the first row leads back to the furthest
-  // chapter reached.
-  const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
-  if (f) table.append(infoRow(FURTHEST_KEY, furthestValue(f), () => openFurthest(f)));
   for (const [label, value] of rows) table.append(infoRow(label, value));
   // Side-column heading on a desktop; the phone's table needs none.
   side.append(h("div", { class: "lib-label info-sidelabel desk-only" }, "Details"), table);
