@@ -47,6 +47,23 @@ test.describe("reader", () => {
     expect(sandbox).not.toContain("allow-scripts");
   });
 
+  test("the Soul Sea badge is drawn in the top bar's own colour", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "shadow-slave.epub", "Shadow Slave");
+    await startReading(page, "Shadow Slave");
+    const badge = page.locator("#btn-soulsea svg.soulsea-badge");
+    await expect(badge).toBeVisible();
+    // A line icon like its neighbours, not a dark sticker with colours of its own.
+    const fills = await badge.evaluate((s) =>
+      [...s.querySelectorAll("[fill],[stroke]")]
+        .filter((n) => !n.closest("mask"))
+        .flatMap((n) => [n.getAttribute("fill"), n.getAttribute("stroke")])
+        .filter((c) => c && c !== "none")
+    );
+    expect(new Set(fills)).toEqual(new Set(["currentColor"]));
+    expect(await badge.getAttribute("width")).toBe("22");
+  });
+
   test("steps through chapters: end card, next and previous", async ({ page }) => {
     await openApp(page);
     await importBook(page, "long.epub", "Long Road");

@@ -37,8 +37,8 @@ export function soulSeaFor(lib) {
 // A small window into Sunny's Soul Sea: "a silent, calm dark sea illuminated by a
 // lonely black sun" (ch 16). His Shadow Cores are black suns on a tilted orbit over the
 // water, around a Memory, as many as he has before the chapter on screen (same
-// spoiler rule as the panel); dashed while the runes still say "Dormant". Fixed
-// colours — it looks the same in every reader theme.
+// spoiler rule as the panel); dashed while the runes still say "Dormant". Drawn
+// like the other top-bar icons: outlines in the button's own colour.
 
 // [first chapter, cores, dormant] after each change of the core stat.
 let coreSteps = null;
@@ -58,55 +58,42 @@ function coresAt(num) {
   return { n: Math.max(1, Math.min(7, at[1] || 1)), dormant: at[2] };
 }
 
-const BADGE = { sky: "#17172A", sea: "#0C0C14", light: "#E8E4DA", memory: "#F2D49B", sun: "#050507" };
 const r2 = (x) => Math.round(x * 100) / 100;
 
 /** The badge for the chapter on screen (its number), as SVG markup. */
-export function soulSeaBadge(num, size = 26) {
+export function soulSeaBadge(num, size = 22) {
   const { n, dormant } = coresAt(num || 0);
-  const { sky, sea, light, memory, sun } = BADGE;
-  const H = 23.5; // the horizon
-  const [cx, cy, tilt] = [16, 13.5, (-12 * Math.PI) / 180];
+  const H = 20.5; // the horizon
+  const [cx, cy, rx, ry, deg] = [12, 10, 10, 4.3, -12];
+  const tilt = (deg * Math.PI) / 180;
   const onOrbit = (t) => {
-    const [x, y] = [11 * Math.cos(t), 4 * Math.sin(t)];
-    return [cx + x * Math.cos(tilt) - y * Math.sin(tilt), cy + x * Math.sin(tilt) + y * Math.cos(tilt)];
+    const [x, y] = [rx * Math.cos(t), ry * Math.sin(t)];
+    return [r2(cx + x * Math.cos(tilt) - y * Math.sin(tilt)), r2(cy + x * Math.sin(tilt) + y * Math.cos(tilt))];
   };
-  const blackSun = ([x, y], r) => {
-    [x, y] = [r2(x), r2(y)];
-    if (dormant)
-      return `<circle cx="${x}" cy="${y}" r="${r}" fill="${sun}" stroke="${light}" stroke-opacity=".5" stroke-width=".7" stroke-dasharray="1.3 1.1"/>`;
-    return (
-      (r > 3 ? `<circle cx="${x}" cy="${y}" r="${r + 2.6}" fill="${light}" fill-opacity=".045"/>` : "") +
-      `<circle cx="${x}" cy="${y}" r="${r + 1.2}" fill="${light}" fill-opacity=".09"/>` +
-      `<circle cx="${x}" cy="${y}" r="${r}" fill="${sun}" stroke="${light}" stroke-opacity=".92" stroke-width=".75"/>`
-    );
-  };
-  const aMemory = ([x, y], r) =>
-    `<circle cx="${r2(x)}" cy="${r2(y)}" r="${r + 1}" fill="${memory}" fill-opacity=".22"/><circle cx="${r2(x)}" cy="${r2(y)}" r="${r}" fill="${memory}"/>`;
-
-  let s =
-    `<rect width="32" height="32" fill="${sky}"/>` +
-    `<rect y="${H - 4}" width="32" height="4" fill="${light}" fill-opacity=".045"/>` +
-    `<ellipse cx="${cx}" cy="${cy}" rx="11" ry="4" transform="rotate(-12 ${cx} ${cy})" fill="none" stroke="${light}" stroke-opacity=".17" stroke-width=".5"/>`;
-  if (n === 1) s += blackSun([cx, cy - 1], 4) + aMemory(onOrbit(0.5), 0.9);
-  else {
-    // Equal suns spread around the orbit; the far side is drawn behind the Memory.
-    const r = { 2: 2.9, 3: 2.7, 4: 2.5, 5: 2.3, 6: 2.1, 7: 1.95 }[n];
-    const suns = Array.from({ length: n }, (_, i) => onOrbit(Math.PI / 2 + (i * 2 * Math.PI) / n));
-    s += suns.filter(([, y]) => y < cy).map((p) => blackSun(p, r)).join("");
-    s += aMemory([cx, cy], 1.05);
-    s += suns.filter(([, y]) => y >= cy).map((p) => blackSun(p, r)).join("");
-  }
-  s += `<rect y="${H}" width="32" height="${32 - H}" fill="${sea}"/><path d="M0 ${H}h32" stroke="${light}" stroke-opacity=".2" stroke-width=".5"/>`;
-  if (!dormant)
-    s += [[18, 0.26], [12, 0.18], [6, 0.12], [2, 0.08]]
-      .map(([w, o], j) => `<path d="M${16 - w / 2} ${r2(H + 1.8 + j * 1.8)}h${w}" stroke="${light}" stroke-opacity="${o}" stroke-width=".75" stroke-linecap="round"/>`)
-      .join("");
+  // One sun in the middle with a Memory on its orbit, or equal suns around the
+  // orbit (the middle left empty: one colour, a Memory there blurred into them).
+  const r = { 1: 3.6, 2: 2.7, 3: 2.5, 4: 2.3, 5: 2.1, 6: 1.9, 7: 1.75 }[n];
+  const suns = n === 1 ? [[cx, cy]] : Array.from({ length: n }, (_, i) => onOrbit(Math.PI / 2 + (i * 2 * Math.PI) / n));
+  const memory = n === 1 ? onOrbit(-0.35) : null;
+  const memoryR = 1.35;
+  // The orbit breaks around each sun and the Memory so the shapes stay apart.
+  const gaps = [...suns.map(([x, y]) => [x, y, r + 1.1]), ...(memory ? [[...memory, memoryR + 1]] : [])]
+    .map(([x, y, g]) => `<circle cx="${x}" cy="${y}" r="${r2(g)}"/>`)
+    .join("");
+  const sun = ([x, y]) =>
+    dormant
+      ? `<circle cx="${x}" cy="${y}" r="${r2(r - 0.4)}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="1.4 1.1"/>`
+      : `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor"/>`;
   return (
-    `<svg class="soulsea-badge" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">` +
-    `<defs><clipPath id="soulsea-badge-clip"><circle cx="16" cy="16" r="15.5"/></clipPath></defs>` +
-    `<g clip-path="url(#soulsea-badge-clip)">${s}</g>` +
-    `<circle cx="16" cy="16" r="15.5" fill="none" stroke="#fff" stroke-opacity=".09"/></svg>`
+    `<svg class="soulsea-badge" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">` +
+    `<defs><mask id="soulsea-badge-gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">` +
+    `<rect width="24" height="24" fill="#fff"/><g fill="#000">${gaps}</g></mask></defs>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${deg} ${cx} ${cy})" fill="none" stroke="currentColor" stroke-width="1.2" stroke-opacity=".6" mask="url(#soulsea-badge-gaps)"/>` +
+    suns.map(sun).join("") +
+    (memory ? `<circle cx="${memory[0]}" cy="${memory[1]}" r="${memoryR}" fill="currentColor"/>` : "") +
+    `<path d="M2 ${H}h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>` +
+    (dormant ? "" : `<path d="M7.5 ${H + 2.6}h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".5"/>`) +
+    `</svg>`
   );
 }
 

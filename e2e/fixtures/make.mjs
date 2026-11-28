@@ -211,6 +211,8 @@ export async function writeFixtures() {
     "basic.epub",
     await makeEpub({ title: "The Lamplighter", cover: true, description: "A quiet test book." })
   );
+  // Opens the Soul Sea button (it shows for Shadow Slave only).
+  w("shadow-slave.epub", await makeEpub({ title: "Shadow Slave", author: "Test Author" }));
   w("ncx-only.epub", await makeEpub({ title: "Old Format", toc: "ncx" }));
   w("no-toc.epub", await makeEpub({ title: "No Contents", toc: "none" }));
   w(
