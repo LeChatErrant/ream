@@ -100,3 +100,27 @@ test.describe("library", () => {
     await expect(page.locator(".sort-btn")).toHaveText(/Title/); // remembered
   });
 });
+
+test.describe("shelf alignment", () => {
+  test("series, book and Import tiles line up in a row", async ({ page }) => {
+    await openApp(page);
+    await importBooks(page, "vol1.epub", "vol2.epub");
+    await page.locator("#suggest-group").click();
+    await expect(tiles(page)).toHaveCount(1);
+    // A long title wraps to two lines, making its tile the row's tallest: the
+    // Import tile (a <button>) must not centre itself in the extra height.
+    await importBook(page, "unicode.epub", "Élan & Ünïcode “Quotes”");
+    const box = (loc) => loc.boundingBox();
+    const series = await box(tile(page, "Ember Saga").locator(".series-stack"));
+    const book = await box(tile(page, "Élan").locator(".tile__cover"));
+    const imp = await box(page.locator(".tile--import .import-box"));
+    for (const b of [series, imp]) {
+      expect(Math.abs(b.y - book.y)).toBeLessThan(1);
+      expect(Math.abs(b.y + b.height - (book.y + book.height))).toBeLessThan(1);
+    }
+    // Titles sit on one line too.
+    const t1 = await box(tile(page, "Ember Saga").locator(".tile__title"));
+    const t2 = await box(tile(page, "Élan").locator(".tile__title"));
+    expect(Math.abs(t1.y - t2.y)).toBeLessThan(1);
+  });
+});
