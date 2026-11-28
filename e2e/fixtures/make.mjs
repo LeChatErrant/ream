@@ -36,6 +36,9 @@ export async function makeEpub({
   description = "",
   language = "en",
   extraHead = "",
+  // TOC links point at each chapter's heading (ch1.xhtml#c1), as many real
+  // epubs do, rather than at the file.
+  anchoredToc = false,
 } = {}) {
   const zip = new JSZip();
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
@@ -53,7 +56,9 @@ export async function makeEpub({
     const href = `${id}.xhtml`;
     zip.file(
       `OEBPS/${href}`,
-      xhtml(c.title, c.body ?? chapterBody(i + 1, c.title)).replace("</head>", `${extraHead}</head>`)
+      xhtml(c.title, c.body ?? chapterBody(i + 1, c.title))
+        .replace("</head>", `${extraHead}</head>`)
+        .replace("<h1>", anchoredToc ? `<h1 id="c${i + 1}">` : "<h1>")
     );
     items.push(
       `<item id="${id}" href="${href}" media-type="application/xhtml+xml"${c.scripted ? ' properties="scripted"' : ""}/>`
@@ -61,7 +66,10 @@ export async function makeEpub({
     spine.push(`<itemref idref="${id}"/>`);
   });
   if (toc === "nav") {
-    const lis = chapters.map((c, i) => `<li><a href="ch${i + 1}.xhtml">${c.title}</a></li>`).join("");
+    const frag = (i) => (anchoredToc ? `#c${i + 1}` : "");
+    const lis = chapters
+      .map((c, i) => `<li><a href="ch${i + 1}.xhtml${frag(i)}">${c.title}</a></li>`)
+      .join("");
     zip.file(
       "OEBPS/nav.xhtml",
       xhtml("Contents", `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${lis}</ol></nav>`)
@@ -224,6 +232,8 @@ export async function writeFixtures() {
   );
   w("vol1.epub", await makeEpub({ title: "Ember Saga Vol. 1", author: "Sam Series" }));
   w("vol2.epub", await makeEpub({ title: "Ember Saga Vol. 2", author: "Sam Series" }));
+  w("ash1.epub", await makeEpub({ title: "Ash Saga Vol. 1", author: "Sam Series", anchoredToc: true }));
+  w("ash2.epub", await makeEpub({ title: "Ash Saga Vol. 2", author: "Sam Series", anchoredToc: true }));
   w(
     "scripted.epub",
     await makeEpub({
