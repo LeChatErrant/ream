@@ -11,6 +11,7 @@ import {
   chapterTitle,
   leaveReader,
   openDrawer,
+  scrollChapter,
 } from "./helpers.js";
 
 test.describe("series", () => {
@@ -74,6 +75,40 @@ test.describe("series", () => {
     await expect(chapterTitle(page)).toHaveText("Chapter 1");
     await chapter(page).locator("p").first().waitFor();
     await page.waitForTimeout(500); // let any jump to the anchor happen
+    expect(await scrollTop()).toBe(0);
+  });
+
+  test("a finished volume left at a chapter's top reopens at that top", async ({ page }) => {
+    // Back at the top of a chapter you'd finished, the saved spot still counts
+    // as a re-read (a long chapter's top is already ~10 % in, by screens), but
+    // reopening the volume must show the chapter's top, not its heading.
+    const scrollTop = () => page.evaluate(() => document.querySelector("#viewer .epub-container").scrollTop);
+    await openApp(page);
+    await importBooks(page, "vol1.epub", "vol2.epub");
+    await page.locator("#suggest-group").click();
+    await expect(tiles(page)).toHaveCount(1);
+    await tile(page, "Ember Saga").locator(".tile__cover").click();
+    await page.locator(".info-actions__continue").click();
+    for (const n of [1, 2, 3]) {
+      await expect(chapterTitle(page)).toHaveText(`Chapter ${n}`);
+      for (const f of [0.3, 0.6, 1]) {
+        await scrollChapter(page, f);
+        await page.waitForTimeout(250);
+      }
+      if (n < 3) await chapter(page).locator(".cn-card").click();
+    }
+    await openDrawer(page);
+    await page.locator("#toc-list .toc-item", { hasText: "Chapter 1" }).click();
+    await expect(chapterTitle(page)).toHaveText("Chapter 1");
+    await page.waitForTimeout(1000); // its spot (the chapter's top) is saved
+    for (const v of ["Vol. 2", "Vol. 1"]) {
+      await openDrawer(page);
+      await page.locator(".vol-chip", { hasText: v }).click();
+      await expect(page.locator("#book-title")).toHaveText(new RegExp(v));
+    }
+    await expect(chapterTitle(page)).toHaveText("Chapter 1");
+    await chapter(page).locator("p").first().waitFor();
+    await page.waitForTimeout(500); // let any jump to the heading happen
     expect(await scrollTop()).toBe(0);
   });
 

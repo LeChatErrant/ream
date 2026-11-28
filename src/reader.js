@@ -543,9 +543,16 @@ export async function renderReader(lib, startHref = null, atHref = null) {
     // that anchor scrolls past the chapter's top padding, so a volume opened
     // from the drawer's chips (or an unread book's Continue) looked already
     // scrolled. Same as a chapter tapped in the list (displayChapterTop).
-    const target = resume || flatToc[0]?.href;
+    // A spot saved at the very top of its chapter (scrollTop 0) is opened as
+    // that top too: its CFI names the chapter's first element (the heading), and
+    // displaying it lands on that element, past the top padding. Such a spot
+    // can still pass the re-read gate above, as chapterPct counts screens, so
+    // a long chapter's top already reads ~10–15 % on a phone.
+    const atTop = resumeAt && resume === resumeAt.cfi && resumeAt.scrollTop === 0 && /^epubcfi\(/.test(resume);
+    const target = atTop ? (atHref ? atHref : chapterKey) : resume || flatToc[0]?.href;
     const isPosition = /^(epubcfi\(|pdf:)/.test(target || "");
     const shown = rendition.display(target ? (isPosition ? target : baseHref(target)) : undefined);
+    if (atTop) return;
     if (resumeAt && resume === resumeAt.cfi && resumeAt.scrollTop > 0 && sameLayout(resumeAt)) {
       restoreScrollAfter(shown, resumeAt.scrollTop);
     }
