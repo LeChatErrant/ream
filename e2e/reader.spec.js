@@ -247,11 +247,11 @@ test.describe("reader", () => {
     expect(await scrollFraction(page)).toBeLessThan(0.65);
   });
 
-  test("going back to an earlier chapter offers a ⚑ link to the furthest one", async ({ page }) => {
+  test("going back to an earlier chapter offers a way back to the furthest one", async ({ page }) => {
     await openApp(page);
     await importBook(page, "long.epub", "Long Road");
     const cont = page.locator(".continue-card");
-    const link = page.locator(".continue-card__furthest");
+    const link = page.locator(".continue-card__furthest-link");
 
     // Reading forward: latest = furthest, nothing extra.
     await startReading(page, "Long Road");
@@ -273,14 +273,14 @@ test.describe("reader", () => {
     await leaveReader(page);
     await page.reload();
     await expect(cont).toContainText("Chapter 3");
-    await expect(link).toHaveText(/Furthest · ch\. 8/);
+    await expect(link).toHaveText(/Back to ch\. 8/);
 
     // The info page and the chapters list say the same.
     await tile(page, "Long Road").locator(".tile__cover").click();
     await expect(page.locator(".info-actions__continue")).toHaveText("Continue ch. 3");
-    await expect(page.locator(".info-furthest__link")).toHaveText(/Furthest · ch\. 8/);
+    await expect(page.locator(".info-furthest__link")).toHaveText(/Back to ch\. 8/);
     await page.locator(".cprev__seeall").click();
-    await expect(page.locator(".ch-row--furthest")).toContainText("Furthest read");
+    await expect(page.locator(".ch-row--furthest")).toContainText(/Furthest · \d+ % through/);
     await expect(page.locator(".ch-row--furthest .ch-row__num")).toHaveText("8");
     await expect(page.locator(".ch-row--current .ch-row__num")).toHaveText("3");
     await page.goBack();

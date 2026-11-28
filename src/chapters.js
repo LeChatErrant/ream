@@ -131,15 +131,10 @@ export function openChapters(kind, id, { volId = null } = {}) {
 // -------------------------------------------------------------------------
 
 // The second line of a two-line row: "Re-reading · 40 % through" for the
-// chapter you're back in, "⚑ Furthest read · 70 % through" for the furthest.
+// chapter you're back in, "Furthest · 70 % through" for the furthest.
 function rowSub(it, cls) {
   if (it.furthest) {
-    return h(
-      "div",
-      { class: cls + " row-sub--furthest" },
-      svg(ICON.flag),
-      it.done ? "Furthest read" : `Furthest read · ${it.pct} % through`
-    );
+    return h("div", { class: cls + " row-sub--furthest" }, it.done ? "Furthest · read" : `Furthest · ${it.pct} % through`);
   }
   const verb = it.done ? "Re-reading" : "Reading";
   return h("div", { class: cls }, it.pct ? `${verb} · ${it.pct} % through` : verb);

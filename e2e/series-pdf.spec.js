@@ -9,6 +9,7 @@ import {
   chapter,
   startReading,
   chapterTitle,
+  leaveReader,
 } from "./helpers.js";
 
 test.describe("series", () => {
@@ -40,6 +41,18 @@ test.describe("series", () => {
     await go.click();
     await expect(page.locator("#book-title")).toHaveText(/Vol\. 2/);
     await expect(chapterTitle(page)).toHaveText("Chapter 1");
+
+    // A volume's own sheet renders cleanly (no stray "null" where an optional
+    // part is absent).
+    await leaveReader(page);
+    await tile(page, "Ember Saga").locator(".tile__cover").click();
+    await page
+      .locator(".vrow__more")
+      .first()
+      .evaluate((b) => b.click());
+    const sheet = page.locator(".vsheet__continue");
+    await expect(sheet).toBeVisible();
+    await expect(page.locator("#volume-card")).not.toContainText("null");
   });
 
   test("keeping volumes separate leaves two books", async ({ page }) => {

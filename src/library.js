@@ -131,14 +131,21 @@ function continueSection(book) {
     ),
     h("span", { class: "continue-card__cta wide-only" }, "Continue")
   );
-  // Re-reading (or peeking back): a ⚑ row under the card leads back to the
-  // furthest chapter you'd reached.
+  // Re-reading (or peeking back): a "Back to ch. N" chip, inside the card's
+  // surface under its text, leads back to the furthest chapter you'd reached.
   const f = furthestLink(scopeVolumes(book), book);
   return h(
     "section",
     { class: "lib-section lib-section--continue" },
     h("div", { class: "lib-label" }, "Continue"),
-    f ? h("div", { class: "continue-group" }, card, furthestButton(f, "continue-card__furthest")) : card
+    f
+      ? h(
+          "div",
+          { class: "continue-group" },
+          card,
+          h("div", { class: "continue-card__furthest" }, furthestButton(f, "continue-card__furthest-link"))
+        )
+      : card
   );
 }
 

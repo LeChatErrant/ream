@@ -187,7 +187,7 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
       )
     )
   );
-  // Re-reading (or peeking back): ⚑ back to the furthest chapter reached.
+  // Re-reading (or peeking back): a chip back to the furthest chapter reached.
   const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
   if (f) top.append(h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link")));
 
@@ -320,7 +320,7 @@ function volumeRow(s, book, start, end, selId) {
       "div",
       { class: "vrow__text" },
       h("div", { class: "vrow__title" }, title),
-      h("div", { class: "vrow__sub" + (flag ? " row-sub--furthest" : "") }, flag ? [`Ch. ${start}–${end} ·`, svg(ICON.flag), statusText] : `Ch. ${start}–${end} · ${statusText}`)
+      h("div", { class: "vrow__sub" }, `Ch. ${start}–${end} · ${statusText}`)
     ),
     h("div", { class: "vrow__pct" }, pct >= 100 ? "100 %" : bookIsStarted(book) ? pct + " %" : ""),
     // Pointer-only ⋯ (hidden on touch, see .hover-ctl): the long-press's view.
@@ -773,6 +773,7 @@ function showVolumeSheet(s, book, start, end) {
   const markVolume = () =>
     closeOverlay(() => (pct >= 100 ? confirmMarkUnread([book], displayTitle(book)) : markRead([book])));
 
+  const sheetFurthest = furthestLink([book], book);
   const card = el.volumeCard;
   card.innerHTML = "";
   card.append(
@@ -796,10 +797,8 @@ function showVolumeSheet(s, book, start, end) {
       { class: "vsheet__actions" },
       h("button", { class: "pill-btn vsheet__continue", onclick: () => closeOverlay(() => openBook(book.id)) }, continueLabel)
     ),
-    // Only this volume's chapters count here.
-    ((f) => f && h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link", { vol: false, before: closeOverlay })))(
-      furthestLink([book], book)
-    ),
+    // Only this volume's chapters count here. (A native append: no nulls.)
+    ...(sheetFurthest ? [h("div", { class: "info-furthest info-furthest--sheet" }, furthestButton(sheetFurthest, "info-furthest__link", { vol: false, before: closeOverlay }))] : []),
     h("div", { class: "vsheet__facts" }, ...facts.map(([k, v]) => factRow(k, v))),
     h(
       "div",
