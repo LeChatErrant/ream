@@ -339,6 +339,9 @@ html { -webkit-tap-highlight-color: transparent; }
 
 /* Grid of tiles */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 14px; row-gap: 16px; }
+/* Top-align tiles: a row stretches to its tallest tile (a two-line title), and
+   the Import tile — a <button> — would centre its box in that extra height. */
+.grid { align-items: start; }
 .tile {
   appearance: none;
   border: 0;
@@ -455,12 +458,15 @@ html { -webkit-tap-highlight-color: transparent; }
   .vrow__more:hover { background: var(--row-current); color: var(--text-primary); }
 }
 
-/* Series tile — a pile of stacked rectangles behind the cover */
-.tile--series .series-stack { position: relative; margin-right: 4px; }
-.series-stack .tile__cover { position: relative; z-index: 2; }
+/* Series tile — a pile of stacked rectangles behind the cover. The pile takes
+   exactly a plain cover's 2:3 footprint, so its edges and title line up with
+   the book tiles beside it; the cover sits inset 4px from the top and right
+   to let the layers peek out. */
+.tile--series .series-stack { position: relative; aspect-ratio: 2 / 3; }
+.series-stack .tile__cover { position: absolute; inset: 4px 4px 0 0; aspect-ratio: auto; z-index: 2; }
 .series-stack__l2, .series-stack__l3 { position: absolute; border-radius: 5px; }
-.series-stack__l3 { top: -4px; left: 8px; right: -4px; bottom: 4px; background: var(--stack-3); border: 1px solid #2b313d; z-index: 0; }
-.series-stack__l2 { top: -2px; left: 4px; right: -2px; bottom: 2px; background: var(--stack-2); border: 1px solid #2f3542; z-index: 1; }
+.series-stack__l3 { top: 0; left: 8px; right: 0; bottom: 4px; background: var(--stack-3); border: 1px solid #2b313d; z-index: 0; }
+.series-stack__l2 { top: 2px; left: 4px; right: 2px; bottom: 2px; background: var(--stack-2); border: 1px solid #2f3542; z-index: 1; }
 .vol-badge {
   position: absolute;
   top: 6px;
@@ -502,6 +508,8 @@ html { -webkit-tap-highlight-color: transparent; }
 }
 .import-box__plus { font-size: 22px; font-weight: 300; line-height: 1; }
 .import-box__label { font: 500 10.5px var(--font-ui); }
+/* Its caption sits where the other tiles' titles do. */
+.tile--import .tile__meta { margin-top: 9px; }
 .tile--import:hover .import-box { border-color: #4a5262; color: var(--text-dim); }
 
 /* Empty state */
