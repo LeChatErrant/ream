@@ -14,7 +14,7 @@
 // =========================================================================
 import { openEpub as openEpubBytes } from "./epub.js";
 import data from "./soul-sea/shadow-slave.json";
-import { h, svg, ICON, WIDE } from "./dom.js";
+import { h, svg, ICON } from "./dom.js";
 import { books, seriesById } from "./state.js";
 import { displayTitle } from "./reading.js";
 import { parseChapterLabel } from "./lib/text.js";
@@ -241,11 +241,14 @@ export function openSoulSea(point) {
   });
 }
 
-// On a phone the panel is a pushed screen (Back); on a wide screen a side panel (Close).
+// A quick look over the page, not a level deeper: closed with an ✕ at the top
+// right, under the thumb that just tapped the Soul Sea button (same corner of
+// the top bar). Full screen on a phone, a side panel on wide screens; Back
+// closes it too.
 function header(context) {
-  const close = h("button", { class: "ch-bar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(WIDE.matches ? ICON.close : ICON.back));
+  const close = h("button", { class: "ch-bar__icon", "aria-label": "Close", onclick: () => closeOverlay() }, svg(ICON.close));
   const titles = h("div", { class: "ch-bar__titles" }, h("div", { class: "ch-bar__title" }, "Soul Sea"), context ? h("div", { class: "ch-bar__context" }, context) : null);
-  return h("div", { class: "ch-bar soulsea__bar" }, ...(WIDE.matches ? [titles, close] : [close, titles]));
+  return h("div", { class: "ch-bar soulsea__bar" }, titles, close);
 }
 
 // "Shadow Cores: [5/7]" → Shadow Cores · 5 / 7. The book also says it in words once

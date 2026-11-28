@@ -66,6 +66,31 @@ test.describe("reader", () => {
     await expect(badge.locator("[stroke-dasharray]")).toHaveCount(0);
   });
 
+  test("the Soul Sea closes from the corner it opened from", async ({ page }) => {
+    await openApp(page);
+    await importBook(page, "shadow-slave.epub", "Shadow Slave");
+    await startReading(page, "Shadow Slave");
+    const open = page.locator("#btn-soulsea");
+    await open.click();
+    const panel = page.locator(".soulsea");
+    await expect(panel).toBeVisible();
+    // An ✕ at the top right, on the Soul Sea button's side of the screen.
+    const close = panel.getByRole("button", { name: "Close" });
+    const [btn, x, vw] = [await open.boundingBox(), await close.boundingBox(), page.viewportSize().width];
+    expect(btn.x + btn.width / 2).toBeGreaterThan(vw / 2);
+    expect(x.x + x.width / 2).toBeGreaterThan(vw / 2);
+    expect(x.y).toBeLessThan(80);
+    await close.click();
+    await expect(panel).toBeHidden();
+    await expect(page.locator("#app")).toHaveAttribute("data-route", "reader");
+    // Back closes it too, without leaving the reader.
+    await open.click();
+    await expect(panel).toBeVisible();
+    await page.goBack();
+    await expect(panel).toBeHidden();
+    await expect(page.locator("#app")).toHaveAttribute("data-route", "reader");
+  });
+
   test("steps through chapters: end card, next and previous", async ({ page }) => {
     await openApp(page);
     await importBook(page, "long.epub", "Long Road");
