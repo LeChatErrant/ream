@@ -275,10 +275,10 @@ test.describe("reader", () => {
     await expect(cont).toContainText("Chapter 3");
     await expect(link).toHaveText(/Furthest read\s*Ch\. 8/);
 
-    // The info page continues ch. 3; the chapters list marks ch. 8 as furthest.
+    // The info page and the chapters list say the same.
     await tile(page, "Long Road").locator(".tile__cover").click();
     await expect(page.locator(".info-actions__continue")).toHaveText("Continue ch. 3");
-    // (The details table stays plain: the way back lives on the Continue card.)
+    await expect(page.locator(".info-furthest__link")).toHaveText(/Furthest · ch\. 8/);
     await expect(page.locator(".info-table")).not.toContainText("Furthest");
     await page.locator(".cprev__seeall").click();
     await expect(page.locator(".ch-row--furthest")).toContainText(/Furthest · \d+ % through/);

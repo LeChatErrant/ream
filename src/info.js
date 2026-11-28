@@ -18,7 +18,7 @@ import {
   volumeNumber, absChapterNum, volumeFirstAbs, wordsRead, seriesWordsRead, seriesPercent, isRereading,
   furthestLink, furthestLabel,
 } from "./reading.js";
-import { FURTHEST_KEY, furthestValue, openFurthest } from "./furthest.js";
+import { FURTHEST_KEY, furthestValue, openFurthest, furthestButton } from "./furthest.js";
 import { openBook } from "./reader.js";
 import { go, currentInfo, selectedVolumeId, setSelectedVolumeId, armOverlay, closeOverlay, renderCurrentRoute } from "./router.js";
 import { showActionSheet, showConfirmSheet } from "./sheets.js";
@@ -187,6 +187,10 @@ export function renderInfo(kind, id, { keepScroll = false } = {}) {
       )
     )
   );
+
+  // Re-reading (or peeking back): ⚑ back to the furthest chapter reached.
+  const f = ci.target && furthestLink(m.kind === "series" ? m.volumes : [m.book], ci.target);
+  if (f) top.append(h("div", { class: "info-furthest" }, furthestButton(f, "info-furthest__link")));
 
   // Subject chips.
   if (m.subjects.length) {
